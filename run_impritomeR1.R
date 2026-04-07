@@ -38,7 +38,6 @@ option_list <- list(
                 2 - calculate IDS, Angle and PlotPolar 
                 3 - perform global survey at chromosome level and PlotPolar for single sample
                 31 - perform global survey at chromosome level and PlotPolar for cohort
-                4 - generate 3x3 NineSquare plot
                 5 - Beeplot_chr_vs_other_single & BetaBeePlot_single_chr
                 51 - PlotRidgeline_chr_origin for cohort
                 6 - PlotRainFall 
@@ -56,15 +55,15 @@ parser <- OptionParser(usage="%prog -i <input.txt> -m <meta.txt> -o <outPrefix>"
                 epilogue =paste( "Examples:",
                 " i=QC.Raw/CAB_7205_beta.txt",
                 " m=CAB.7205_sampleInfo.txt",
-                " run_impritomeR2.R -i $i -m $m -o imprintomeR/CAB_7025 -p classifier2 -s 0", 
-                " run_impritomeR2.R -i $i -m $m -o imprintomeR/CAB_7025 -p NanoImprint", 
-                " run_impritomeR2.R -i $i -m $m -o imprintomeR/CAB_7025 -p chr11p15", 
-                " run_impritomeR2.R -i $i -m $m -o imprintomeR/CAB_7025 -p classifier2 -s 5 -c chr5",                 
-                " run_impritomeR2.R -i $i -m $m -o imprintomeR/CAB_7025 -p classifier2 -s 51 ", 
+                " run_impritomeR1.R -i $i -m $m -o imprintomeR/CAB_7025 -p classifier2 -s 0", 
+                " run_impritomeR1.R -i $i -m $m -o imprintomeR/CAB_7025 -p NanoImprint", 
+                " run_impritomeR1.R -i $i -m $m -o imprintomeR/CAB_7025 -p chr11p15", 
+                " run_impritomeR1.R -i $i -m $m -o imprintomeR/CAB_7025 -p classifier2 -s 5 -c chr5",                 
+                " run_impritomeR1.R -i $i -m $m -o imprintomeR/CAB_7025 -p classifier2 -s 51 ", 
                 " r=/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/ICR/regions14_hg19_sort.bed",
-                " run_impritomeR2.R -i $i -m $m -o CAB_7025 -r $r -s 8",
-                " run_impritomeR2.R -i $b -m $m -o Clay2019_Court_beewarm -r Court -s 8",
-                " run_impritomeR2.R -i $b -m $m -o Clay2019_Rosenski_beewarm -r Rosenski -s 8",
+                " run_impritomeR1.R -i $i -m $m -o CAB_7025 -r $r -s 8",
+                " run_impritomeR1.R -i $b -m $m -o Clay2019_Court_beewarm -r Court -s 8",
+                " run_impritomeR1.R -i $b -m $m -o Clay2019_Rosenski_beewarm -r Rosenski -s 8",
                 "\n ", sep="\n"))
 args<-NA
 result<-tryCatch({
@@ -80,12 +79,53 @@ if (any(is.na(args))|| any(is.na(opt)) ) {
     quit("no")
 }
 ################################################
-source("/home/hjin/projects/imprintomeR1/R/utilities2.R")
+.get_script_dir <- function() {
+    cmd_args <- commandArgs(trailingOnly = FALSE)
+    file_arg <- grep("^--file=", cmd_args, value = TRUE)
+    if (length(file_arg) > 0) {
+        return(dirname(normalizePath(sub("^--file=", "", file_arg[1]), winslash = "/", mustWork = TRUE)))
+    }
+    this_file <- tryCatch(sys.frame(1)$ofile, error = function(e) NULL)
+    if (!is.null(this_file) && nzchar(this_file)) {
+        return(dirname(normalizePath(this_file, winslash = "/", mustWork = TRUE)))
+    }
+    normalizePath(getwd(), winslash = "/", mustWork = TRUE)
+}
+
+.load_imprintomer_modules <- function(base_dir) {
+    module_files <- c(
+        "module_utilities.R",
+        "module_io.R",
+        "module_probeset.R",
+        "module_aggregation.R",
+        "module_scoring.R",
+        "module_plotting.R"
+    )
+    for (mf in module_files) {
+        fpath <- file.path(base_dir, "R", mf)
+        if (!file.exists(fpath)) {
+            stop(paste0("Required module not found: ", fpath))
+        }
+        source(fpath)
+    }
+}
+
+.script_dir <- .get_script_dir()
+.load_imprintomer_modules(.script_dir)
 betaFile <- normalizePath(opt$input) 
 metaFile <- normalizePath(opt$metaData)
 icrFile <- opt$ICRs
 if(!is.null(icrFile)){
-    icrFile <- ICR_Filepath(icrFile)
+    ICR_DIR <- "/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/ICR/"
+    clean_input <- toupper(basename(icrFile))
+    icrFile <- dplyr::case_when(
+        clean_input %in% c("NANOIMPRINT") ~ paste0(ICR_DIR, "regions14_hg19_sort.bed"),
+        clean_input %in% c("JOSHI") ~ paste0(ICR_DIR, "Joshi_mmc6_simple_merged_d2k.bed"),
+        clean_input %in% c("COURT") ~ paste0(ICR_DIR, "Court_WGBS.ICR.hg19_simple.bed"),
+        clean_input %in% c("ROSENSKI") ~ paste0(ICR_DIR, "Rosenski_Atlas_hg19_n81.bed"),
+        TRUE ~ icrFile
+    )
+    icrFile <- normalizePath(icrFile)
 }
 
 
@@ -222,10 +262,7 @@ if( 31 %in% steps){
     cat("\n",basename(pdfFile3),"[saved]")   
 }
 
-if( 4 %in% steps){
-    cat("\nstep4. 3x3 nine square plot [removed]\n")
-    cat("\nINFO: VizNineSquares/VizNineSquaresChr11 were removed and step4 is skipped.\n")
-}   
+ 
 if( 5 %in% steps){
     cat("\nstep5. Beeplot_chr_vs_other_single\n")     
     input <- LoadMetaBeta(metaFile, betaFile, probeset = NULL)
