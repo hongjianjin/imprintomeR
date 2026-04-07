@@ -1,12 +1,59 @@
 Package: imprintomeR
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Type: Package
+Title: Quantitative Analysis and Visualization of Genomic Imprinting from DNA Methylation Arrays
+Version: 0.1.0
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    person(
+        given = "Hongjian",
+        family = "Jin",
+        role = c("aut", "cre"),
+        email = "hongjian.jin@stjude.org"
+    )
+Description: 
+    imprintomeR provides a framework for quantitative analysis of genomic imprinting 
+    using DNA methylation array data (Illumina 450K and EPIC platforms). The package 
+    implements a continuous coordinate-based model to characterize imprinting states 
+    using allele-aware methylation summaries. It supports probe-level, locus-level, 
+    and cohort-level analysis, and includes visualization tools such as beeswarm plots, 
+    mirror density plots, radar fingerprints, polar coordinate plots, and annotated heatmaps. 
+    The package enables detection of imprinting deviations, directional mechanisms, 
+    and epigenetic instability across samples.
+
+License: MIT + file LICENSE
 Encoding: UTF-8
+LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
+
+Depends: 
+    R (>= 4.2)
+
+Imports:
+    ggplot2,
+    dplyr,
+    tidyr,
+    data.table,
+    matrixStats,
+    ComplexHeatmap,
+    circlize,
+    pheatmap,
+    reshape2,
+    ggbeeswarm,
+    ggrepel,
+    Rtsne,
+    openxlsx,
+    grid,
+    stats,
+    utils
+
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    patchwork,
+    cowplot
+
+Config/testthat/edition: 3
+
+URL: https://github.com/hongjianjin/imprintomeR
+BugReports: https://github.com/hongjianjin/imprintomeR/issues

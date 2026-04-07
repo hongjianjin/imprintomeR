@@ -1,3 +1,7 @@
+
 *.tmp
 *.temp
 *.log
+*.rds
+*.txt
+
