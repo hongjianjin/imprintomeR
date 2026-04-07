@@ -1,6 +1,12 @@
-﻿# Auto-refactored from utilities2.R
+# Auto-refactored from utilities2.R
 # Module: io
 
+#' Check Whether an Excel Sheet Exists
+#'
+#' @param xlsxFile Path to an `.xlsx` workbook.
+#' @param sheetName Sheet name to test.
+#'
+#' @return Logical; `TRUE` if the sheet exists, otherwise `FALSE`.
 CheckSheetName <-function(xlsxFile, sheetName){
     # check if a sheetName does exist in xlsxFile
     if (! file.exists(xlsxFile)) {
@@ -19,6 +25,19 @@ CheckSheetName <-function(xlsxFile, sheetName){
 #-----------------------------------------------------
 ######################################################
 
+#' Save a Table to an Excel Workbook
+#'
+#' Writes a data frame-like object to an `.xlsx` sheet using `openxlsx`.
+#'
+#' @param dat Data frame or matrix to write.
+#' @param sheetName Optional worksheet name. Defaults to `"sheet1"`.
+#' @param file Output workbook path.
+#' @param append Logical; append/update existing workbook when `TRUE`.
+#' @param colNames Logical; write column names.
+#' @param rowNames Logical; write row names.
+#' @param autoColWidth Logical; auto-fit column widths.
+#'
+#' @return Invisible side-effect function; writes workbook to disk.
 SaveTable <- function(dat, sheetName = NULL, file = NULL, append = FALSE, colNames = T, rowNames = T, autoColWidth = TRUE) {
   if (any(length(dat)==0)){
      cat("\n\tError: Empty input for [SaveTable].")
@@ -78,6 +97,16 @@ SaveTable <- function(dat, sheetName = NULL, file = NULL, append = FALSE, colNam
 
 #-----------------------------------------------------
 
+#' Load a Table from XLSX or Tab-Delimited Text
+#'
+#' @param xlsxFile Input file path (`.xlsx` or text table).
+#' @param sheet Sheet index/name for Excel input.
+#' @param skipEmptyRows Passed to `openxlsx::read.xlsx`.
+#' @param colNames Logical; table has column names.
+#' @param rowNames Logical; treat first column as row names for Excel mode.
+#' @param startRow First row to read for Excel mode.
+#'
+#' @return A data frame.
 LoadTable<-function(xlsxFile = xlsxFile, sheet=1, skipEmptyRows = FALSE, colNames = TRUE, rowNames=FALSE, startRow = 1){
     if (! grepl(".xls", basename(xlsxFile), ignore.case=T)){
         cat("\nYour input is not xlsx format.\n")
@@ -91,6 +120,11 @@ LoadTable<-function(xlsxFile = xlsxFile, sheet=1, skipEmptyRows = FALSE, colName
 
 ######################################################
 
+#' Validate Illumina Sentrix IDs
+#'
+#' @param ids Character vector of Sentrix IDs.
+#'
+#' @return Logical vector indicating valid IDs.
 CheckSentrixID <- function(ids) {
   # probably not useful, if no QC step is implemented.
   res1 <- grepl("^[0-9]{12}_R[0-9]{2}C[0-9]{2}$", ids)
@@ -112,11 +146,21 @@ CheckSentrixID <- function(ids) {
 
 ##################################################################
 
+#' Check Probe ID Format
+#'
+#' @param ids Character vector of probe IDs.
+#'
+#' @return Logical vector; `TRUE` for IDs matching `cg########`.
 CheckProbeIDs <- function(ids) {
   grepl("cg[0-9]{8}", ids)
 }
 # =====================================================
 
+#' Detect Presence of Header in Probe List File
+#'
+#' @param file_path Input text file path.
+#'
+#' @return Logical; `TRUE` when a header line is detected.
 CheckHeader <- function(file_path) {
   first_line <- readLines(file_path, n = 1)
   has_header <- !grepl("^cg[0-9]{8}", first_line) # if line#1 doesn't start with probeId, probeIdListFile has header line
@@ -124,6 +168,14 @@ CheckHeader <- function(file_path) {
 }
 # =====================================================
 
+#' Parse, Sort, and Normalize BED File
+#'
+#' Ensures `chr` prefix, sorts by genomic coordinates, writes a sorted BED copy,
+#' and returns BED regions as `chr:start-end` strings.
+#'
+#' @param bedFile Path to BED file.
+#'
+#' @return Character vector of BED regions.
 ParseBedFile <- function(bedFile) {
    # add chr; sort coordinates
    # save updated bed file
@@ -144,6 +196,14 @@ ParseBedFile <- function(bedFile) {
 #================================================================
 #================================================================
 
+#' Parse BED File with Optional Annotation Columns
+#'
+#' Parses BED-like input, normalizes coordinates, drops duplicate/invalid rows,
+#' and returns both BED coordinates and optional trailing annotation columns.
+#'
+#' @param bedFile Path to BED file.
+#'
+#' @return A list with `bed` (3-column data frame) and `anno` (optional data frame).
 ParseBedFile2 <- function(bedFile) {
    # add chr; sort coordinates
    # save updated bed file
@@ -171,6 +231,11 @@ ParseBedFile2 <- function(bedFile) {
   return(list(bed=beds, anno=anno))
 }
 
+#' Import BED as Genomic Ranges
+#'
+#' @param bedFile Path to BED file.
+#'
+#' @return A `GRanges` object.
 Bed2Granges <- function(bedFile) {
   suppressMessages(suppressWarnings(library(rtracklayer)))
   import(bedFile, format = "BED")
@@ -179,6 +244,13 @@ Bed2Granges <- function(bedFile) {
 
 # ================================================================
 
+#' Find Matching Column Index/Indices
+#'
+#' @param df Data frame to query.
+#' @param columns Character vector of candidate column names.
+#' @param ignore.case Logical; case-insensitive matching when `TRUE`.
+#'
+#' @return Integer vector of matching indices or `NULL` if none matched.
 idx_matching_column <- function(df, columns, ignore.case = T) {
   # Define the target column names you're looking for
   target_columns <- columns
@@ -197,6 +269,14 @@ idx_matching_column <- function(df, columns, ignore.case = T) {
 }
 ##################################################################
 
+#' Load and Standardize Metadata Table
+#'
+#' Accepts either a metadata data frame or path to a tab-delimited metadata file.
+#' Standardizes key columns to upper-case names and validates required fields.
+#'
+#' @param input Data frame or file path.
+#'
+#' @return Standardized metadata data frame with `SAMPLE_NAME` row names.
 LoadMeta <- function(input) {
   if (is.data.frame(input)) {
     meta <- input
@@ -232,6 +312,14 @@ LoadMeta <- function(input) {
 
 ##################################################################
 
+#' Load and Standardize Beta Matrix
+#'
+#' Accepts beta input as data frame, `.rds`, or tab-delimited text. Normalizes
+#' row IDs and handles optional `.Ave_Beta` sample suffixes.
+#'
+#' @param input Data frame or file path.
+#'
+#' @return Beta matrix/data frame with probe IDs as row names.
 LoadBeta <- function(input) {
   suppressMessages(suppressWarnings(library(data.table)))
   if (is.data.frame(input)) {
@@ -267,6 +355,16 @@ probeset_options <- c("classifier2","classifier3","selected","chr11p15","signatu
 
 ##################################################################
 
+#' Load Matched Metadata and Beta Matrix
+#'
+#' Loads metadata and beta tables, keeps only intersecting samples, and
+#' optionally subsets probes by named probeset.
+#'
+#' @param metaFile Metadata data frame or file path.
+#' @param betaFile Beta matrix/data frame or file path.
+#' @param probeset Optional probeset name passed to `SubsetBeta_By_Probeset`.
+#'
+#' @return A list with `meta`, `beta`, and `probesets`.
 LoadMetaBeta <- function(metaFile, betaFile, probeset = NULL) {
   # if not all sampleIDs in meta and beta, subset or only keep matched ones.
   meta <- LoadMeta(metaFile)

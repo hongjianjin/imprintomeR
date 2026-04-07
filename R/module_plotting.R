@@ -1,5 +1,45 @@
-﻿# Auto-refactored from utilities2.R
+# Auto-refactored from utilities2.R
 # Module: plotting
+
+#' Internal Color Mapping for Allelic Origin
+#'
+#' Defines a stable maternal/paternal/reference color mapping for ggplot
+#' visualizations in imprintomeR.
+#'
+#' @return Named character vector with `maternal`, `paternal`, and `reference`.
+.imprint_origin_colors <- function() {
+  c(
+    maternal = "#E69F00",
+    paternal = "#56B4E9",
+    reference = "#666666"
+  )
+}
+
+
+#' Save Plot Conditionally and Return Plot Object
+#'
+#' Internal helper to standardize optional file saving while always returning
+#' the plot object.
+#'
+#' @param plot_obj A ggplot object.
+#' @param outFile Optional output file path. If `NULL`, nothing is written.
+#' @param width,height Optional numeric width/height in inches.
+#' @param units Units passed to `ggsave`.
+#' @param limitsize Passed to `ggsave`.
+#'
+#' @return The input `plot_obj`.
+.imprint_save_plot <- function(plot_obj, outFile = NULL, width = NULL, height = NULL,
+                               units = "in", limitsize = TRUE) {
+  if (!is.null(outFile)) {
+    if (is.null(width) || is.null(height)) {
+      ggsave(file = outFile, plot = plot_obj, units = units, limitsize = limitsize)
+    } else {
+      ggsave(file = outFile, plot = plot_obj, width = width, height = height, units = units, limitsize = limitsize)
+    }
+    cat("\n\t", basename(outFile), "[saved]")
+  }
+  plot_obj
+}
 
 PlotCorHeatmap <- function(betaFile, metaFile, SAMPLEID="SAMPLE_NAME", prefix=NULL){
   library(pheatmap)
@@ -124,8 +164,19 @@ ComputePCA  <- function(df, meta, scale=T, topn = 3000,varMethod="mad",groupColu
     stop ("[ComputePCA] INFO: Invalid metadata file!\n")
   }
   meta <- meta[keptSamples, ]
-  dat <- df[, keptSamples]
-  used <-  Select_Top_Features(dat, method = tolower(varMethod), topn = topn) 
+  dat <- data.matrix(df[, keptSamples, drop = FALSE])
+  row_has_finite <- apply(dat, 1, function(x) any(is.finite(x)))
+  row_all_finite <- apply(dat, 1, function(x) all(is.finite(x)))
+  dat <- dat[row_has_finite & row_all_finite, , drop = FALSE]
+  if (nrow(dat) == 0) {
+    stop("[ComputePCA] ERROR: no finite features available after filtering NA/Inf rows.")
+  }
+
+  used <- Select_Top_Features(dat, method = tolower(varMethod), topn = topn)
+  used <- used[apply(used, 1, function(x) all(is.finite(x))), , drop = FALSE]
+  if (nrow(used) == 0) {
+    stop("[ComputePCA] ERROR: no valid features selected for PCA after filtering.")
+  }
   pcs <- prcomp(t(used), center = TRUE, scale = scale) 
   pctVar <- round(((pcs$sdev)^2 / sum((pcs$sdev)^2) * 100), 2)
   tmp <- as.data.frame(pcs$x)
@@ -410,6 +461,15 @@ Meth_TSNE_Adv <- function(dat,meta=NULL, ShapeColumn=NULL,IdColumn='SAMPLE_NAME'
 
 ##################################################################
 
+#' Violin Plot of Methylation Distributions by Sample
+#'
+#' @param beta Numeric beta matrix with probes as rows and samples as columns.
+#' @param meta Sample metadata containing `SAMPLE_NAME` and grouping columns.
+#' @param SAMPLEID Metadata column used as x-axis sample label.
+#' @param outFile Optional output file path.
+#' @param alpha Violin alpha.
+#'
+#' @return A ggplot object.
 BetaVlnPlot <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NULL, alpha = 1) {
   suppressMessages(suppressWarnings(library(ggplot2)))
   options(ggplot2.verbose = FALSE)
@@ -441,9 +501,10 @@ BetaVlnPlot <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NULL, al
 
   cat("\n generate violin plot ...\n")
   pg <- ggplot(used, aes(x = ID, y = value), alpha = alpha) +
+    geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
     geom_violin(aes(x = ID, y = value, fill = GROUP), trim = FALSE) +
     theme_classic(base_size = 10) +
-    labs(y = "methylation level", x = "ID") +
+    labs(y = "Methylation (β)", x = "ID") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
     scale_fill_manual(
       name = "GROUP",
@@ -459,12 +520,11 @@ BetaVlnPlot <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NULL, al
   if (!is.null(outFile)) {
     if (ncol(beta) > 20) {
       imgWidth <- 10 + ncol(beta) / 5
-      ggsave(file = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = F)
+      .imprint_save_plot(pg, outFile = outFile, width = imgWidth, height = imgHeight, units = "in", limitsize = FALSE)
     } else {
       imgWidth <- 10 + ncol(beta) / 10
-      ggsave(file = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = T)
+      .imprint_save_plot(pg, outFile = outFile, width = imgWidth, height = imgHeight, units = "in", limitsize = TRUE)
     }
-    cat("\n\t", basename(outFile), "[saved]")
   }
   options(ggplot2.verbose = TRUE)
   return(pg)
@@ -473,7 +533,20 @@ BetaVlnPlot <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NULL, al
 
 ##################################################################
 
-BetaBeePlot <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NULL, alpha = 1, orderByGroup=FALSE, ylab="methylation level", xlab="ID", legend=TRUE) {
+#' Beeswarm Plot of Methylation by Sample
+#'
+#' @param beta Numeric beta matrix with probes as rows and samples as columns.
+#' @param meta Sample metadata containing `SAMPLE_NAME` and grouping columns.
+#' @param SAMPLEID Metadata column used as x-axis sample label.
+#' @param outFile Optional output file path.
+#' @param alpha Point alpha.
+#' @param orderByGroup Logical; whether to order samples by group.
+#' @param ylab Y-axis label.
+#' @param xlab X-axis label.
+#' @param legend Logical; include legend page in saved output.
+#'
+#' @return A patchwork/ggplot object.
+BetaBeePlot <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NULL, alpha = 1, orderByGroup=FALSE, ylab="Methylation (β)", xlab="ID", legend=TRUE) {
   # https://r-charts.com/distribution/ggbeeswarm/
   suppressMessages(suppressWarnings(library(ggplot2)))
   suppressMessages(suppressWarnings(library("ggbeeswarm")))
@@ -516,6 +589,7 @@ BetaBeePlot <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NULL, al
   uniqComb <- data.frame(GROUP = unique(meta$SAMPLE_GROUP), COLOR = uniqCols)
   cat("\n generate dotplot ...\n")
   pg <- ggplot(used, aes(x = ID, y = value, color = GROUP), alpha = alpha) +
+    geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
     geom_quasirandom(cex = dotSize) +
     theme_classic(base_size = 10) +
     labs(y = ylab, x = xlab) +
@@ -634,6 +708,17 @@ BetaBeePlot_SNP <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NULL
 }
 #================================================================
 
+#' Beeswarm Plot for a Single Chromosome by Origin
+#'
+#' @param beta Numeric beta matrix with probes as rows and samples as columns.
+#' @param meta Sample metadata containing `SAMPLE_NAME` and grouping columns.
+#' @param SAMPLEID Metadata column used as x-axis sample label.
+#' @param outFile Optional output file path.
+#' @param alpha Point alpha.
+#' @param chr Chromosome label (e.g., `chr11`).
+#' @param probeset Probeset name used for annotation lookup.
+#'
+#' @return A ggplot object.
 BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NULL, alpha = 0.5,chr="chr11", probeset='chr11p15') {
   # to be done
   # https://r-charts.com/distribution/ggbeeswarm/
@@ -641,7 +726,7 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile
   suppressMessages(suppressWarnings(library("ggbeeswarm")))
   suppressMessages(suppressWarnings(library("reshape2")))
   if(!is.null(probeset)){
-    probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+    probesets <- readRDS("inst/extdata/probesets_hg19.rds")
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
@@ -660,7 +745,7 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile
   }else{
     version <- "HG19"
     # load aggregated annotation object
-    probes.all <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/anno.uniq_harmonized.liftover.rds")
+    probes.all <- readRDS("inst/extdata/anno.uniq_harmonized.liftover.rds")
     chr_colname <- paste0("CHR_", toupper(version))
     mapinfo <- paste0("MAPINFO_", toupper(version))
     anno <- probes.all[probes.all$NAME %in% rownames(beta), c(chr_colname, mapinfo, "UCSC_REFGENE_NAME")]
@@ -712,10 +797,12 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile
   }
   cat("\n generate dotplot ...\n")
   pg <- ggplot(used, aes(x = ID, y = value, color = CATEGORY)) +
+    geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
     geom_quasirandom(cex = dotSize,alpha = alpha) +
     theme_classic(base_size = 10) +
-    labs(y = "methylation level", x = "ID", subtitle=paste0(probeset,":", chr) ) +
+    labs(y = "Methylation (β)", x = "ID", subtitle=paste0(probeset,":", chr) ) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+    scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
     scale_x_discrete(limits = orderedIDs) #  specify order on the X axis
   imgHeight <- 5 + max(nchar(meta$SAMPLEID)) / 20
   num_groups <- length(unique(used$CATEGORY))
@@ -758,13 +845,26 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile
 
 #================================================================
 
+#' Beeswarm Plot Split by Probe Category/Origin
+#'
+#' @param beta Numeric beta matrix with probes as rows and samples as columns.
+#' @param meta Sample metadata containing `SAMPLE_NAME` and grouping columns.
+#' @param SAMPLEID Metadata column used as x-axis sample label.
+#' @param outFile Optional output file path.
+#' @param alpha Point alpha.
+#' @param probesets Optional annotation object.
+#' @param useNA Logical; keep NA category values.
+#' @param width,height Optional image dimensions for saving.
+#' @param group Annotation column used to define categories.
+#'
+#' @return A ggplot object.
 BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NULL, alpha = 0.5,probesets=NULL, useNA=FALSE, width=NULL, height=NULL, group="ORIGIN") {
   # https://r-charts.com/distribution/ggbeeswarm/
   suppressMessages(suppressWarnings(library(ggplot2)))
   suppressMessages(suppressWarnings(library("ggbeeswarm")))
   suppressMessages(suppressWarnings(library("reshape2")))
   if(!is.null(probeset)){
-    probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+    probesets <- readRDS("inst/extdata/probesets_hg19.rds")
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
@@ -784,7 +884,7 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NU
     version <- "HG19"
     # load aggregated annotation object
     if (is.null(probes.all)) {
-      probes.all <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/anno.uniq_harmonized.liftover.rds")
+      probes.all <- readRDS("inst/extdata/anno.uniq_harmonized.liftover.rds")
     }
     chr <- paste0("CHR_", toupper(version))
     mapinfo <- paste0("MAPINFO_", toupper(version))
@@ -833,6 +933,7 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NU
       
 
         pg_sep <- ggplot(used, aes(x = 1, y = value, color = CATEGORY)) +
+          geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
           geom_quasirandom(cex = dotSize,alpha = alpha, width = 0.3) +
           stat_summary(fun = median, geom = "errorbar", aes(ymin = after_stat(y), ymax = after_stat(y)), 
           width = 0.5, linewidth = 0.7, color="grey30") + 
@@ -840,7 +941,8 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NU
           theme_classic(base_size = 10) +
           theme(axis.text.x = element_blank(),axis.ticks.x = element_blank(),
           panel.border = element_rect(color = "grey20", fill = NA, linewidth = 0.5)) +
-          labs(y = "methylation level", x = "GROUP", title=newIDs) +
+          labs(y = "Methylation (β)", x = "GROUP", title=newIDs) +
+          scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
           theme(legend.position = "none")
 
         pg_sep_style0 <- ggplot(used, aes(x = CATEGORY, y = value, color = CATEGORY)) +
@@ -862,10 +964,12 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NU
   }else{
     cat("\n generate dotplot [cohort]...\n")
       pg <- ggplot(used, aes(x = ID, y = value, color = CATEGORY)) +
+        geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
         geom_quasirandom(cex = dotSize,alpha = alpha) +
         theme_classic(base_size = 10) +
         facet_wrap(~CATEGORY, scales = "free_x") +
-        labs(y = "methylation level", x = "ID") +
+        labs(y = "Methylation (β)", x = "ID") +
+        scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
               # Optional: hide the legend since the facet labels now show the category
               legend.position = "none")
@@ -938,7 +1042,7 @@ BetaBeeswarm_chr <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NUL
   # prepare chromosome
   beta <- as.data.frame(beta)
   if(!is.null(probesets)){
-    probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+    probesets <- readRDS("inst/extdata/probesets_hg19.rds")
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
@@ -951,7 +1055,7 @@ BetaBeeswarm_chr <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NUL
   }else{
     version <- "HG19"
     # load aggregated annotation object
-    probes.all <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/anno.uniq_harmonized.liftover.rds")
+    probes.all <- readRDS("inst/extdata/anno.uniq_harmonized.liftover.rds")
     chr <- paste0("CHR_", toupper(version))
     mapinfo <- paste0("MAPINFO_", toupper(version))
     anno <- probes.all[probes.all$NAME %in% rownames(beta), c(chr, mapinfo, "UCSC_REFGENE_NAME")]
@@ -1032,7 +1136,7 @@ BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile
   #================================================================
   # prepare chromosome
   if(!is.null(probeset)){
-    probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+    probesets <- readRDS("inst/extdata/probesets_hg19.rds")
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
@@ -1052,7 +1156,7 @@ BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile
     version <- "HG19"
     # load aggregated annotation object
     if (is.null(probes.all)) {
-      probes.all <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/anno.uniq_harmonized.liftover.rds")
+      probes.all <- readRDS("inst/extdata/anno.uniq_harmonized.liftover.rds")
     }
     chr <- paste0("CHR_", toupper(version))
     mapinfo <- paste0("MAPINFO_", toupper(version))
@@ -1344,7 +1448,7 @@ BetaCircularHeatmap <- function(beta, meta, probes.all = NULL,probeset=NULL, ver
   beta <- beta[, commonIDs]
   meta <- meta[commonIDs, ]
   if(!is.null(probeset)){
-    probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+    probesets <- readRDS("inst/extdata/probesets_hg19.rds")
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
@@ -1357,7 +1461,7 @@ BetaCircularHeatmap <- function(beta, meta, probes.all = NULL,probeset=NULL, ver
   }else{
     # load aggregated annotation object
     if (is.null(probes.all)) {
-      probes.all <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/anno.uniq_harmonized.liftover.rds")
+      probes.all <- readRDS("inst/extdata/anno.uniq_harmonized.liftover.rds")
     }
     chr <- paste0("CHR_", toupper(version))
     mapinfo <- paste0("MAPINFO_", toupper(version))
@@ -1462,332 +1566,22 @@ VennDiagram <- function(vennList,setNames=NULL, style="venn", prefix=NULL){
 
 #================================================================
 
-VizNineSquaresChr11 <- function(datFile, metaFile, outFile=NA,title="chr11.p15 classifier",ggside="density", splitside="group"){
-tmp <- VizNineSquares(datFile, metaFile, 
-  ShapeColumn="chr11p15", IdColumn='SAMPLE_NAME', groupColumn='SAMPLE_GROUP', ColorColumn="COLOR",
-  X="X", Y="Y",  xlab="IC1_mean", ylab="IC2_mean",
-  xlims=c(0,1) ,ylims=c(0,1), hlines=c(0.3,0.7), vlines=c(0.3,0.7),  
-  outFile=outFile, label=F, title=title,palette="Default",alpha=0.6,dotSize=NULL, ggside="density", splitside="group")
-
-}
-
-VizNineSquares  <- function(datFile, metaFile, 
-  ShapeColumn="imprintome_status", IdColumn='SAMPLE_NAME', groupColumn='SAMPLE_GROUP', ColorColumn="COLOR", 
-  X="paternal_median", Y="maternal_median",  xlab="paternal_median", ylab="maternal_median",
-  xlims=c(0,1) ,ylims=c(0,1), hlines=c(0.3,0.7), vlines=c(0.3,0.7),  
-  
-  outFile=NA, label=F, title=NULL,palette="Default",alpha=0.6,dotSize=NULL, ggside="density", splitside="group"){
-  # ggside: density or boxplot
-  # splitside : group; overall; both; available only if ggside=density.
-  library(ggplot2)
-  library(ggrepel)
-  suppressMessages(suppressWarnings(library(ggside)))
-  
-  
-  options(bitmapType = "cairo")
-  #-----------------------------------------------
-   if(class(datFile) != "data.frame"){
-    if(! file.exists(datFile)){
-        cat(paste0('\nERROR: File not found.\n\t',datFile,"\n"))
-        q('no')
-    }
-    dat <- read.table(datFile, sep="\t",header=TRUE,fill=TRUE,stringsAsFactors = FALSE, as.is=TRUE,row.names=NULL ,check.names=FALSE ,comment.char = "")
-   }else{
-    dat <- datFile
-   }
-  cat("\ndata dim:",nrow(dat)," rows x",ncol(dat),"cols")
-  if(class(metaFile) != "data.frame"){
-    if(! file.exists(metaFile)){
-        cat(paste0('\nERROR: File not found.\n\t',metaFile,"\n"))
-        q('no')
-    } 
-    meta <- LoadMeta(metaFile) 
-    #read.table(metaFile, sep="\t",header=TRUE,fill=TRUE,stringsAsFactors = FALSE, as.is=TRUE,row.names=NULL ,check.names=FALSE ,comment.char = "")
-  }else{
-    meta <- metaFile
-  }  
-  meta <- Check_Meta_Color(meta, groupColumn)
-  #colnames(meta)<- toupper(colnames(meta))
-  cat("\nmeta dim:",nrow(meta)," rows x",ncol(meta),"cols")
-  #================================================================
-  #================================================================
-  myTitle <- title
-  #ColorColumn <- toupper(ColorColumn)
-
-  meta$GROUP <- meta[,groupColumn]
-  givenColumns <- c(ShapeColumn, IdColumn, groupColumn, X,Y)
-  givenColumns <- givenColumns[!is.null(givenColumns)]
-  if(! all(givenColumns %in% colnames(dat))){
-    cat(paste0('\nERROR: missing any given column(s) in input',paste(givenColumns,collapse=" "),"\n"))
-    q('no')
-  }
-
-
-  meta$ID <-  meta[, IdColumn]
-  if (ColorColumn != "COLOR" | palette != "default"){
-    meta$COLOR <- GetColors(palette=palette,n=length(unique(meta[,ColorColumn])))[as.integer(factor(meta[,ColorColumn],levels=unique(meta[,ColorColumn])))]
-    meta[,groupColumn]<- meta[,ColorColumn]
-  }
-
-  print(table(meta$COLOR))
-
-  commonIDs <- intersect(dat[, IdColumn],   meta$ID )
-  #commonIDs <- commonIDs[!is.na(commonIDs)]
-
-  if(length(commonIDs)==0){
-    cat(paste0('\nERROR: meta IDs do not match dat IDs.\n'))
-    q('no')
-  }else{
-    cat(paste0('\nINFO: found ',length(commonIDs),' common IDs between meta and dat.'))
-  }
-  rownames(meta) <- meta$ID
-  rownames(dat) <- dat[, IdColumn]
-  meta <- meta[commonIDs,]
-  dat <- dat[commonIDs,]
-
-  if( ShapeColumn %in% colnames(dat)){
-      cat("\nINFO: ShapeColumn in dat.", ShapeColumn,"\n") 
-      meta$SHAPE <- dat[,ShapeColumn]
-  }
-
-  #cat("\n", table(meta$COLOR))
-  if (is.null(ShapeColumn)){
-    meta$SHAPE <- "None"
-    meta$SYMBOL <- 21
-  }else{
-    if( ! ShapeColumn %in% colnames(dat)){
-      if( ! ShapeColumn %in% colnames(meta)){
-        cat("\nWarn: invalid ShapeColumn.", ShapeColumn,"\n") 
-        #print(colnames(meta))
-        meta$SHAPE <- "None"
-        meta$SYMBOL <- 21
-      }else{
-        meta$SHAPE <- meta[,ShapeColumn]
-      }
-    }   
-      meta$SHAPE[meta$SHAPE=="" | is.na(meta$SHAPE) ] <- "NA"
-      if (length(unique(meta$SHAPE)) <= 5){
-        shapes<- c(21,23,24,22,25)  # move to ReadMeta()
-      }else{
-        shapes<- c(19, 17, 15, 18, 16, 14:0)
-      }
-      if (all(!is.na(as.numeric(as.character(meta$SHAPE))))){
-        meta$SYMBOL <- meta$SHAPE
-      }else{
-        meta$SYMBOL <- shapes[as.integer(as.factor(meta$SHAPE))]
-      }
-      #print(meta[, c("SHAPE","SYMBOL")])      
-   }
-  if(is.null(dotSize)){
-    dotSize <- 5-log2(nrow(meta))/2
-  }
-  dotSize <- ifelse(dotSize<1 , 1, dotSize)
-    cat("\nused data dim:",nrow(dat)," rows x",ncol(dat),"cols")
-  cat("\nused meta dim:",nrow(meta)," rows x",ncol(meta),"cols")
-  usedCol <- intersect(c("ID","GROUP","SYMBOL","COLOR","SHAPE"),colnames(meta))
-
-  if("SHOWLABEL" %in% colnames(meta)){
-    DF<- data.frame(meta[,usedCol], X=dat[,X], Y=dat[,Y], SHOWLABEL=meta$SHOWLABEL, stringsAsFactors=FALSE)
-  }else{
-    DF<- data.frame(meta[,usedCol], X=dat[,X], Y=dat[,Y],  stringsAsFactors=FALSE)
-  }
-
-  if ("NEWNAME" %in% colnames(meta)){
-    DF <- cbind(DF, INFO=paste(meta$ID, meta$NEWNAME,meta$GROUP, meta$SHAPE,sep="\n"))
-  }else{
-    DF <- data.frame(DF, INFO=paste(meta$ID, meta$GROUP,meta$SHAPE,sep="\n"))
-  } 
-
-  if (length(unique(DF$GROUP)) !=length(unique(DF$COLOR))){ # update color
-    for(grp in unique(DF$GROUP)) {
-      DF$COLOR[DF$GROUP ==grp] <- head(DF$COLOR[DF$GROUP ==grp],n=1)
-    }
-  }
-
-  if("SHAPE" %in% colnames(meta)){
-    DF<- cbind(DF, SHAPE=meta$SHAPE, SYMBOL=meta$SYMBOL)
-    if (length(unique(DF$SHAPE)) <= 5){
-      shapes<- c(21,23,24,22,25) 
-      fill_manual_status <- TRUE
-    }else{
-      shapes<- c(19, 17, 15, 18, 16, 14:0)
-      fill_manual_status <- FALSE
-    }
-    uniqCombs <- DF[,c("COLOR","GROUP","SYMBOL","SHAPE")]
-    uniqCombs$comb <- paste(DF$COLOR,DF$GROUP,DF$SHAPE,sep="_")
-    uniqCombs <- uniqCombs[!duplicated(uniqCombs$comb), c("COLOR","GROUP","SYMBOL","SHAPE")]
-    SHAPES <- factor(DF$SHAPE, levels=unique(DF$SHAPE))
-  }else{
-    #when multiple groups use same color, need to put up all groups.
-    uniqCombs <- DF[,c("COLOR","GROUP")]
-    uniqCombs$comb <- paste(DF$COLOR,DF$GROUP,sep="_")
-    uniqCombs <- uniqCombs[!duplicated(uniqCombs$comb), c("COLOR","GROUP")]
-  }
-
-  DF$GROUP <- as.factor(DF$GROUP)
-  GROUPS <- factor(DF$GROUP, levels=unique(DF$GROUP))
-
-  #Randomize plotting order because ggplot2 draws order of points by the row order of your data frame.
-  DF <- DF[sample(nrow(DF)), ]
-  cat("\n")
-  print(uniqCombs)
-  #mutliple groups may share same shape
-  if ("SHAPE" %in% colnames(DF) ){
-    if(fill_manual_status){
-      pg <- ggplot(DF, aes(x = X, y = Y, fill=GROUP)) +
-        xlab(xlab) + ylab(ylab) +
-        geom_hline(yintercept = 0, colour = "grey70", linetype = "dashed", linewidth = 0.25) +
-        geom_vline(xintercept = 0, colour = "grey70", linetype = "dashed", linewidth = 0.25) +
-        geom_point(size = dotSize,  aes(shape=SHAPES),color="grey50",alpha=alpha)+
-        scale_fill_manual(name="Color", values=setNames(uniqCombs$COLOR, uniqCombs$GROUP)) + 
-        scale_shape_manual(name="Shape", values = setNames(uniqCombs$SYMBOL,uniqCombs$SHAPE))+
-        guides(fill=guide_legend(override.aes=list(shape=21))) + 
-        theme_bw() + theme_classic(base_size = 10) + theme(aspect.ratio=1)+
-        theme(panel.border = element_rect(colour = "grey10", fill=NA, linewidth=1.5)) +
-        theme(
-          legend.text = element_text(size = 7),
-          legend.title = element_text(size = 8, colour = "grey10", face = "bold"),
-          plot.title = element_text(size = 10),
-          axis.title = element_text(size = 10),
-          axis.text.x = element_text(size = 10, color = "grey10"),
-          axis.text.y = element_text(size = 10, color = "grey10"),
-          plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")
-        ) +
-        ggtitle(myTitle)
-    }else{
-        pg <- ggplot(DF, aes(x = X, y = Y,color=GROUP)) +
-         xlab(xlab) + ylab(ylab) +
-        geom_hline(yintercept = 0, colour = "grey70", linetype = "dashed", linewidth = 0.25) +
-        geom_vline(xintercept = 0, colour = "grey70", linetype = "dashed", linewidth = 0.25) +
-        geom_point(size = dotSize,  aes(shape=SHAPES),alpha=alpha)+ 
-        scale_color_manual(name="Color", values=setNames(uniqCombs$COLOR, uniqCombs$GROUP)) + 
-        guides(color=guide_legend(override.aes=list(shape=21))) + 
-        theme_bw() + theme_classic(base_size = 10) + theme(aspect.ratio=1)+
-        theme(panel.border = element_rect(colour = "grey10", fill=NA, linewidth=1.5)) +
-        theme(
-          legend.text = element_text(size = 7),
-          legend.title = element_text(size = 8, colour = "grey10", face = "bold"),
-          plot.title = element_text(size = 10),
-          axis.title = element_text(size = 10),
-          axis.text.x = element_text(size = 10, color = "grey10"),
-          axis.text.y = element_text(size = 10, color = "grey10"),
-          plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")
-        ) +
-        ggtitle(myTitle)
-
-    }
-  }else{
-    pg <- ggplot(DF, aes(x = X, y = Y, fill=GROUP),color=GROUP) +
-      xlab(xlab) + ylab(ylab) +
-      geom_hline(yintercept = 0, colour = "grey70", linetype = "dashed", linewidth = 0.25) +
-      geom_vline(xintercept = 0, colour = "grey70", linetype = "dashed", linewidth = 0.25) +
-      geom_point(size = dotSize, lwd = 2, alpha=0.6,shape=21) + 
-      scale_fill_manual(name="Color", values=setNames(uniqCombs$COLOR, uniqCombs$GROUP)) +
-      scale_shape_manual(name="Shape", values = setNames(uniqCombs$SYMBOL,uniqCombs$SHAPE))+ 
-      theme_bw() + theme_classic(base_size = 10) + theme(aspect.ratio=1)+
-      theme(panel.border = element_rect(colour = "grey20", fill = NA, linewidth = 1.5)) +
-      theme(
-        legend.text = element_text(size = 7),
-        legend.title = element_text(size = 8, colour = "grey10", face = "bold"),
-        plot.title = element_text(size = 10),
-        axis.title = element_text(size = 10),
-        axis.text.x = element_text(size = 10, color = "grey10"),
-        axis.text.y = element_text(size = 10, color = "grey10"),
-        plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")
-      ) +
-      ggtitle(label=myTitle)
-  }
-  if(!is.null(xlims)){
-    #xlims <-  as.numeric(unlist(strsplit(xlims, ",")))
-    pg <- pg + xlim(xlims) # xlim(xlims[1],xlims[2])
-  }
-  if(!is.null(ylims)){
-    #ylims <-  as.numeric(unlist(strsplit(ylims, ",")))
-    pg <- pg + ylim(ylims) #ylim(ylims[1],ylims[2])
-  }
-  if (!is.null(vlines)){
-    # vline <- as.numeric(unlist(strsplit(vline, ",")))
-    pg <- pg + geom_vline(xintercept=vlines,linetype=3)
-  }
-  if (!is.null(hlines)){
-    # hline <- as.numeric(unlist(strsplit(hline, ",")))
-    pg <- pg + geom_hline(yintercept=hlines,linetype=3)
-  }
-  adj <- 0
-   if(ggside=="density"){
-    if(splitside=="both"){
-      cat(paste0('\nINFO: density - both'))
-       pg <- pg + 
-            geom_xsidedensity(aes(x = X, color = GROUP, fill=NULL), show.legend = FALSE, alpha=0.1) +
-            geom_xsidedensity(aes(x = X), inherit.aes = FALSE, fill =  "grey40", alpha = 0.5,color ="grey40", linetype = "solid", linewidth = 1.5) +
-            geom_ysidedensity(aes(y = Y, color = GROUP, fill=NULL), show.legend = FALSE, alpha=0.1) +
-            geom_ysidedensity(aes(y = Y), inherit.aes = FALSE, fill =  "grey40", alpha = 0.5,color ="grey40",  linetype = "solid", linewidth = 1.5) +
-            theme_classic(base_size = 10) + 
-            theme(panel.border = element_rect(color = "grey30", fill = NA, linewidth = 1))+ 
-            theme(  ggside.panel.scale = 0.2 )
-    }else if(splitside=="overall"){
-        cat(paste0('\nINFO: density - overall'))
-       pg <- pg + 
-            geom_xsidedensity(aes(x = X), inherit.aes = FALSE, fill =  "grey40", alpha = 0.5,color ="grey40", linetype = "solid", linewidth = 1.5) +
-            geom_ysidedensity(aes(y = Y), inherit.aes = FALSE, fill =  "grey40", alpha = 0.5,color ="grey40",  linetype = "solid", linewidth = 1.5) +
-            theme_classic(base_size = 10) + 
-            theme(panel.border = element_rect(color = "grey30", fill = NA, linewidth = 1))+ 
-            theme(  ggside.panel.scale = 0.2 )
-    }else if(splitside=="group") { # groupwise
-      cat(paste0('\nINFO: density - group'))
-       pg <- pg + 
-            geom_xsidedensity(aes(x = X, color = GROUP, fill=NULL), show.legend = FALSE, alpha=0.1) +
-            geom_ysidedensity(aes(y = Y, color = GROUP, fill=NULL), show.legend = FALSE, alpha=0.1) +
-            theme_classic(base_size = 10) + 
-            theme(panel.border = element_rect(color = "grey30", fill = NA, linewidth = 1))+ 
-            theme(  ggside.panel.scale = 0.2 )
-    }
-      adj <- 2
-   }else if(ggside=="boxplot"){
-            pg <- pg + 
-              geom_xsideboxplot(aes(color= GROUP, y =Y),width = 0.5, orientation = "y",outlier.shape = NA, show.legend = FALSE,  alpha=0.3)+
-              theme( ggside.axis.text.x = element_text(angle = 90, hjust = 1))+
-              geom_ysideboxplot(aes(color= GROUP, x =X),width = 0.5, orientation = "x",outlier.shape = NA, show.legend = FALSE,  alpha=0.3)+
-              theme(panel.border = element_rect(color = "grey30", fill = NA, linewidth = 1))+
-              theme(  ggside.panel.scale = 0.2 ) 
-
-   }
-  if("SHOWLABEL" %in% colnames(DF)){
-    pg1 <- pg + ggrepel::geom_text_repel(data = DF[nchar(DF$SHOWLABEL)>0, ], aes(label = SHOWLABEL), size = 3, froce=5, nudge_y=0.05, segment.color="grey20",segment.size=0.5,min.segment.length=0)#
-  }else{
-    if (label){
-      pg1 <- pg + geom_text(data = DF, aes(x = X, y = Y, label =ID),   hjust = 0, nudge_x = 0.2, size=2.5)
-    }else{
-      pg1 <- pg
-    }
-  }
-  if (! is.na(outFile)){
-    if (nrow(meta) <= 20 ){
-        if (label){
-          pg2 <- pg + geom_text_repel(aes(label=ID),size = 2.5)
-        }else{
-          pg2 <- pg
-        } 
-    }else{
-      pg2 <- pg 
-    }
-    adj <- adj + ifelse(length(levels(GROUPS))>16,2,0) + ifelse(length(levels(SHAPES))>10,2,0) # in case there are many legend labels
-    ggsave(file = outFile, pg2, width = 7+adj, height = 6+adj, units = "in")
-    cat("\n\t", basename(outFile),"[saved]")
-  }
-  return(pg1)
-}
-
-
 ##################################################################
 #  01/20/2026,15:29:49 
 ##################################################################
 #================================================================
 
-PlotPolar <- function(data, outFile=NULL,colorColumn="SAMPLE_GROUP", title="ImprintomeR:Polar",palette="default", alpha=0.5) {
 #' Plot Imprintome Polar Coordinates
-#' @param data A dataframe containing 'maternal_score', 'paternal_score', and 'sample_id'
-#' @return A ggplot object    
+#'
+#' @param data Data frame containing `Angle` and `IDS` plus grouping columns.
+#' @param outFile Optional output file path.
+#' @param colorColumn Column name used for point fill grouping.
+#' @param title Plot title.
+#' @param palette Palette name passed to `GetColors()`.
+#' @param alpha Point alpha.
+#'
+#' @return A ggplot object.
+PlotPolar <- function(data, outFile=NULL,colorColumn="SAMPLE_GROUP", title="ImprintomeR:Polar",palette="default", alpha=0.5) {
   library(ggplot2)
   options(bitmapType = "cairo")
   
@@ -1861,9 +1655,9 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="SAMPLE_GROUP", title="Impr
     )
 
     if(!is.null(outFile)){
-        plotWidth <- 10 # 5 + log10(ncol(data)+1) * 6
-        plotHeight <- 10 # 5 + log10(nrow(data)+1) * 7
-        ggsave(file=outFile,pg,width=plotWidth,height=plotHeight,units="in", limitsize = TRUE)
+      plotWidth <- 10
+      plotHeight <- 10
+      .imprint_save_plot(pg, outFile = outFile, width = plotWidth, height = plotHeight, units = "in", limitsize = TRUE)
     }
     return(pg)
 }
@@ -1934,19 +1728,19 @@ MirrorDensity <- function(betaFile,  metaFile, SAMPLEID="SAMPLE_NAME",
       # Flip the coordinates
       coord_flip() + facet_wrap(~SAMPLE_NAME) +
       # Formatting
-      scale_fill_manual(values = c("maternal" = "#E41A1C", "paternal" = "#377EB8")) +
+      scale_fill_manual(values = .imprint_origin_colors()[c("maternal", "paternal")]) +
       theme_minimal() +
       labs(
         title = "Methylation Shift",
         subtitle= paste0("probeset:", probeset),
-        x = "Beta Value", 
+        x = "Methylation (β)", 
         y = "Density (Paternal < 0 > Maternal)"
       )
 
   
     if(!is.null(outFile)){
       imgSize <- ifelse(nrow(beta) >20, 12, 6)
-      ggsave(file=outFile,pg,width=imgSize,height=imgSize,units="in", limitsize = TRUE)
+      .imprint_save_plot(pg, outFile = outFile, width = imgSize, height = imgSize, units = "in", limitsize = TRUE)
     }
     return(pg)
  }
@@ -1968,7 +1762,7 @@ PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probe
   probeset <- match.arg(probeset)
 
   beta <- as.data.frame(beta)
-  probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+  probesets <- readRDS("inst/extdata/probesets_hg19.rds")
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
@@ -2008,7 +1802,7 @@ PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probe
     # The Probes
     geom_point(alpha = 0.6, size = 0.5) +
     # Color Scheme (Maternal vs Paternal)
-    scale_color_manual(values = c("maternal" = "#E41A1C", "paternal" = "#377EB8")) +
+    scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")]) +
     # Faceting by Chromosome
     facet_wrap(. ~ CHR, scales = "free_x",nrow=1) +
     # Aesthetic styling
@@ -2029,7 +1823,7 @@ PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probe
     ) +
     ylim(-0.55, 0.55)
   if(!is.null(outFile)){
-        ggsave(file=outFile,pg,width=12,height=6,units="in", limitsize = TRUE)
+        .imprint_save_plot(pg, outFile = outFile, width = 12, height = 6, units = "in", limitsize = TRUE)
   }
   return(pg)
 }
@@ -2243,7 +2037,7 @@ PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, a
   }))
 
   # 1. Load Annotation
-  anno_path <- "/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds"
+  anno_path <- "inst/extdata/probesets_hg19.rds"
   probesets <- readRDS(anno_path)
   # Using 'selected' probeset for distribution analysis
   anno <- probesets[[probeset]] %>% 
@@ -2285,7 +2079,7 @@ PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, a
     # Split by Origin to see Maternal vs Paternal side-by-side
     facet_wrap(~ORIGIN) +
     
-    scale_fill_manual(values = c("maternal" = "#E69F00", "paternal" = "#56B4E9")) +
+    scale_fill_manual(values = .imprint_origin_colors()[c("maternal", "paternal")]) +
     scale_x_continuous(limits = c(-0.05, 1.05), breaks = seq(0, 1, 0.25)) +
     
     theme_ridges(center_axis_labels = TRUE) +
@@ -2297,15 +2091,14 @@ PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, a
     labs(
       title = "Global Imprinting Beta Distributions",
       subtitle = "Aggregated across all samples",
-      x = "Methylation Level (Beta)",
+      x = "Methylation (β)",
       y = "Chromosome"
     )
 
   # 6. Save
   if (!is.null(outFile)) {
     # Since we only have ~24 ridges per panel now, height is much smaller
-    ggsave(file = outFile, pg, width = 10, height = 8, units = "in")
-    cat("\n\t", basename(outFile), "[saved]")
+    .imprint_save_plot(pg, outFile = outFile, width = 10, height = 8, units = "in", limitsize = TRUE)
   }
 
   return(pg)
@@ -2323,7 +2116,7 @@ BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, pro
   }))
 
   # 1. Load Annotation
-  anno_path <- "/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds"
+  anno_path <- "inst/extdata/probesets_hg19.rds"
   probesets <- readRDS(anno_path)
   # Selecting the 'selected' probeset which contains the CHR and ORIGIN mapping
   anno <- probesets[[probeset]] %>% 
@@ -2368,7 +2161,7 @@ BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, pro
     # FACET BY CHROMOSOME: Each chromosome gets its own box
     facet_wrap(~ Chromosome, ncol = 6) + 
     
-    scale_fill_manual(values = c("maternal" = "#E69F00", "paternal" = "#56B4E9")) +
+    scale_fill_manual(values = .imprint_origin_colors()[c("maternal", "paternal")]) +
     scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1)) +
     
     theme_bw() +
@@ -2383,7 +2176,7 @@ BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, pro
       title = paste("Probeset:",probeset),
       subtitle = "Aggregated Cohort Beta Values",
       x = "Allelic Origin",
-      y = "Methylation Level (Beta)"
+      y = "Methylation (β)"
     )
 
   # 6. Save
@@ -2392,8 +2185,7 @@ BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, pro
     n_chrom <- length(unique(used$Chromosome))
     dynamic_height <- 3 * ceiling(n_chrom / 6)
     width <- ifelse(n_chrom ==1, 3, n_chrom )
-    ggsave(file = outFile, pg, width = width, height = dynamic_height, units = "in")
-    cat("\n\t", basename(outFile), "[saved]")
+    .imprint_save_plot(pg, outFile = outFile, width = width, height = dynamic_height, units = "in", limitsize = TRUE)
   }
 
   return(pg)
@@ -2401,8 +2193,18 @@ BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, pro
 
 #================================================================
 
-Plot_ICR_var_med <- function(plot_data, outFile, project="cohort", style="beeswarm", min_cpg=3){
+#' Plot ICR-Level Variance and Median Drift
+#'
+#' @param plot_data Data frame returned by ICR variance calculations.
+#' @param outFile Optional output file path.
+#' @param project Project/cohort label used in the title.
+#' @param style Plot style: `"beeswarm"` or `"boxplot"`.
+#' @param min_cpg Minimum CpG count required per ICR.
+#'
+#' @return A ggplot object.
+Plot_ICR_var_med <- function(plot_data, outFile=NULL, project="cohort", style="beeswarm", min_cpg=3){
   suppressMessages(suppressWarnings(library("dplyr")))
+  suppressMessages(suppressWarnings(library("ggplot2")))
   cat("\nInfo: min_cpg per ICR=",min_cpg,"!")
     final_data <- plot_data %>%
     # 1. Filter
@@ -2415,9 +2217,11 @@ Plot_ICR_var_med <- function(plot_data, outFile, project="cohort", style="beeswa
           CpG_Count = mean(CpG_Count),
           .groups = "drop" )
 
-    txtFile<- paste0(tools::file_path_sans_ext(basename(outFile)),"_aggregated_by_group.txt")
-    write.table(final_data, txtFile, sep="\t", quote=FALSE, row.names=FALSE, col.names=TRUE)
-    cat("\n",basename(txtFile),"[saved]")
+    if(!is.null(outFile)){
+      txtFile<- paste0(tools::file_path_sans_ext(basename(outFile)),"_aggregated_by_group.txt")
+      write.table(final_data, txtFile, sep="\t", quote=FALSE, row.names=FALSE, col.names=TRUE)
+      cat("\n",basename(txtFile),"[saved]")
+    }
 
   num_ICRs <- length(unique(plot_data$icr_name))
   if(num_ICRs >100){
@@ -2463,8 +2267,11 @@ Plot_ICR_var_med <- function(plot_data, outFile, project="cohort", style="beeswa
     img_height <- (n_icrs * 0.1*n_groups) + 2
     img_width <- ifelse(n_groups == 1, 12, n_groups * 4)
      # 4. Save and Report
-    ggsave(file=outFile,pg,width=img_width,height=img_height,units="in", limitsize = FALSE)
-    cat(paste0('\nINFO:',basename(outFile),' [saved]'))
+    if(!is.null(outFile)){
+      .imprint_save_plot(pg, outFile = outFile, width = img_width, height = img_height, units = "in", limitsize = FALSE)
+    }
+
+    return(pg)
 
 }
 
@@ -2593,13 +2400,26 @@ plot_imp_consistency <- function(df) {
 #' @param beta_matrix A matrix where rows are CpG IDs and columns are Sample Names
 #' @return A data frame with HorvathAge and other clock results
 
+#' Multi-Panel Beeswarm Plot by Category/Origin
+#'
+#' @param beta Numeric beta matrix with probes as rows and samples as columns.
+#' @param meta Sample metadata containing `SAMPLE_NAME` and grouping columns.
+#' @param SAMPLEID Metadata column used as panel/sample label.
+#' @param outFile Optional output file path.
+#' @param alpha Point alpha.
+#' @param probesets Optional annotation object.
+#' @param useNA Logical; keep NA category values.
+#' @param width,height Optional image dimensions for saving.
+#' @param group Annotation column used to define categories.
+#'
+#' @return A patchwork/ggplot object.
 BetaBeePlot_orgin2 <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = NULL, alpha = 0.5,probesets=NULL, useNA=FALSE, width=NULL, height=NULL, group="ORIGIN") {
   # https://r-charts.com/distribution/ggbeeswarm/
   suppressMessages(suppressWarnings(library(ggplot2)))
   suppressMessages(suppressWarnings(library("ggbeeswarm")))
   suppressMessages(suppressWarnings(library("reshape2")))
   if(!is.null(probeset)){
-    probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+    probesets <- readRDS("inst/extdata/probesets_hg19.rds")
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
@@ -2619,7 +2439,7 @@ BetaBeePlot_orgin2 <- function(beta, meta, SAMPLEID = "SAMPLE_NAME", outFile = N
     version <- "HG19"
     # load aggregated annotation object
     if (is.null(probes.all)) {
-      probes.all <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/anno.uniq_harmonized.liftover.rds")
+      probes.all <- readRDS("inst/extdata/anno.uniq_harmonized.liftover.rds")
     }
     chr <- paste0("CHR_", toupper(version))
     mapinfo <- paste0("MAPINFO_", toupper(version))
@@ -2670,12 +2490,14 @@ plot_list <- lapply(unique(used$ID), function(current_id) {
   
   # Generate the individual "panel"
   p <- ggplot(df_sub, aes(x = CATEGORY, y = value, color = CATEGORY)) +
+    geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
     geom_quasirandom(cex = dotSize, alpha = alpha, width = 0.3) +
     stat_summary(fun = median, geom = "errorbar", 
                  aes(ymin = after_stat(y), ymax = after_stat(y)), 
                  width = 0.5, linewidth = 0.7, color="grey30") + 
     # Use the ID as the title for this specific panel
-    labs(title = current_id, y = "Methylation", x = NULL) +
+    labs(title = current_id, y = "Methylation (β)", x = NULL) +
+    scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
     theme_classic(base_size = 10) +
     theme(
       legend.position = "none",
@@ -2708,5 +2530,104 @@ pg  <- wrap_plots(plot_list) +
     cat("\n\t", basename(outFile), "[saved]")
   }
   return(pg)
+}
+
+#' Beeswarm Plot by Chromosome vs Others for Each Sample
+#'
+#' Creates one panel per sample showing methylation distribution split into two
+#' groups (target chromosome and others), colored by category/origin.
+#'
+#' @param dat Data frame/matrix with sample columns plus grouping columns.
+#' @param meta Metadata data frame containing `SAMPLE_NAME` and optional `ID2`.
+#' @param group.by Column in `dat` used for faceting (default: `"chr"`).
+#' @param color.by Column in `dat` used for point color (default: `"CATEGORY"`).
+#' @param outFile Output PDF path.
+#' @param verbose Logical; print sample-level progress.
+#'
+#' @return `NULL`, writing plots to `outFile` as side effect.
+Beeplot_chr_vs_other <- function(dat, meta, group.by = "chr", color.by = "CATEGORY", outFile = NULL, verbose = FALSE) {
+  suppressMessages(suppressWarnings(library(ggplot2)))
+  suppressMessages(suppressWarnings(library("ggbeeswarm")))
+  imgHeight <- 6
+  imgWidth <- 4
+  samples <- intersect(colnames(dat), meta$SAMPLE_NAME)
+  pdf(outFile, width = imgWidth, height = imgHeight)
+  for (sample in samples) {
+    if (verbose) {
+      cat("\n\t", sample)
+    }
+    sample_data <- data.frame(value = dat[, sample], GROUP = dat[, group.by], CATEGORY = dat[, color.by])
+    pg <- ggplot(sample_data, aes(x = 1, y = value, color = CATEGORY), alpha = 1) +
+      geom_quasirandom(cex = 1) +
+      facet_wrap(~GROUP, nrow = 1) + theme_classic(base_size = 10) +
+      labs(y = "methylation level", x = "GROUP") + ylim(0, 1) +
+      geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40", linewidth = 0.5) +
+      geom_hline(yintercept = c(0.3, 0.7), linetype = "dotted", color = "grey60", linewidth = 0.5) +
+      theme(
+        axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        panel.border = element_rect(color = "grey20", fill = NA, linewidth = 0.5)
+      )
+    if ("ID2" %in% colnames(meta)) {
+      sTitle <- meta[meta$SAMPLE_NAME == sample, "ID2"]
+      if (sTitle != sample) {
+        pg <- pg + ggtitle(label = sample, subtitle = sTitle)
+      } else {
+        pg <- pg + ggtitle(label = sample)
+      }
+    } else {
+      pg <- pg + ggtitle(label = sample)
+    }
+    print(pg)
+  }
+  garbage <- dev.off()
+  cat("\n\t", basename(outFile), "[saved]")
+}
+
+
+#' Generate Chromosome-vs-Others Beeswarm PDFs
+#'
+#' For each chromosome in `chrs`, splits probes into target chromosome vs others
+#' and delegates plotting to `Beeplot_chr_vs_other()`.
+#'
+#' @param input List containing `beta` and `meta` elements.
+#' @param chrs Comma-separated chromosome string (e.g. `"chr1,chr11"`).
+#' @param prefix Output prefix used to build per-chromosome PDF names.
+#' @param probeset Probeset name in `inst/extdata/probesets_hg19.rds`.
+#'
+#' @return `NULL`, writing plots to files as side effects.
+Beeplot_chr_vs_other_single <- function(input, chrs = "chr1,chr11", prefix = NULL, probeset = "classifier2") {
+  probeset_name <- probeset
+  probesets <- readRDS("inst/extdata/probesets_hg19.rds")
+  probeset <- probesets[[probeset_name]]
+  if ("ORIGIN" %in% colnames(probeset)) {
+    anno <- probeset[, c("CHR", "MAPINFO", "Closest_TSS_gene_name", "ORIGIN")]
+    rownames(anno) <- probeset$NAME
+    colnames(anno)[3:4] <- c("GENE", "CATEGORY")
+  } else {
+    cat("\nError: ORIGIN column is missing in your probeset.\n")
+    q("no")
+  }
+  beta <- input[["beta"]]
+  meta <- input[["meta"]]
+  chrs <- unlist(strsplit(chrs, ","))
+  for (chr in chrs) {
+    cat("\n\t", chr)
+    common_probes <- intersect(probeset$NAME, rownames(beta))
+    probeset <- probeset[probeset$NAME %in% common_probes, ]
+    beta <- beta[common_probes, ]
+    probes_chr <- probeset$NAME[probeset$CHR %in% c(chr, gsub("chr", "", chr))]
+    probes_chr_others <- probeset$NAME[!probeset$CHR %in% c(chr, gsub("chr", "", chr))]
+    beta_chr <- beta[probes_chr, ]
+    beta_chr_others <- beta[probes_chr_others, ]
+    melt_df <- rbind(cbind(beta_chr, chr = chr), cbind(beta_chr_others, chr = "others"))
+    melt_df$CATEGORY <- anno[rownames(melt_df), "CATEGORY"]
+    Beeplot_chr_vs_other(
+      melt_df,
+      meta,
+      group.by = "chr",
+      color.by = "CATEGORY",
+      outFile = paste0(prefix, "_beeplot_", chr, ".pdf")
+    )
+  }
 }
 

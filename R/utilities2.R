@@ -813,8 +813,19 @@ ComputePCA  <- function(df, meta, scale=T, topn = 3000,varMethod="mad",groupColu
     stop ("[ComputePCA] INFO: Invalid metadata file!\n")
   }
   meta <- meta[keptSamples, ]
-  dat <- df[, keptSamples]
-  used <-  Select_Top_Features(dat, method = tolower(varMethod), topn = topn) 
+  dat <- data.matrix(df[, keptSamples, drop = FALSE])
+  row_has_finite <- apply(dat, 1, function(x) any(is.finite(x)))
+  row_all_finite <- apply(dat, 1, function(x) all(is.finite(x)))
+  dat <- dat[row_has_finite & row_all_finite, , drop = FALSE]
+  if (nrow(dat) == 0) {
+    stop("[ComputePCA] ERROR: no finite features available after filtering NA/Inf rows.")
+  }
+
+  used <- Select_Top_Features(dat, method = tolower(varMethod), topn = topn)
+  used <- used[apply(used, 1, function(x) all(is.finite(x))), , drop = FALSE]
+  if (nrow(used) == 0) {
+    stop("[ComputePCA] ERROR: no valid features selected for PCA after filtering.")
+  }
   pcs <- prcomp(t(used), center = TRUE, scale = scale) 
   pctVar <- round(((pcs$sdev)^2 / sum((pcs$sdev)^2) * 100), 2)
   tmp <- as.data.frame(pcs$x)
@@ -878,6 +889,45 @@ GetColors <- function(palette="Default",n=10) {
 }
 #-
 
+
+Select_Top_Features <- function(dat, method = "mad", topn = 3000) {
+  if (!("data.frame" %in% class(dat) || "matrix" %in% class(dat))) {
+    stop("[Select_Top_Features] dat must be a data.frame or matrix.")
+  }
+  dat <- as.matrix(dat)
+  if (nrow(dat) == 0) {
+    return(dat)
+  }
+
+  method <- tolower(method)
+  scores <- switch(method,
+    "mad" = apply(dat, 1, mad, na.rm = TRUE),
+    "cv" = apply(dat, 1, function(x) sd(x, na.rm = TRUE) / mean(x, na.rm = TRUE)),
+    "cv2" = apply(dat, 1, function(x) var(x, na.rm = TRUE) / (mean(x, na.rm = TRUE)^2)),
+    "sd" = apply(dat, 1, sd, na.rm = TRUE),
+    "var" = apply(dat, 1, var, na.rm = TRUE),
+    "iqr" = apply(dat, 1, IQR, na.rm = TRUE),
+    {
+      cat("\nWARN: invalid ranking method. use [mad] instead.\n")
+      apply(dat, 1, mad, na.rm = TRUE)
+    }
+  )
+
+  scores[!is.finite(scores)] <- -Inf
+  if (is.null(topn)) {
+    topn <- nrow(dat)
+  } else {
+    topn <- as.integer(topn)
+    if (is.na(topn) || topn < 1) {
+      return(dat[0, , drop = FALSE])
+    }
+  }
+
+  keep_n <- min(topn, nrow(dat))
+  keep_idx <- order(scores, decreasing = TRUE)[seq_len(keep_n)]
+  dat[keep_idx, , drop = FALSE]
+}
+#================================================================
 #================================================================
 DimPlot  <- function(DimReduc,  reduction = "PCA", ShapeColumn=NULL, IdColumn='SAMPLE_NAME', groupColumn='SAMPLE_GROUP', 
   ColorColumn="COLOR",outFile=NA, label=F, title=NA,palette="Default",alpha=0.8){

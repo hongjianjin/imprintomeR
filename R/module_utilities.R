@@ -1,4 +1,4 @@
-﻿# Auto-refactored from utilities2.R
+# Auto-refactored from utilities2.R
 # Module: utilities
 
 standardColors <- function() {
@@ -98,6 +98,45 @@ Check_Meta_Color <- function(meta, groupColumn = "SAMPLE_GROUP") {
 }
 #================================================================
 
+Select_Top_Features <- function(dat, method = "mad", topn = 3000) {
+  if (!("data.frame" %in% class(dat) || "matrix" %in% class(dat))) {
+    stop("[Select_Top_Features] dat must be a data.frame or matrix.")
+  }
+  dat <- as.matrix(dat)
+  if (nrow(dat) == 0) {
+    return(dat)
+  }
+
+  method <- tolower(method)
+  scores <- switch(method,
+    "mad" = apply(dat, 1, mad, na.rm = TRUE),
+    "cv" = apply(dat, 1, function(x) sd(x, na.rm = TRUE) / mean(x, na.rm = TRUE)),
+    "cv2" = apply(dat, 1, function(x) var(x, na.rm = TRUE) / (mean(x, na.rm = TRUE)^2)),
+    "sd" = apply(dat, 1, sd, na.rm = TRUE),
+    "var" = apply(dat, 1, var, na.rm = TRUE),
+    "iqr" = apply(dat, 1, IQR, na.rm = TRUE),
+    {
+      cat("\nWARN: invalid ranking method. use [mad] instead.\n")
+      apply(dat, 1, mad, na.rm = TRUE)
+    }
+  )
+
+  scores[!is.finite(scores)] <- -Inf
+  if (is.null(topn)) {
+    topn <- nrow(dat)
+  } else {
+    topn <- as.integer(topn)
+    if (is.na(topn) || topn < 1) {
+      return(dat[0, , drop = FALSE])
+    }
+  }
+
+  keep_n <- min(topn, nrow(dat))
+  keep_idx <- order(scores, decreasing = TRUE)[seq_len(keep_n)]
+  dat[keep_idx, , drop = FALSE]
+}
+#================================================================
+
 ggplotColours <- function(n = 6, h = c(0, 360) + 15){
   if ((diff(h) %% 360) < 1) h[2] <- h[2] - 360/n
   hcl(h = (seq(h[1], h[2], length = n)), c = 100, l = 65)
@@ -147,7 +186,7 @@ Calculate_impvar <- function(betaFile, metaFile,  icr.bed=NULL, probeset=NULL,as
   beta <- input[["beta"]]
 
   if(!is.null(probeset)){
-      probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+      probesets <- readRDS("inst/extdata/probesets_hg19.rds")
     if (probeset %in% names(probesets)){
         probeset1 <- probesets[[probeset]]
         rownames(probeset1) <- probeset1$NAME
@@ -170,7 +209,7 @@ Calculate_impvar <- function(betaFile, metaFile,  icr.bed=NULL, probeset=NULL,as
       genome <- match.arg(genome)
       genome <- toupper(genome)
       
-      cpg_annos <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/anno.uniq_harmonized.liftover.rds")
+      cpg_annos <- readRDS("inst/extdata/anno.uniq_harmonized.liftover.rds")
       if (!is.null(assay)){
         cpg_annos <- cpg_annos[grep(assay, cpg_annos[,"ASSAY"],ignore.case=T),]
       }

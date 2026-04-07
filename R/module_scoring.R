@@ -1,4 +1,4 @@
-﻿# Auto-refactored from utilities2.R
+# Auto-refactored from utilities2.R
 # Module: scoring
 
 DetectMosaicism <- function(res_table, roi_ref_mean = 0.06, roi_ref_sd = 0.03) {
@@ -27,6 +27,107 @@ DetectMosaicism <- function(res_table, roi_ref_mean = 0.06, roi_ref_sd = 0.03) {
   res_table$Mosaic_Pct_Est <- pmax(dev_pat, dev_mat) / 0.5 * 100
   
   return(res_table)
+}
+
+
+#' Compute Imprint Deviation Score (IDS)
+#'
+#' Computes the Euclidean distance from the balanced imprinting state
+#' $$(0.5, 0.5)$$ using paternal and maternal median methylation.
+#'
+#' Formula:
+#' $$IDS = \sqrt{(paternal\_median - 0.5)^2 + (maternal\_median - 0.5)^2}$$
+#'
+#' @param paternal_median Numeric vector of paternal median beta values.
+#' @param maternal_median Numeric vector of maternal median beta values.
+#'
+#' @return Numeric vector of IDS values.
+compute_ids <- function(paternal_median, maternal_median) {
+  sqrt((paternal_median - 0.5)^2 + (maternal_median - 0.5)^2)
+}
+
+
+#' Compute Mechanism Angle from Maternal/Paternal Medians
+#'
+#' Computes directional angle in degrees from deviations relative to 0.5,
+#' using `atan2(maternal_dev, paternal_dev)` and normalizing to `[0, 360)`.
+#'
+#' @param paternal_median Numeric vector of paternal median beta values.
+#' @param maternal_median Numeric vector of maternal median beta values.
+#'
+#' @return Numeric vector of angles in degrees, normalized to `[0, 360)`.
+compute_angle <- function(paternal_median, maternal_median) {
+  radians <- atan2(maternal_median - 0.5, paternal_median - 0.5)
+  (radians * 180 / pi + 360) %% 360
+}
+
+
+#' Classify Imprinting Mechanism from Angle
+#'
+#' Maps angle values to 8 mechanism sectors using a 22.5 degree shift and
+#' 45 degree bins. Optionally applies ROI override when IDS is provided.
+#'
+#' @param angle_degrees Numeric vector of angles in degrees `[0, 360)`.
+#' @param ids Optional numeric vector of IDS values; when provided, entries with
+#'   `ids < roi_cutoff` are labeled as `"ROI"`.
+#' @param roi_cutoff Numeric ROI threshold used only when `ids` is provided.
+#'
+#' @return Character vector of mechanism labels.
+classify_mechanism <- function(angle_degrees, ids = NULL, roi_cutoff = 0.2) {
+  mechanism_labels <- c(
+    "Pat-Gain", "Global-Hyper", "Mat-Gain", "Mat-Gain/Pat-Loss",
+    "Pat-Loss", "Global-Hypo", "Mat-Loss", "Pat-Gain/Mat-Loss"
+  )
+
+  shifted_degrees <- (angle_degrees + 22.5) %% 360
+  mechanism <- mechanism_labels[cut(
+    shifted_degrees,
+    breaks = seq(0, 360, by = 45),
+    labels = FALSE,
+    include.lowest = TRUE
+  )]
+
+  if (!is.null(ids)) {
+    mechanism <- if_else(ids < roi_cutoff, "ROI", as.character(mechanism))
+  }
+
+  mechanism
+}
+
+
+#' Compute Allelic Consistency Metrics Per Sample
+#'
+#' Calculates paternal/maternal concordance and average consistency for each
+#' sample based on direction relative to 0.5.
+#'
+#' @param paternal_beta Numeric matrix/data frame of paternal probes (rows) by
+#'   samples (columns).
+#' @param maternal_beta Numeric matrix/data frame of maternal probes (rows) by
+#'   samples (columns).
+#' @param sample_ids Character vector of sample IDs to evaluate.
+#'
+#' @return Data frame with columns `pat_cons`, `mat_cons`, and `consistency`.
+compute_consistency <- function(paternal_beta, maternal_beta, sample_ids) {
+  consistency_scores <- t(sapply(sample_ids, function(sid) {
+    p_vals <- paternal_beta[, sid]
+    m_vals <- maternal_beta[, sid]
+
+    p_med <- median(p_vals, na.rm = TRUE)
+    m_med <- median(m_vals, na.rm = TRUE)
+    p_dir <- if (p_med > 0.5) 1 else -1
+    m_dir <- if (m_med > 0.5) 1 else -1
+
+    p_concordance <- if (length(p_vals) > 0) sum((p_vals - 0.5) * p_dir >= 0, na.rm = TRUE) / length(p_vals) else 1
+    m_concordance <- if (length(m_vals) > 0) sum((m_vals - 0.5) * m_dir >= 0, na.rm = TRUE) / length(m_vals) else 1
+
+    c(
+      pat_cons = p_concordance,
+      mat_cons = m_concordance,
+      consistency = mean(c(p_concordance, m_concordance))
+    )
+  }))
+
+  as.data.frame(consistency_scores)
 }
 
 
@@ -69,26 +170,11 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   }
   # ------------------------------------------
 
-  consistency_scores <- t(sapply(meta$SAMPLE_NAME, function(sid) {
-    p_vals <- paternal_beta[, sid]
-    m_vals <- maternal_beta[, sid]
-    
-    # Calculate directions
-    p_med <- median(p_vals, na.rm = TRUE)
-    m_med <- median(m_vals, na.rm = TRUE)
-    p_dir <- if(p_med > 0.5) 1 else -1
-    m_dir <- if(m_med > 0.5) 1 else -1
-    
-    # Calculate concordance (Handle length=0 to avoid NaN)
-    p_concordance <- if(length(p_vals) > 0) sum((p_vals - 0.5) * p_dir >= 0, na.rm = TRUE) / length(p_vals) else 1
-    m_concordance <- if(length(m_vals) > 0) sum((m_vals - 0.5) * m_dir >= 0, na.rm = TRUE) / length(m_vals) else 1
-    
-    return(c(pat_cons = p_concordance, 
-             mat_cons = m_concordance, 
-             consistency = mean(c(p_concordance, m_concordance))))
-  }))
-
-  consistency_df <- as.data.frame(consistency_scores)
+  consistency_df <- compute_consistency(
+    paternal_beta = paternal_beta,
+    maternal_beta = maternal_beta,
+    sample_ids = meta$SAMPLE_NAME
+  )
 
   # 2. Metric Calculation (Median aggregation) 
   # Note: apply on 1-row matrix works correctly here
@@ -96,24 +182,13 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   pat_med <- apply(paternal_beta, 2, median, na.rm = TRUE)
 
   # 3. Euclidean Distance (IDS) calculation
-  ids <- sqrt((pat_med - 0.5)^2 + (mat_med - 0.5)^2)
-  
-  # 4. Directional Vector (Angle)
-  radians <- atan2(mat_med - 0.5, pat_med - 0.5)
-  degrees <- (radians * 180) / pi
-  degrees <- (degrees + 360) %% 360 
-  
-  # 5. Define directional categories
-  mechanism_labels <- c(
-    "Pat-Gain", "Global-Hyper", "Mat-Gain", "Mat-Gain/Pat-Loss", 
-    "Pat-Loss", "Global-Hypo", "Mat-Loss", "Pat-Gain/Mat-Loss"
-  )
+  ids <- compute_ids(pat_med, mat_med)
 
-  shifted_degrees <- (degrees + 22.5) %% 360
-  mechanism <- mechanism_labels[cut(shifted_degrees, 
-                                    breaks = seq(0, 360, by = 45), 
-                                    labels = FALSE, 
-                                    include.lowest = TRUE)]
+  # 4. Directional Vector (Angle)
+  degrees <- compute_angle(pat_med, mat_med)
+
+  # 5. Define directional categories
+  mechanism <- classify_mechanism(degrees)
 
   # 6. Status and Confidence Logic
   status_conf_logic <- data.frame(ids = ids) %>%
@@ -125,7 +200,7 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
         ids < 0.4  ~ "Moderate (Alteration)",
         TRUE       ~ "High (Alteration)"
       ),
-      Final_Mechanism = if_else(ids < 0.2, "ROI", as.character(mechanism))
+      Final_Mechanism = classify_mechanism(degrees, ids = ids, roi_cutoff = 0.2)
     )
 
   # 7. Metadata selection
@@ -150,135 +225,6 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   return(res)
 }
 #=====================================
-
-AnalyzeImprintStatus0 <- function(betaFile,  metaFile, 
-                                  probeset = probeset_options,
-                                 ids_cutoff = 0.2) {
-   suppressMessages(suppressWarnings(library(dplyr)))  
- 
-  #probeset <- match.arg(probeset)
-  # 1. Feature Alignment
-  input <- LoadMetaBeta(metaFile, betaFile, probeset = NULL)
-  meta <- input[["meta"]]
-  beta <- input[["beta"]]
-  tmp  <- SubsetBeta_By_Probeset(beta, probeset=probeset,prefix=NULL)
-  probesets <- tmp[["probesets"]]
-  used <- tmp[["beta"]]
-  used <- na.omit(used) # removed NA
-  all_probes <- intersect(probesets$NAME, rownames(used))
-  maternal_probes <- intersect(probesets$NAME[grep("maternal", probesets$ORIGIN)], rownames(used))
-  paternal_probes <- intersect(probesets$NAME[grep("paternal", probesets$ORIGIN)], rownames(used))
-  
-  maternal_beta <- used[maternal_probes, ]
-  paternal_beta <- used[paternal_probes, ]
-
-  consistency_scores <- t(sapply(meta$SAMPLE_NAME, function(sid) {
-    # Check for Probe-Level Consistency in Mosaic Samples
-    # Metric: We calculate the Percentage of Concordant Probes.Threshold: 
-    # If >80% of probes in the signature are shifting in the same direction (e.g., all >0.5), 
-    #   it confirms a high-confidence biological event.    
-
-      # 1. Get raw betas for this sample
-      p_vals <- maternal_beta[, sid]
-      m_vals <- paternal_beta[, sid]
-      
-      # 2. Determine the direction of the median shift
-      p_dir <- if(median(p_vals, na.rm=TRUE) > 0.5) 1 else -1
-      m_dir <- if(median(m_vals, na.rm=TRUE) > 0.5) 1 else -1
-      
-      # 3. Calculate % of probes matching that direction
-      p_concordance <- sum((p_vals - 0.5) * p_dir > 0, na.rm=TRUE) / length(p_vals)
-      m_concordance <- sum((m_vals - 0.5) * m_dir > 0, na.rm=TRUE) / length(m_vals)
-      
-      # Return the average concordance across both alleles
-      return(c(pat_cons=p_concordance,mat_cons=m_concordance, consistency=mean(c(p_concordance, m_concordance))))
-    }))
-
- consistency_df <- as.data.frame(consistency_scores)
-
-  if (length(maternal_probes) < 2) {
-    cat("\nERROR: less than 2 probes in maternal loci..\n")
-    q("no")
-  }
-  if (length(paternal_probes) < 2) {
-    cat("\nERROR: less than 2 probes in paternal loci..\n")
-    q("no")
-  }
-
-  if (!all(c("maternal", "paternal") %in% unique(probesets$ORIGIN))) {
-    cat("\nERROR: Invalid ORIGIN column in probeset[",probeset,"].\n")
-    stop("exit.")
-  }
-
-    # 2. Metric Calculation (Median aggregation) 
-  mat_med <- apply(maternal_beta, 2, median, na.rm = TRUE)
-  # maternal_sd <- apply(maternal_beta, 2, sd)
-  pat_med <- apply(paternal_beta, 2, median, na.rm = TRUE)
-   #paternal_sd <- apply(paternal_beta, 2, sd)
-
-
-  # 3. Euclidean Distance (IDS) calculation
-  # Distance from the ideal hemimethylated state (0.5, 0.5)
-  ids <- sqrt((pat_med - 0.5)^2 + (mat_med - 0.5)^2)
-  
-  # 4. Directional Vector (Angle)
-  # atan2(y, x) -> atan2(mat_dev, pat_dev)
-  radians <- atan2(mat_med - 0.5, pat_med - 0.5)
-  degrees <- (radians * 180) / pi
-  degrees <- (degrees + 360) %% 360 # Normalize to 0-360 range
-  
-  # 5. Define directional categories (Mechanism)
-  # We use a cleaner break system. Note: Pat-Gain spans the 360/0 degree line.
-  mechanism_labels <- c(
-    "Pat-Gain", "Global-Hyper", "Mat-Gain", "Mat-Gain/Pat-Loss", 
-    "Pat-Loss", "Global-Hypo", "Mat-Loss", "Pat-Gain/Mat-Loss"
-  )
-
-  # Use findInterval or cut to assign initial directional mechanism
-  # We shift the degrees by 22.5 to center the bins on the axes (0, 45, 90...)
-  shifted_degrees <- (degrees + 22.5) %% 360
-  mechanism <- mechanism_labels[cut(shifted_degrees, 
-                                    breaks = seq(0, 360, by = 45), 
-                                    labels = FALSE, 
-                                    include.lowest = TRUE)]
-
-  # 6. Define Status and Confidence with combined descriptive labels
-  # This resolves the "High" vs "High" ambiguity
-  status_conf_logic <- data.frame(ids = ids) %>%
-    mutate(
-      Status = if_else(ids >= ids_cutoff, "Imprinting Alteration", "Normal"),
-      Confidence = case_when(
-        ids < 0.1  ~ "High (Normal)",
-        ids < 0.2  ~ "Low (Normal)",
-        ids < 0.4  ~ "Moderate (Alteration)",
-        TRUE       ~ "High (Alteration)"
-      ),
-      # Prioritize ROI: If IDS is very low, the mechanism is "Retention"
-      Final_Mechanism = if_else(ids < 0.2, "ROI", as.character(mechanism))
-    )
-
-  # 7. Metadata selection (Defensive programming)
-  cols_to_keep <- intersect(colnames(meta), c("SAMPLE_NAME", "SAMPLE_GROUP", "ID2"))
-  meta_selected <- meta[, cols_to_keep, drop = FALSE]
-
-  # 8. Final Results Assembly
-  res <- data.frame(
-    meta_selected,
-    probeset        = probeset,
-    paternal_median = round(pat_med, 3),
-    maternal_median = round(mat_med, 3),
-    consistency_df,
-    IDS             = round(ids, 3),
-    Angle           = round(degrees, 1),
-    Mechanism       = status_conf_logic$Final_Mechanism,
-    Status          = status_conf_logic$Status,
-    Confidence      = status_conf_logic$Confidence,
-    stringsAsFactors = FALSE
-  )
-
-  return(res)
-}
-
 #================================================================
 
 Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("classifier2","classifier3","selected","signature_hc"), min_probes = 10, ids_cutoff=0.2) {
@@ -288,7 +234,7 @@ Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("classifier2","cl
   #================================================================
   # prepare chromosome
   beta <- as.data.frame(beta)
-  probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+  probesets <- readRDS("inst/extdata/probesets_hg19.rds")
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
@@ -421,7 +367,7 @@ Survey_Global_Imprinting_Batch <- function(betaFile, metaFile,
   beta <- na.omit(beta) # removed NA
 
   # 2. Load Annotation
-  anno_path <- "/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds"
+  anno_path <- "inst/extdata/probesets_hg19.rds"
   probesets <- readRDS(anno_path)
   
   probes_info <- probesets[[probeset]]
