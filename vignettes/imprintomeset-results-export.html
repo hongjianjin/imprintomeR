@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="imprintomeR Team" />
+
+
+<title>ImprintomeSet Visualization Gallery</title>
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
+<style type="text/css" data-origin="pandoc">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">ImprintomeSet Visualization Gallery</h1>
+<h4 class="author">imprintomeR Team</h4>
+
+
+
+<div id="overview" class="section level2">
+<h2>Overview</h2>
+<p>This vignette demonstrates the full visualization and export workflow after completing imprinting analysis with <code>runImprintome()</code>.</p>
+<p>Visualization in imprintomeR follows the preprocessing-first architecture:</p>
+<ol style="list-style-type: decimal">
+<li><strong>MethQcSet</strong>: QC preprocessing (see <em>ImprintomeSet Workflow Quickstart</em>)</li>
+<li><strong>ImprintomeSet</strong>: Analysis-ready container for imprinting studies (this vignette)</li>
+<li><strong>Results &amp; Plots</strong>: Stored in <code>results(x)</code> and <code>plots(x)</code> slots</li>
+</ol>
+<p>The examples below are organized by visualization level:</p>
+<ul>
+<li>sample-level (polar, radar, rainfall)</li>
+<li>probe-level (beeswarm, violin, mirror density)</li>
+<li>cohort-level (heatmap, cor_heatmap, circular_heatmap)</li>
+<li>chromosome-level (beeswarm_chr)</li>
+</ul>
+<p>For object construction and QC preprocessing, see <em>ImprintomeSet Workflow Quickstart</em>.</p>
+</div>
+<div id="start-from-a-qc-approved-imprintomeset-object" class="section level2">
+<h2>1. Start from a QC-Approved ImprintomeSet Object</h2>
+<p>Your <code>ImprintomeSet</code> object <code>x</code> should come from <strong>either</strong>:</p>
+<p><strong>Option A: QC-preprocessed data via MethQcSet</strong></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Load metadata (requires Basename column with IDAT path prefixes)</span>
+meta &lt;-<span class="st"> </span><span class="kw">LoadMeta</span>(<span class="st">&quot;meta.tsv&quot;</span>)
+
+<span class="co"># Option A1: platform unknown — detect first</span>
+meta &lt;-<span class="st"> </span><span class="kw">check_platform</span>(meta)
+meta_epic &lt;-<span class="st"> </span>meta[meta<span class="op">$</span>Platform <span class="op">==</span><span class="st"> &quot;EPIC&quot;</span>, ]
+qcset &lt;-<span class="st"> </span><span class="kw">runMethQC</span>(meta_epic)  <span class="co"># platform auto-resolved from meta$Platform</span>
+
+<span class="co"># Option A2: platform known — pass directly</span>
+<span class="co"># qcset &lt;- runMethQC(meta, platform = &quot;EPIC&quot;)</span>
+
+<span class="kw">export</span>(qcset, <span class="dt">outdir =</span> <span class="st">&quot;qc_output&quot;</span>, <span class="dt">format =</span> <span class="kw">c</span>(<span class="st">&quot;xlsx&quot;</span>, <span class="st">&quot;rds&quot;</span>))
+<span class="co"># xlsx: single workbook with sheets — meta (+ Platform, Final.QC),</span>
+<span class="co">#   QC_matrix, recall_rate, cutoffs, ctrl_metrics, contamination,</span>
+<span class="co">#   predUniqDonor_ID. Beta saved as .rds only.</span>
+
+<span class="co"># QC visualizations</span>
+p_bar  &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;qc_bar&quot;</span>)                          <span class="co"># PASS/FAIL bar</span>
+p_int  &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;intensity&quot;</span>,  <span class="dt">icutoff =</span> <span class="dv">11</span>)        <span class="co"># intensity scatter</span>
+p_dp   &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;detection_pval&quot;</span>, <span class="dt">pcutoff =</span> <span class="fl">0.03</span>)  <span class="co"># avg det p-val</span>
+p_cov  &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;probe_coverage&quot;</span>)                  <span class="co"># % probes detected</span>
+p_sex  &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;predicted_sex&quot;</span>)                   <span class="co"># predicted sex</span>
+p_ctrl &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;ctrl_metrics&quot;</span>)                    <span class="co"># ewastools (if present)</span>
+<span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;ctrl_metrics_detail&quot;</span>,                       <span class="co"># per-metric detail PDFs</span>
+     <span class="dt">outFile =</span> <span class="st">&quot;qc_ctrl_metrics_detail&quot;</span>)
+
+<span class="co"># EPICv2 only: aggregate replicate probes before conversion (required step)</span>
+<span class="co"># as.ImprintomeSet() will error if this is skipped for EPICv2 data.</span>
+<span class="cf">if</span> (qcset<span class="op">@</span>platform <span class="op">==</span><span class="st"> &quot;EPICv2&quot;</span>) {
+  qcset &lt;-<span class="st"> </span><span class="kw">aggregate_probes</span>(qcset)
+}
+
+<span class="co"># Convert the QC-clean MethQcSet to ImprintomeSet</span>
+probesets &lt;-<span class="st"> </span><span class="kw">readRDS</span>(<span class="kw">system.file</span>(<span class="st">&quot;extdata&quot;</span>, <span class="st">&quot;probesets_hg19.rds&quot;</span>, <span class="dt">package =</span> <span class="st">&quot;imprintomeR&quot;</span>))
+x &lt;-<span class="st"> </span><span class="kw">as.ImprintomeSet</span>(
+  qcset,
+  <span class="dt">probeset =</span> probesets[[<span class="st">&quot;selected&quot;</span>]],
+  <span class="dt">genome =</span> <span class="st">&quot;hg19&quot;</span>
+)</code></pre></div>
+<p><strong>Option B: Pre-cleaned data loaded directly</strong></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># If you already have QC-cleaned data, skip MethQcSet</span>
+meta &lt;-<span class="st"> </span><span class="kw">LoadMeta</span>(<span class="st">&quot;meta.tsv&quot;</span>)
+beta &lt;-<span class="st"> </span><span class="kw">LoadBeta</span>(<span class="st">&quot;cleaned_beta.tsv&quot;</span>)
+
+x &lt;-<span class="st"> </span><span class="kw">ImprintomeSet</span>(
+  <span class="dt">beta =</span> beta,
+  <span class="dt">meta =</span> meta,
+  <span class="dt">probeset =</span> probesets[[<span class="st">&quot;selected&quot;</span>]],
+  <span class="dt">genome =</span> <span class="st">&quot;hg19&quot;</span>,
+  <span class="dt">assay =</span> <span class="st">&quot;EPICv1&quot;</span>
+)</code></pre></div>
+<p>Then run analysis on your analysis-ready <code>ImprintomeSet</code>:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(imprintomeR)
+
+<span class="co"># x is a valid ImprintomeSet object (QC-approved data)</span>
+
+<span class="co"># Run analysis on one or more probesets</span>
+x &lt;-<span class="st"> </span><span class="kw">runImprintome</span>(x, <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>, <span class="dt">ids_cutoff =</span> <span class="fl">0.2</span>)
+x &lt;-<span class="st"> </span><span class="kw">runImprintome</span>(x, <span class="dt">probeset =</span> <span class="st">&quot;classifier3&quot;</span>, <span class="dt">ids_cutoff =</span> <span class="fl">0.2</span>,
+                   <span class="dt">result_name =</span> <span class="st">&quot;AnalyzeImprintStatus.classifier3&quot;</span>)
+
+<span class="kw">names</span>(<span class="kw">results</span>(x))</code></pre></div>
+<p>Extract slots once for plotting convenience:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">beta_x &lt;-<span class="st"> </span><span class="kw">beta</span>(x)
+meta_x &lt;-<span class="st"> </span><span class="kw">meta</span>(x)
+res_x &lt;-<span class="st"> </span><span class="kw">results</span>(x)[[<span class="st">&quot;AnalyzeImprintStatus.selected&quot;</span>]]</code></pre></div>
+</div>
+<div id="generic-s4-plot-method" class="section level2">
+<h2>2. Generic S4 Plot Method</h2>
+<p>The S4 <code>plot()</code> method supports explicit backend dispatch via <code>plot_type</code>.</p>
+<p>Available <code>plot_type</code> values are:</p>
+<ul>
+<li><code>auto</code></li>
+<li><code>polar</code></li>
+<li><code>mirror_density</code></li>
+<li><code>beeswarm</code></li>
+<li><code>beeswarm_origin</code></li>
+<li><code>beeswarm_chr</code></li>
+<li><code>violin</code></li>
+<li><code>heatmap</code></li>
+<li><code>circular_heatmap</code></li>
+<li><code>cor_heatmap</code></li>
+<li><code>rainfall</code></li>
+<li><code>radar</code></li>
+</ul>
+<div id="auto-dispatch" class="section level3">
+<h3>2.1 Auto Dispatch</h3>
+<p><code>auto</code> first returns the latest stored plot from <code>plots(x)</code> when present; otherwise, it falls back to polar plotting from IDS/Angle results.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">p_auto &lt;-<span class="st"> </span><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;auto&quot;</span>,
+  <span class="dt">result_name =</span> <span class="st">&quot;AnalyzeImprintStatus.selected&quot;</span>,
+  <span class="dt">colorColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;auto_dispatch.pdf&quot;</span>
+)</code></pre></div>
+</div>
+<div id="explicit-dispatch" class="section level3">
+<h3>2.2 Explicit Dispatch</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">p_polar_s4 &lt;-<span class="st"> </span><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;polar&quot;</span>,
+  <span class="dt">result_name =</span> <span class="st">&quot;AnalyzeImprintStatus.selected&quot;</span>,
+  <span class="dt">colorColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
+  <span class="dt">title =</span> <span class="st">&quot;Selected Probeset Polar&quot;</span>,
+  <span class="dt">palette =</span> <span class="st">&quot;default&quot;</span>,
+  <span class="dt">alpha =</span> <span class="fl">0.5</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;selected_polar.pdf&quot;</span>
+)</code></pre></div>
+</div>
+<div id="compact-all-plot-type-demo" class="section level3">
+<h3>2.3 Compact All-Plot-Type Demo</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sample_id1 &lt;-<span class="st"> </span><span class="kw">colnames</span>(<span class="kw">beta</span>(x))[<span class="dv">2</span>]
+
+p_auto &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;auto&quot;</span>, <span class="dt">result_name =</span> <span class="st">&quot;AnalyzeImprintStatus.selected&quot;</span>,
+               <span class="dt">colorColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>, <span class="dt">outFile =</span> <span class="st">&quot;demo_auto.pdf&quot;</span>)
+p_polar &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;polar&quot;</span>, <span class="dt">result_name =</span> <span class="st">&quot;AnalyzeImprintStatus.selected&quot;</span>,
+                <span class="dt">colorColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>, <span class="dt">outFile =</span> <span class="st">&quot;demo_polar.pdf&quot;</span>)
+p_mirror &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;mirror_density&quot;</span>, <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+                 <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>, <span class="dt">outFile =</span> <span class="st">&quot;demo_mirror_density.pdf&quot;</span>)
+p_bee &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm&quot;</span>, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+        <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+              <span class="dt">outFile =</span> <span class="st">&quot;demo_beeswarm.pdf&quot;</span>)
+p_bee_origin &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm_origin&quot;</span>, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+         <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>, <span class="dt">title =</span> <span class="st">&quot;Beeswarm Origin (Cohort)&quot;</span>,
+         <span class="dt">outFile =</span> <span class="st">&quot;demo_beeswarm_origin.pdf&quot;</span>)
+p_bee_chr &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm_chr&quot;</span>, <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+      <span class="dt">sample_id =</span> sample_id1, <span class="dt">chr =</span> <span class="st">&quot;chr11&quot;</span>,
+      <span class="dt">title =</span> <span class="st">&quot;Beeswarm by Chromosome&quot;</span>, <span class="dt">outFile =</span> <span class="st">&quot;demo_beeswarm_chr.pdf&quot;</span>)
+p_vln &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;violin&quot;</span>, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+        <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+              <span class="dt">outFile =</span> <span class="st">&quot;demo_violin.pdf&quot;</span>)
+p_heatmap &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;heatmap&quot;</span>, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+          <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+                  <span class="dt">outFile =</span> <span class="st">&quot;demo_heatmap.pdf&quot;</span>)
+p_circular &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;circular_heatmap&quot;</span>, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+                   <span class="dt">sectionColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>, <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+                   <span class="dt">outFile =</span> <span class="st">&quot;demo_circular_heatmap.pdf&quot;</span>)
+cor_mat &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;cor_heatmap&quot;</span>, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+                <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+                <span class="dt">prefix =</span> <span class="st">&quot;demo&quot;</span>)
+outFile &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;imprintomeset_quickstart_rainfall_&quot;</span>, sample_id1, <span class="st">&quot;.pdf&quot;</span>)
+p_rain &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;rainfall&quot;</span>, <span class="dt">sample_id =</span> sample_id1,
+               <span class="dt">probeset =</span> <span class="st">&quot;classifier3&quot;</span>, <span class="dt">outFile =</span> outFile)
+outFile &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;imprintomeset_quickstart_radar_&quot;</span>, sample_id1, <span class="st">&quot;.pdf&quot;</span>)
+p_radar &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;radar&quot;</span>, <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>, <span class="dt">sample_id =</span> sample_id1,
+                <span class="dt">title =</span> <span class="st">&quot;ImprintomeSet Radar&quot;</span>, <span class="dt">outFile =</span> outFile)</code></pre></div>
+</div>
+</div>
+<div id="sample-level-visualizations" class="section level2">
+<h2>3. Sample-Level Visualizations</h2>
+<div id="polar-plot" class="section level3">
+<h3>3.1 Polar Plot</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">p_polar &lt;-<span class="st"> </span><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;polar&quot;</span>,
+  <span class="dt">result_name =</span> <span class="st">&quot;AnalyzeImprintStatus.selected&quot;</span>,
+  <span class="dt">colorColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
+  <span class="dt">title =</span> <span class="st">&quot;ImprintomeSet Polar&quot;</span>,
+  <span class="dt">palette =</span> <span class="st">&quot;default&quot;</span>,
+  <span class="dt">alpha =</span> <span class="fl">0.5</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;polar_direct.pdf&quot;</span>
+)</code></pre></div>
+</div>
+<div id="mirror-density" class="section level3">
+<h3>3.2 Mirror Density</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">p_mirror &lt;-<span class="st"> </span><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;mirror_density&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;mirror_density.pdf&quot;</span>
+)</code></pre></div>
+</div>
+<div id="radar-plot" class="section level3">
+<h3>3.3 Radar Plot</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sample_id1 &lt;-<span class="st"> </span><span class="kw">colnames</span>(<span class="kw">beta</span>(x))[<span class="dv">2</span>]
+outFile &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;imprintomeset_quickstart_radar_&quot;</span>, sample_id1, <span class="st">&quot;.pdf&quot;</span>)
+p_radar &lt;-<span class="st"> </span><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;radar&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+  <span class="dt">sample_id =</span> sample_id1,
+  <span class="dt">title =</span> <span class="st">&quot;ImprintomeSet Radar&quot;</span>,
+  <span class="dt">outFile =</span> outFile
+)</code></pre></div>
+</div>
+</div>
+<div id="probe-level-visualizations" class="section level2">
+<h2>4. Probe-Level Visualizations</h2>
+<div id="violin-plot" class="section level3">
+<h3>4.1 Violin Plot</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">p_vln &lt;-<span class="st"> </span><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;violin&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;beta_violin.pdf&quot;</span>
+)</code></pre></div>
+</div>
+<div id="beeswarm-plot" class="section level3">
+<h3>4.2 Beeswarm Plot</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">p_bee &lt;-<span class="st"> </span><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;beta_beeswarm.pdf&quot;</span>
+)</code></pre></div>
+</div>
+<div id="single-chromosome-beeswarm" class="section level3">
+<h3>4.3 Single-Chromosome Beeswarm</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">p_bee_chr11 &lt;-<span class="st"> </span>imprintomeR<span class="op">:::</span><span class="kw">BetaBeePlot_single_chr</span>(
+  <span class="dt">beta =</span> beta_x,
+  <span class="dt">meta =</span> meta_x,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">chr =</span> <span class="st">&quot;chr11&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;chr11p15&quot;</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;beeswarm_chr11.pdf&quot;</span>
+)</code></pre></div>
+</div>
+<div id="origin-split-beeswarm" class="section level3">
+<h3>4.4 Origin-Split Beeswarm</h3>
+<p>Use the ImprintomeSet dispatcher (<code>plot_type = &quot;beeswarm_origin&quot;</code>) for cohort-wide origin split plots.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">p_bee_origin &lt;-<span class="st"> </span><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm_origin&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">title =</span> <span class="st">&quot;Beeswarm Origin (Cohort)&quot;</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;beeswarm_origin_dispatch.pdf&quot;</span>
+)</code></pre></div>
+</div>
+<div id="single-sample-beeswarm-faceted-by-chromosome" class="section level3">
+<h3>4.5 Single-Sample Beeswarm Faceted by Chromosome</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sample_id1 &lt;-<span class="st"> </span><span class="kw">colnames</span>(<span class="kw">beta</span>(x))[<span class="dv">2</span>]
+p_bee_chr &lt;-<span class="st"> </span><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm_chr&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+  <span class="dt">sample_id =</span> sample_id1,
+  <span class="dt">chr =</span> <span class="st">&quot;chr11&quot;</span>,
+  <span class="dt">title =</span> <span class="st">&quot;Beeswarm by Chromosome (Origin Split)&quot;</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;beeswarm_chr_dispatch.pdf&quot;</span>
+)</code></pre></div>
+<p>The subtitle reports the selected sample, probeset, and chromosome scope. Within each chromosome panel, maternal/paternal points are separated and median summary markers are overlaid.</p>
+</div>
+</div>
+<div id="cohort-level-visualizations" class="section level2">
+<h2>5. Cohort-Level Visualizations</h2>
+<div id="correlation-heatmap" class="section level3">
+<h3>5.1 Correlation Heatmap</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cor_mat &lt;-<span class="st"> </span><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;cor_heatmap&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">prefix =</span> <span class="st">&quot;cohort&quot;</span>
+)</code></pre></div>
+</div>
+<div id="annotated-heatmap" class="section level3">
+<h3>5.2 Annotated Heatmap</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;heatmap&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;beta_heatmap.pdf&quot;</span>
+)</code></pre></div>
+</div>
+<div id="circular-heatmap" class="section level3">
+<h3>5.3 Circular Heatmap</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;circular_heatmap&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">sectionColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;beta_circular_heatmap.pdf&quot;</span>
+)</code></pre></div>
+</div>
+</div>
+<div id="chromosome-and-genome-visualizations" class="section level2">
+<h2>6. Chromosome and Genome Visualizations</h2>
+<div id="chromosome-beeswarm-panels" class="section level3">
+<h3>6.1 Chromosome Beeswarm Panels</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">p_bee_chr_all &lt;-<span class="st"> </span><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm_chr&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+  <span class="dt">sample_id =</span> sample_id1,
+  <span class="dt">chr =</span> <span class="ot">NULL</span>,
+  <span class="dt">title =</span> <span class="st">&quot;Beeswarm by Chromosome (All Chromosomes)&quot;</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;beeswarm_by_chromosome.pdf&quot;</span>
+)</code></pre></div>
+</div>
+<div id="rainfall-plot" class="section level3">
+<h3>6.2 Rainfall Plot</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sample_id1 &lt;-<span class="st"> </span><span class="kw">colnames</span>(<span class="kw">beta</span>(x))[<span class="dv">2</span>]
+outFile &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;imprintomeset_quickstart_rainfall_&quot;</span>, sample_id1, <span class="st">&quot;.pdf&quot;</span>)
+
+p_rain &lt;-<span class="st"> </span><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;rainfall&quot;</span>,
+  <span class="dt">sample_id =</span> sample_id1,
+  <span class="dt">probeset =</span> <span class="st">&quot;classifier3&quot;</span>,
+  <span class="dt">outFile =</span> outFile
+)</code></pre></div>
+</div>
+<div id="chromosome-vs-others-beeswarm" class="section level3">
+<h3>6.3 Chromosome vs Others Beeswarm</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">probesets &lt;-<span class="st"> </span><span class="kw">readRDS</span>(<span class="kw">system.file</span>(<span class="st">&quot;extdata&quot;</span>, <span class="st">&quot;probesets_hg19.rds&quot;</span>, <span class="dt">package =</span> <span class="st">&quot;imprintomeR&quot;</span>))
+ps &lt;-<span class="st"> </span>probesets[[<span class="st">&quot;classifier2&quot;</span>]]
+common_probes &lt;-<span class="st"> </span><span class="kw">intersect</span>(ps<span class="op">$</span>NAME, <span class="kw">rownames</span>(beta_x))
+
+dat_chr &lt;-<span class="st"> </span>beta_x[common_probes, , drop =<span class="st"> </span><span class="ot">FALSE</span>]
+dat_chr<span class="op">$</span>chr &lt;-<span class="st"> </span><span class="kw">ifelse</span>(ps[common_probes, <span class="st">&quot;CHR&quot;</span>] <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;chr11&quot;</span>, <span class="st">&quot;11&quot;</span>), <span class="st">&quot;chr11&quot;</span>, <span class="st">&quot;others&quot;</span>)
+dat_chr<span class="op">$</span>CATEGORY &lt;-<span class="st"> </span>ps[common_probes, <span class="st">&quot;ORIGIN&quot;</span>]
+
+imprintomeR<span class="op">:::</span><span class="kw">Beeplot_chr_vs_other</span>(
+  <span class="dt">dat =</span> dat_chr,
+  <span class="dt">meta =</span> meta_x,
+  <span class="dt">group.by =</span> <span class="st">&quot;chr&quot;</span>,
+  <span class="dt">color.by =</span> <span class="st">&quot;CATEGORY&quot;</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;beeplot_chr11_vs_others.pdf&quot;</span>
+)</code></pre></div>
+</div>
+<div id="batch-chromosome-vs-others-convenience-wrapper" class="section level3">
+<h3>6.4 Batch Chromosome vs Others Convenience Wrapper</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">imprintomeR<span class="op">:::</span><span class="kw">Beeplot_chr_vs_other_single</span>(
+  <span class="dt">input =</span> <span class="kw">list</span>(<span class="dt">beta =</span> beta_x, <span class="dt">meta =</span> meta_x),
+  <span class="dt">chrs =</span> <span class="st">&quot;chr1,chr11,chr20&quot;</span>,
+  <span class="dt">prefix =</span> <span class="st">&quot;chr_vs_other_batch&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;classifier2&quot;</span>
+)</code></pre></div>
+</div>
+</div>
+<div id="persist-plot-objects-inside-imprintomeset" class="section level2">
+<h2>7. Persist Plot Objects Inside ImprintomeSet</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">p_list &lt;-<span class="st"> </span><span class="kw">plots</span>(x)
+p_list[[<span class="st">&quot;polar.selected&quot;</span>]] &lt;-<span class="st"> </span>p_polar
+p_list[[<span class="st">&quot;mirror.selected&quot;</span>]] &lt;-<span class="st"> </span>p_mirror
+p_list[[<span class="st">&quot;radar.sample1&quot;</span>]] &lt;-<span class="st"> </span>p_radar
+p_list[[<span class="st">&quot;beeswarm.cohort&quot;</span>]] &lt;-<span class="st"> </span>p_bee
+p_list[[<span class="st">&quot;beeswarm.origin.cohort&quot;</span>]] &lt;-<span class="st"> </span>p_bee_origin
+p_list[[<span class="st">&quot;beeswarm.chr.sample1&quot;</span>]] &lt;-<span class="st"> </span>p_bee_chr
+p_list[[<span class="st">&quot;violin.cohort&quot;</span>]] &lt;-<span class="st"> </span>p_vln
+p_list[[<span class="st">&quot;rainfall.sample1&quot;</span>]] &lt;-<span class="st"> </span>p_rain
+<span class="kw">plots</span>(x) &lt;-<span class="st"> </span>p_list
+
+<span class="kw">names</span>(<span class="kw">plots</span>(x))
+
+<span class="co"># Access stored plot objects</span>
+p_origin_from_object &lt;-<span class="st"> </span><span class="kw">plots</span>(x)[[<span class="st">&quot;beeswarm.origin.cohort&quot;</span>]]
+p_chr_from_object &lt;-<span class="st"> </span><span class="kw">plots</span>(x)[[<span class="st">&quot;beeswarm.chr.sample1&quot;</span>]]
+
+p_origin_from_object
+p_chr_from_object</code></pre></div>
+</div>
+<div id="summarize-and-export" class="section level2">
+<h2>8. Summarize and Export</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">s &lt;-<span class="st"> </span><span class="kw">summarize</span>(x)
+s<span class="op">$</span>object
+s<span class="op">$</span>results
+s<span class="op">$</span>qc
+s<span class="op">$</span>plots
+
+manifest &lt;-<span class="st"> </span><span class="kw">export</span>(
+  x,
+  <span class="dt">outdir =</span> <span class="st">&quot;imprintome_export&quot;</span>,
+  <span class="dt">save_plots =</span> <span class="ot">TRUE</span>,
+  <span class="dt">plot_device =</span> <span class="st">&quot;pdf&quot;</span>,
+  <span class="dt">overwrite =</span> <span class="ot">TRUE</span>
+)
+
+<span class="kw">head</span>(manifest)</code></pre></div>
+<p><code>export()</code> currently writes result tables and stored plot objects. QC tables remain available through <code>qc(x)</code> and <code>summarize(x)$qc</code>.</p>
+</div>
+<div id="notes" class="section level2">
+<h2>9. Notes</h2>
+<ul>
+<li>Several plotting functions write side-effect files and also return plot objects.</li>
+<li>For large cohorts, disable per-sample side folders where optional (<code>pdfFolder = NULL</code>).</li>
+<li>Keep <code>SAMPLE_NAME</code> alignment between <code>beta(x)</code> and <code>meta(x)</code>.</li>
+<li>Advanced, non-dispatch plots can still be called directly when needed.</li>
+</ul>
+</div>
+<div id="session-info" class="section level2">
+<h2>Session Info</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">sessionInfo</span>()</code></pre></div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

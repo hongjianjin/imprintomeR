@@ -10,6 +10,7 @@
 #' @slot results Named list of derived result tables/objects.
 #' @slot plots Named list of generated plots.
 #'
+#' @name ImprintomeSet-class
 #' @exportClass ImprintomeSet
 NULL
 
@@ -50,16 +51,16 @@ setClassUnion("DataFrameOrList", c("data.frame", "list"))
     if (nrow(meta) < 1L) {
       errors <- c(errors, "slot 'meta' must have at least 1 row")
     }
-    if (!("SAMPLE_NAME" %in% colnames(meta))) {
-      errors <- c(errors, "slot 'meta' must contain column 'SAMPLE_NAME'")
+    if (!("Sample_Name" %in% colnames(meta))) {
+      errors <- c(errors, "slot 'meta' must contain column 'Sample_Name'")
     } else {
-      if (anyDuplicated(meta$SAMPLE_NAME)) {
-        errors <- c(errors, "slot 'meta$SAMPLE_NAME' must be unique")
+      if (anyDuplicated(meta$Sample_Name)) {
+        errors <- c(errors, "slot 'meta$Sample_Name' must be unique")
       }
       if (!is.null(colnames(beta))) {
-        common_samples <- intersect(colnames(beta), as.character(meta$SAMPLE_NAME))
+        common_samples <- intersect(colnames(beta), as.character(meta$Sample_Name))
         if (length(common_samples) == 0L) {
-          errors <- c(errors, "no overlapping samples between colnames(beta) and meta$SAMPLE_NAME")
+          errors <- c(errors, "no overlapping samples between colnames(beta) and meta$Sample_Name")
         }
       }
     }
@@ -141,3 +142,4 @@ ImprintomeSet <- function(beta,
     plots = plots
   )
 }
+

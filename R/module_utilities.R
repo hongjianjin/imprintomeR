@@ -1,4 +1,4 @@
-# Auto-refactored from utilities2.R
+﻿# Auto-refactored from utilities2.R
 # Module: utilities
 
 standardColors <- function() {
@@ -51,6 +51,7 @@ SegmenPlot <- function() {
 }
 ##################################################################
 
+#' @export
 Between <-function(values, low_cutoff=0.3,high_cutoff=0.7){
     # return logical if values within the range [low_cutoff,high_cutoff]
      values > low_cutoff & values <=high_cutoff
@@ -61,8 +62,281 @@ Between <-function(values, low_cutoff=0.3,high_cutoff=0.7){
 ##################################################################
 # 01/08/2025, 14:53:36
 
-Meth_QC <- function() {
-  # to be done
+.qc_as_numeric_matrix <- function(x, arg_name) {
+  if (is.null(x)) {
+    return(NULL)
+  }
+
+  if (!(is.matrix(x) || is.data.frame(x))) {
+    stop(arg_name, " must be a matrix or data.frame.")
+  }
+
+  mat <- as.matrix(x)
+  storage.mode(mat) <- "numeric"
+  mat
+}
+
+.qc_extract_sentrix_ids <- function(meta) {
+  if (!is.data.frame(meta)) {
+    return(NULL)
+  }
+
+  if ("Sentrix_ID" %in% colnames(meta)) {
+    return(as.character(meta$Sentrix_ID))
+  }
+
+  if ("Basename" %in% colnames(meta)) {
+    return(basename(as.character(meta$Basename)))
+  }
+
+  NULL
+}
+
+.qc_subset_to_samples <- function(mat, sample_ids, arg_name) {
+  if (is.null(mat)) {
+    return(NULL)
+  }
+
+  if (is.null(colnames(mat))) {
+    if (ncol(mat) != length(sample_ids)) {
+      stop(arg_name, " must have column names or the same number of columns as samples.")
+    }
+    colnames(mat) <- sample_ids
+  }
+
+  common_ids <- intersect(sample_ids, colnames(mat))
+  if (length(common_ids) == 0L) {
+    stop(arg_name, " has no overlapping sample columns.")
+  }
+
+  mat[, sample_ids[sample_ids %in% common_ids], drop = FALSE]
+}
+
+.qc_calc_recall_rate <- function(detctionPval, pCutoff = 0.05, cnSuffix = NULL) {
+  if (is.null(detctionPval)) {
+    return(NULL)
+  }
+
+  DF <- .qc_as_numeric_matrix(detctionPval, "detection_p")
+  if (is.null(dim(DF)) || ncol(DF) < 1L || nrow(DF) < 1L) {
+    return(NULL)
+  }
+
+  recallRateAll <- apply(DF, 1, FUN = function(x) {
+    sum(x < pCutoff, na.rm = TRUE)
+  })
+  recallRateAll <- recallRateAll / ncol(DF)
+  rr_cutoffs <- seq(1, 0.3, by = -0.05)[-1]
+  DetectedCpGs <- vapply(rr_cutoffs, function(cutoff) {
+    sum(recallRateAll >= cutoff, na.rm = TRUE)
+  }, numeric(1))
+  pctDetectedCpG <- round(DetectedCpGs / nrow(DF) * 100, 1)
+
+  recallRate <- data.frame(
+    recall_rate_cutoffs = rr_cutoffs * 100,
+    DetectedCpG_dP = DetectedCpGs,
+    pctDetectedCpG_dP = pctDetectedCpG,
+    stringsAsFactors = FALSE
+  )
+
+  if (is.null(cnSuffix)) {
+    cnSuffix <- paste0("_", ncol(DF))
+  } else {
+    cnSuffix <- paste0(cnSuffix, "_", ncol(DF))
+  }
+  colnames(recallRate)[2:3] <- paste(colnames(recallRate)[2:3], pCutoff, cnSuffix, sep = "")
+  recallRate
+}
+
+.qc_extract_minfi_intensity <- function(minfi_object, intensity_cutoff = 11) {
+  if (is.null(minfi_object)) {
+    return(NULL)
+  }
+
+  if (!requireNamespace("minfi", quietly = TRUE)) {
+    stop("minfi is required when minfi_object is supplied.")
+  }
+
+  U <- minfi::getUnmeth(minfi_object)
+  U[is.na(U)] <- 0
+  M <- minfi::getMeth(minfi_object)
+  M[is.na(M)] <- 0
+
+  if (requireNamespace("matrixStats", quietly = TRUE)) {
+    uMed <- log2(matrixStats::colMedians(U, na.rm = TRUE))
+    mMed <- log2(matrixStats::colMedians(M, na.rm = TRUE))
+  } else {
+    uMed <- log2(apply(U, 2, median, na.rm = TRUE))
+    mMed <- log2(apply(M, 2, median, na.rm = TRUE))
+  }
+
+  intensity_qc <- data.frame(
+    SAMPLE_NAME = names(mMed),
+    mMed = as.numeric(mMed),
+    uMed = as.numeric(uMed),
+    aveMedIntensity = as.numeric((mMed + uMed) / 2),
+    stringsAsFactors = FALSE
+  )
+  intensity_qc$intensity_status <- ifelse(
+    intensity_qc$aveMedIntensity >= intensity_cutoff,
+    "PASS",
+    "FAIL"
+  )
+  intensity_qc
+}
+
+.qc_reduce_status <- function(dat, status_cols) {
+  if (length(status_cols) == 0L) {
+    return(rep(NA_character_, nrow(dat)))
+  }
+
+  apply(dat[, status_cols, drop = FALSE], 1, function(x) {
+    x <- as.character(x)
+    x <- x[!is.na(x) & nzchar(x)]
+    if (length(x) == 0L) {
+      return(NA_character_)
+    }
+    if (any(x == "FAIL")) {
+      return("FAIL")
+    }
+    if (all(x == "PASS")) {
+      return("PASS")
+    }
+    "WARN"
+  })
+}
+
+#' Summarize Core Methylation Array QC Metrics
+#'
+#' Creates a deterministic QC bundle from matched metadata/beta inputs and
+#' optional detection p-values or a minfi object. The returned list is designed
+#' Not intended for direct storage in ImprintomeSet (QC data is handled by MethQcSet).
+#'
+#' @param betaFile Beta matrix/data.frame, file path, or an `ImprintomeSet`.
+#' @param metaFile Optional metadata data.frame or file path. Not required when
+#'   `betaFile` is an `ImprintomeSet`.
+#' @param detection_p Optional detection p-value matrix/data.frame with samples
+#'   in columns.
+#' @param minfi_object Optional minfi object used to derive methylated and
+#'   unmethylated intensity medians.
+#' @param assay Optional assay label. When omitted and `betaFile` is an
+#'   `ImprintomeSet`, `assay(betaFile)` is used.
+#' @param p_cutoff Detection p-value threshold used for per-sample recall.
+#' @param mean_detection_cutoff Mean detection p-value threshold for PASS/FAIL.
+#' @param intensity_cutoff Minimum average median intensity for PASS/FAIL.
+#'
+#' @return Named list containing `metadata_qc`, `beta_qc`, optional
+#'   `detection_qc`, optional `detection_recall_rate`, optional `intensity_qc`,
+#'   and merged `sample_qc`.
+#' @export
+Meth_QC <- function(betaFile,
+                    metaFile = NULL,
+                    detection_p = NULL,
+                    minfi_object = NULL,
+                    assay = NULL,
+                    p_cutoff = 0.05,
+                    mean_detection_cutoff = 0.03,
+                    intensity_cutoff = 11) {
+  assay_value <- assay
+  if (methods::is(betaFile, "ImprintomeSet") && is.null(assay_value)) {
+    assay_value <- methods::slot(betaFile, "assay")
+  }
+  if (!is.null(assay_value)) {
+    assay_value <- standardize_array(assay_value)
+  }
+
+  resolved <- .resolve_beta_meta_inputs(betaFile, metaFile, require_meta = TRUE)
+  input <- LoadMetaBeta(resolved$meta, resolved$beta, probeset = NULL)
+
+  meta <- input$meta
+  beta <- .qc_as_numeric_matrix(input$beta, "betaFile")
+  sample_ids <- as.character(meta$Sample_Name)
+  beta <- .qc_subset_to_samples(beta, sample_ids, "betaFile")
+
+  sentrix_ids <- .qc_extract_sentrix_ids(meta)
+  sentrix_valid <- if (is.null(sentrix_ids)) {
+    rep(NA, length(sample_ids))
+  } else {
+    CheckSentrixID(sentrix_ids)
+  }
+
+  metadata_qc <- data.frame(
+    SAMPLE_NAME = sample_ids,
+    stringsAsFactors = FALSE
+  )
+  if ("SAMPLE_GROUP" %in% colnames(meta)) {
+    metadata_qc$SAMPLE_GROUP <- as.character(meta$SAMPLE_GROUP)
+  }
+  if (!is.null(assay_value)) {
+    metadata_qc$assay <- assay_value
+  }
+  metadata_qc$sentrix_id <- if (is.null(sentrix_ids)) NA_character_ else as.character(sentrix_ids)
+  metadata_qc$sentrix_id_valid <- as.logical(sentrix_valid)
+  metadata_qc$sentrix_status <- ifelse(
+    is.na(metadata_qc$sentrix_id_valid),
+    NA_character_,
+    ifelse(metadata_qc$sentrix_id_valid, "PASS", "FAIL")
+  )
+
+  beta_qc <- data.frame(
+    SAMPLE_NAME = sample_ids,
+    beta_median = apply(beta, 2, median, na.rm = TRUE),
+    beta_missing_n = colSums(is.na(beta)),
+    beta_missing_pct = round(colMeans(is.na(beta)) * 100, 2),
+    stringsAsFactors = FALSE
+  )
+
+  out <- list(
+    metadata_qc = metadata_qc,
+    beta_qc = beta_qc
+  )
+
+  detection_qc <- NULL
+  if (!is.null(detection_p)) {
+    detection_mat <- .qc_as_numeric_matrix(detection_p, "detection_p")
+    detection_mat <- .qc_subset_to_samples(detection_mat, sample_ids, "detection_p")
+    pct_detected_col <- paste0("pctDetectedCpG_dP", format(p_cutoff, trim = TRUE, scientific = FALSE))
+
+    detection_qc <- data.frame(
+      SAMPLE_NAME = colnames(detection_mat),
+      aveDetectionPval = colMeans(detection_mat, na.rm = TRUE),
+      pct_detected = round(colMeans(detection_mat < p_cutoff, na.rm = TRUE) * 100, 1),
+      stringsAsFactors = FALSE
+    )
+    colnames(detection_qc)[colnames(detection_qc) == "pct_detected"] <- pct_detected_col
+    detection_qc$detection_status <- ifelse(
+      detection_qc$aveDetectionPval < mean_detection_cutoff & detection_qc[[pct_detected_col]] > 95,
+      "PASS",
+      "FAIL"
+    )
+
+    out$detection_qc <- detection_qc
+    out$detection_recall_rate <- .qc_calc_recall_rate(detection_mat, pCutoff = p_cutoff, cnSuffix = "_all")
+  }
+
+  intensity_qc <- .qc_extract_minfi_intensity(minfi_object, intensity_cutoff = intensity_cutoff)
+  if (!is.null(intensity_qc)) {
+    intensity_qc <- intensity_qc[intensity_qc$SAMPLE_NAME %in% sample_ids, , drop = FALSE]
+    intensity_qc <- intensity_qc[match(sample_ids, intensity_qc$SAMPLE_NAME), , drop = FALSE]
+    out$intensity_qc <- intensity_qc
+  }
+
+  sample_level_tables <- Filter(function(z) {
+    is.data.frame(z) && "SAMPLE_NAME" %in% colnames(z)
+  }, out)
+
+  sample_qc <- Reduce(function(left, right) {
+    merge(left, right, by = "SAMPLE_NAME", all = TRUE, sort = FALSE)
+  }, sample_level_tables)
+
+  status_cols <- intersect(
+    c("sentrix_status", "detection_status", "intensity_status"),
+    colnames(sample_qc)
+  )
+  sample_qc$final_qc_status <- .qc_reduce_status(sample_qc, status_cols)
+  out$sample_qc <- sample_qc[match(sample_ids, sample_qc$SAMPLE_NAME), , drop = FALSE]
+
+  out
 }
 ##################################################################
 
@@ -74,6 +348,7 @@ IsValidColors <- function(x) {
   })
 }
 
+#' @export
 Check_Meta_Color <- function(meta, groupColumn = "SAMPLE_GROUP") {
   if (!"COLOR" %in% colnames(meta)) {
     meta$COLOR <- standardColors()[as.integer(as.factor(meta[, groupColumn]))]
@@ -144,6 +419,7 @@ ggplotColours <- function(n = 6, h = c(0, 360) + 15){
 #================================================================
 PALETTES <-  c("default","seurat","viridis","plasma", "magma","inferno","inferno","inferno","kako","turbo")
 
+#' @export
 GetColors <- function(palette="Default",n=10) {
   suppressMessages(suppressWarnings(library(viridis)))
   colors <- switch(tolower(palette),
@@ -176,10 +452,15 @@ Meth_DMR <- function() {
 
 ##################################################################
 
-Calculate_impvar <- function(betaFile, metaFile,  icr.bed=NULL, probeset=NULL,assay=c("450K","EPICv1","EPICv2"),genome=c("hg19","hg38"),outFile=NULL) {
+#' @export
+Calculate_impvar <- function(betaFile, metaFile = NULL,  icr.bed=NULL, probeset=NULL,assay=c("450K","EPICv1","EPICv2"),genome=c("hg19","hg38"),outFile=NULL) {
   suppressMessages(suppressWarnings(library("matrixStats")))
   suppressMessages(suppressWarnings(library("dplyr")))
   suppressMessages(suppressWarnings(library("GenomicRanges")))  
+
+  resolved <- .resolve_beta_meta_inputs(betaFile, metaFile, require_meta = TRUE)
+  betaFile <- resolved$beta
+  metaFile <- resolved$meta
   
   input <- LoadMetaBeta(metaFile, betaFile, probeset = NULL)
   meta <- input[["meta"]]
@@ -209,7 +490,7 @@ Calculate_impvar <- function(betaFile, metaFile,  icr.bed=NULL, probeset=NULL,as
       genome <- match.arg(genome)
       genome <- toupper(genome)
       
-      cpg_annos <- readRDS("inst/extdata/anno.uniq_harmonized.liftover.rds")
+      cpg_annos <- readRDS(.resolve_extdata_file("anno.uniq_harmonized.liftover.rds"))
       if (!is.null(assay)){
         cpg_annos <- cpg_annos[grep(assay, cpg_annos[,"ASSAY"],ignore.case=T),]
       }
@@ -296,6 +577,85 @@ Calculate_impvar <- function(betaFile, metaFile,  icr.bed=NULL, probeset=NULL,as
     cat("\n[",basename(outFile),"[saved]")
   }
   return(final_report)
+}
+#----------------------------------------------------------------
+
+#' Aggregate EPICv2 Probes to Base Probe IDs
+#'
+#' EPICv2 arrays report multiple measurements per base CpG probe (e.g., cg06373096_TC11,
+#' cg06373096_TC12, ..., cg06373096_TC110 all measure cg06373096). This function aggregates
+#' repeated measurements into a single representative value per unique probe ID.
+#'
+#' @param beta_df A data.frame with a \code{TargetID} column (probe IDs) and numeric columns
+#'   (beta values, detection p-values, etc.). Can be coerced from matrix.
+#' @param method Character, one of \code{c("median", "mean")}. Aggregation method for
+#'   numeric columns. Default: \code{"median"}.
+#'
+#' @return A data.frame with the same structure as \code{beta_df}, but with:
+#'   \itemize{
+#'     \item \code{TargetID} column: base probe IDs (suffixes removed)
+#'     \item Numeric columns: aggregated values (median or mean across replicates)
+#'   }
+#'   If no EPICv2-style suffixes are detected (\code{_[TB].\\d+$}), returns \code{beta_df}
+#'   unchanged (with a message).
+#'
+#' @details
+#' The function detects EPICv2 probe suffixes matching the pattern \code{_[TB].\\d+$}
+#' (e.g., \code{_TC11}, \code{_TB01}). If found, the suffix is stripped and values are
+#' aggregated by base probe ID. Numeric columns are aggregated using the chosen method;
+#' all other columns are dropped.
+#'
+#' @examples
+#' \dontrun{
+#'   # Load EPICv2 beta matrix
+#'   beta_df <- read.delim("epicv2_beta.txt")
+#'   
+#'   # Aggregate to base probes
+#'   beta_agg <- aggregate_beta_epicv2(beta_df, method = "median")
+#'   
+#'   # Check result
+#'   dim(beta_agg)  # Fewer rows (unique base probes)
+#' }
+#'
+#' @export
+aggregate_beta_epicv2 <- function(beta_df, method = c("median", "mean")) {
+  suppressMessages(suppressWarnings(library(dplyr)))
+  
+  # Coerce to data.frame if needed
+  if (!is.data.frame(beta_df)) {
+    beta_df <- as.data.frame(beta_df)
+  }
+  
+  # Validate TargetID column exists
+  if (!("TargetID" %in% colnames(beta_df))) {
+    stop("TargetID column not found in beta_df. Required for probe aggregation.")
+  }
+  
+  # Check for EPICv2-style suffixes
+  if (sum(grepl("_[TB].\\d+$", beta_df$TargetID)) == 0) {
+    message("No EPICv2-style suffixes detected in TargetID. Returning data unchanged.")
+    return(beta_df)
+  }
+  
+  # Match and validate method argument
+  method <- match.arg(method)
+  
+  # Strip suffixes to get base probe IDs
+  beta_df$TargetID <- sub("_[TB].\\d+$", "", beta_df$TargetID)
+  
+  # Aggregate: group by TargetID, aggregate all numeric columns
+  aggregated_data <- beta_df %>%
+    dplyr::group_by(TargetID) %>%
+    dplyr::summarise(dplyr::across(where(is.numeric), 
+                                   list(~ if (method == "median") 
+                                          median(., na.rm = TRUE) 
+                                        else 
+                                          mean(., na.rm = TRUE)),
+                                   .names = "{.col}"),
+                     .groups = "drop") %>%
+    as.data.frame()
+  
+  aggregated_data
 }
 #----------------------------------------------------------------
 

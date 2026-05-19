@@ -2,6 +2,13 @@
 *.tmp
 *.temp
 *.log
+# Large data files are downloaded on-demand to keep repository lean
+# See data-raw/README.md for setup instructions
 *.rds
 *.txt
+
+# Development files and test artifacts
+dev_tmp/
+.Rhistory
+.Rdata
 

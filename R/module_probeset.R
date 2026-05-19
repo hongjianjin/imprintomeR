@@ -1,9 +1,10 @@
-# Auto-refactored from utilities2.R
+﻿# Auto-refactored from utilities2.R
 # Module: probeset
 
+#' @export
 AnnotateProbe2Gene <- function(probeIDs, probes.all = NULL, assay = "EPICV1", version = "HG19", verbose = FALSE, file = NULL) {
   if (is.null(probes.all)) {
-    probes.all <- readRDS("inst/extdata/anno.uniq_harmonized.liftover.rds")
+    probes.all <- readRDS(.resolve_extdata_file("anno.uniq_harmonized.liftover.rds"))
   }
   chr <- paste0("CHR_", toupper(version))
   mapinfo <- paste0("MAPINFO_", toupper(version))
@@ -17,12 +18,10 @@ AnnotateProbe2Gene <- function(probeIDs, probes.all = NULL, assay = "EPICV1", ve
 }
 # ================================================================
 
-
-# ================================================================
-
+#' @export
 ExtractProbesByGenelist <- function(genes = NULL, probes.all = NULL, assay = "EPICV1", version = "HG19", promoterOnly = FALSE, file = NULL) {
   if (is.null(probes.all)) {
-    probes.all <- readRDS("inst/extdata/anno.uniq_harmonized.liftover.rds")
+    probes.all <- readRDS(.resolve_extdata_file("anno.uniq_harmonized.liftover.rds"))
   }
   if (promoterOnly) {
     idx <- grepl("TSS200", probes.all$UCSC_REFGENE_GROUP)
@@ -64,6 +63,7 @@ ExtractProbesByGenelist <- function(genes = NULL, probes.all = NULL, assay = "EP
 #'
 #' @return Data frame of matched probes. In `bedFile` mode, returns region-aware
 #'   output compatible with legacy `ExtractProbesByBeds2()`.
+#' @export
 ExtractProbesByBeds <- function(bed = NULL, bedFile = NULL, probes.all = NULL, assay = NULL,
                                 version = "HG19", verbose = FALSE, file = NULL) {
   library("bedr")
@@ -73,7 +73,7 @@ ExtractProbesByBeds <- function(bed = NULL, bedFile = NULL, probes.all = NULL, a
   }
 
   if (is.null(probes.all)) {
-    probes.all <- readRDS("inst/extdata/anno.uniq_harmonized.liftover.rds")
+    probes.all <- readRDS(.resolve_extdata_file("anno.uniq_harmonized.liftover.rds"))
   }
 
   if (!is.null(assay)) {
@@ -183,35 +183,16 @@ ExtractProbesByBeds <- function(bed = NULL, bedFile = NULL, probes.all = NULL, a
 
 # ================================================================
 
-#' Backward-Compatible Wrapper for BED File Probe Extraction
-#'
-#' @param bedFile BED file path.
-#' @inheritParams ExtractProbesByBeds
-#'
-#' @return Data frame of matched probes.
-ExtractProbesByBeds2 <- function(bedFile = NULL, probes.all = NULL, assay = NULL,
-                                 version = "HG19", verbose = FALSE, file = NULL) {
-  ExtractProbesByBeds(
-    bed = NULL,
-    bedFile = bedFile,
-    probes.all = probes.all,
-    assay = assay,
-    version = version,
-    verbose = verbose,
-    file = file
-  )
-}
-
-
 ##################################################################
 
+#' @export
 SubsetBeta_By_Probeset <- function(beta, probeset=probeset_options, prefix=NULL){
   beta_subset <- beta
   probesets <- NULL
   #print(probeset)
   if (!is.null(probeset)) {
     probeset <- match.arg(probeset)
-    probesets_all <- readRDS("inst/extdata/probesets_hg19.rds")
+    probesets_all <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
     if (probeset %in% names(probesets_all)){# c("chr11p15", "Jima", "Joshi", "NanoImprint","zambegrp", "all", "selected")) {
       probesets <- probesets_all[[probeset]]
       rownames(probesets) <- probesets$NAME
@@ -274,13 +255,3 @@ standardize_array <- function(input) {
 }
 
 #================================================================
-#' Calculate Epigenetic Stochasticity (ImpVar)
-#' @param beta_matrix A matrix of beta values (rows = CpGs, cols = samples)
-#' @param cpg_annos A data frame or GRanges with CpG positions (must match beta_matrix rows)
-#' @param icr_regions A GRanges object defining the start/end of ICRs
-#' @return A data frame of Variance scores per ICR per sample
-
-#  icr.bed <- "/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/ICR/Joshi_mmc6_simple_merged_d2k.bed"
-# betaFile <- "/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/imprintomeR_dev/datasets/GSE52576_CHM_450K/GSE52576_CHM_beta.txt"
-# metaFile <- "/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/datasets/GSE52576/GSE52576_meta.txt"
-

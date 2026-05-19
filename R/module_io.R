@@ -1,5 +1,21 @@
-# Auto-refactored from utilities2.R
+﻿# Auto-refactored from utilities2.R
 # Module: io
+
+.resolve_extdata_file <- function(filename) {
+  # Check local file first (allows tests to override package files)
+  local_path <- file.path("inst", "extdata", filename)
+  if (file.exists(local_path)) {
+    return(local_path)
+  }
+
+  # Fall back to installed package file
+  pkg_path <- system.file("extdata", filename, package = "imprintomeR")
+  if (nzchar(pkg_path) && file.exists(pkg_path)) {
+    return(pkg_path)
+  }
+
+  stop("Required extdata file not found: ", filename)
+}
 
 #' Check Whether an Excel Sheet Exists
 #'
@@ -7,6 +23,7 @@
 #' @param sheetName Sheet name to test.
 #'
 #' @return Logical; `TRUE` if the sheet exists, otherwise `FALSE`.
+#' @export
 CheckSheetName <-function(xlsxFile, sheetName){
     # check if a sheetName does exist in xlsxFile
     if (! file.exists(xlsxFile)) {
@@ -38,6 +55,7 @@ CheckSheetName <-function(xlsxFile, sheetName){
 #' @param autoColWidth Logical; auto-fit column widths.
 #'
 #' @return Invisible side-effect function; writes workbook to disk.
+#' @export
 SaveTable <- function(dat, sheetName = NULL, file = NULL, append = FALSE, colNames = T, rowNames = T, autoColWidth = TRUE) {
   if (any(length(dat)==0)){
      cat("\n\tError: Empty input for [SaveTable].")
@@ -107,6 +125,7 @@ SaveTable <- function(dat, sheetName = NULL, file = NULL, append = FALSE, colNam
 #' @param startRow First row to read for Excel mode.
 #'
 #' @return A data frame.
+#' @export
 LoadTable<-function(xlsxFile = xlsxFile, sheet=1, skipEmptyRows = FALSE, colNames = TRUE, rowNames=FALSE, startRow = 1){
     if (! grepl(".xls", basename(xlsxFile), ignore.case=T)){
         cat("\nYour input is not xlsx format.\n")
@@ -125,6 +144,7 @@ LoadTable<-function(xlsxFile = xlsxFile, sheet=1, skipEmptyRows = FALSE, colName
 #' @param ids Character vector of Sentrix IDs.
 #'
 #' @return Logical vector indicating valid IDs.
+#' @export
 CheckSentrixID <- function(ids) {
   # probably not useful, if no QC step is implemented.
   res1 <- grepl("^[0-9]{12}_R[0-9]{2}C[0-9]{2}$", ids)
@@ -151,6 +171,7 @@ CheckSentrixID <- function(ids) {
 #' @param ids Character vector of probe IDs.
 #'
 #' @return Logical vector; `TRUE` for IDs matching `cg########`.
+#' @export
 CheckProbeIDs <- function(ids) {
   grepl("cg[0-9]{8}", ids)
 }
@@ -161,6 +182,7 @@ CheckProbeIDs <- function(ids) {
 #' @param file_path Input text file path.
 #'
 #' @return Logical; `TRUE` when a header line is detected.
+#' @export
 CheckHeader <- function(file_path) {
   first_line <- readLines(file_path, n = 1)
   has_header <- !grepl("^cg[0-9]{8}", first_line) # if line#1 doesn't start with probeId, probeIdListFile has header line
@@ -176,6 +198,7 @@ CheckHeader <- function(file_path) {
 #' @param bedFile Path to BED file.
 #'
 #' @return Character vector of BED regions.
+#' @export
 ParseBedFile <- function(bedFile) {
    # add chr; sort coordinates
    # save updated bed file
@@ -204,6 +227,7 @@ ParseBedFile <- function(bedFile) {
 #' @param bedFile Path to BED file.
 #'
 #' @return A list with `bed` (3-column data frame) and `anno` (optional data frame).
+#' @export
 ParseBedFile2 <- function(bedFile) {
    # add chr; sort coordinates
    # save updated bed file
@@ -236,6 +260,7 @@ ParseBedFile2 <- function(bedFile) {
 #' @param bedFile Path to BED file.
 #'
 #' @return A `GRanges` object.
+#' @export
 Bed2Granges <- function(bedFile) {
   suppressMessages(suppressWarnings(library(rtracklayer)))
   import(bedFile, format = "BED")
@@ -251,6 +276,7 @@ Bed2Granges <- function(bedFile) {
 #' @param ignore.case Logical; case-insensitive matching when `TRUE`.
 #'
 #' @return Integer vector of matching indices or `NULL` if none matched.
+#' @export
 idx_matching_column <- function(df, columns, ignore.case = T) {
   # Define the target column names you're looking for
   target_columns <- columns
@@ -272,11 +298,22 @@ idx_matching_column <- function(df, columns, ignore.case = T) {
 #' Load and Standardize Metadata Table
 #'
 #' Accepts either a metadata data frame or path to a tab-delimited metadata file.
-#' Standardizes key columns to upper-case names and validates required fields.
+#' Validates required columns (case-insensitive) and normalizes them to canonical form.
 #'
-#' @param input Data frame or file path.
+#' @details
+#' **Required columns (case-insensitive input; normalized to canonical form):**
+#' - `Sample_Name` - Unique sample identifier (normalized from ID, SAMPLE_NAME, sample_name, etc.)
+#' - `Sample_Group` - Sample grouping/stratification (normalized from GROUP, SAMPLE_GROUP, sample_group, etc.)
 #'
-#' @return Standardized metadata data frame with `SAMPLE_NAME` row names.
+#' **Column normalization behavior:**
+#' User may provide columns in any case (e.g., `sample_name`, `SAMPLE_NAME`, `Sample_Name`).
+#' LoadMeta() automatically normalizes to the canonical mixed-case form: `Sample_Name` and `Sample_Group`.
+#' Preserves case of other columns.
+#'
+#' @param input Data frame or file path (tab-delimited with header).
+#'
+#' @return Standardized metadata data frame with `Sample_Name` row names. Columns are normalized to canonical form.
+#' @export
 LoadMeta <- function(input) {
   if (is.data.frame(input)) {
     meta <- input
@@ -287,26 +324,43 @@ LoadMeta <- function(input) {
   }
 
   cat("\n\t[meta dim:", nrow(meta), "x", ncol(meta), "]")
-  colnames(meta) <- toupper(colnames(meta))
-  meta  <- meta[, unique(colnames(meta))] # remove non-unique columns
-  if ("ID" %in% colnames(meta) & !"SAMPLE_NAME" %in% colnames(meta)) {
-    colnames(meta) <- gsub("^ID$", "SAMPLE_NAME", colnames(meta))
+  
+  # Normalize column names: case-insensitive matching, then map to canonical form
+  col_lower <- tolower(colnames(meta))
+  new_colnames <- colnames(meta)  # start with original case
+  
+  # Normalize required columns (case-insensitive match, then rename to canonical form)
+  for (i in seq_along(col_lower)) {
+    if (col_lower[i] == "sample_name" || col_lower[i] == "id") {
+      new_colnames[i] <- "Sample_Name"
+    } else if (col_lower[i] == "sample_group" || col_lower[i] == "group") {
+      new_colnames[i] <- "Sample_Group"
+    } else if (col_lower[i] == "basename") {
+      new_colnames[i] <- "Basename"
+    }
   }
-  if ("GROUP" %in% colnames(meta) & !"SAMPLE_GROUP" %in% colnames(meta)) {
-    colnames(meta) <- gsub("^GROUP$", "SAMPLE_GROUP", colnames(meta))
-  }
-  idx <- idx_matching_column(meta, c("SAMPLE_NAME", "SAMPLE_GROUP"))
-  if (length( idx)!=2 ) {
-    cat("\n INFO:idx_matching_column=",length( idx))
-    stop("[LoadMeta] Invalid meta file. SAMPLE_NAME, SAMPLE_GROUP are required.\n")
+  colnames(meta) <- new_colnames
+  
+  # Remove duplicate columns
+  meta <- meta[, unique(colnames(meta))]
+  
+  # Validate that required columns exist
+  required_cols <- c("Sample_Name", "Sample_Group")
+  missing_cols <- setdiff(required_cols, colnames(meta))
+  if (length(missing_cols) > 0) {
+    stop("[LoadMeta] Invalid meta file. Required columns missing: ",
+         paste(missing_cols, collapse = ", "),
+         "\n(Accepted in any case: Sample_Name/ID, Sample_Group/GROUP)")
   }
 
-  if (any(duplicated(meta$SAMPLE_NAME))) {
-    cat("\nWARN: remove samples with non-unique meta$SAMPLE_NAME. ")
-    meta <- meta[!duplicated(meta$SAMPLE_NAME), ]
+  # Remove duplicates by Sample_Name
+  if (any(duplicated(meta$Sample_Name))) {
+    cat("\nWARN: remove samples with non-unique meta$Sample_Name. ")
+    meta <- meta[!duplicated(meta$Sample_Name), ]
   }
-  colnames(meta) <- toupper(colnames(meta))
-  rownames(meta) <- meta$SAMPLE_NAME
+  
+  # Set Sample_Name as row names
+  rownames(meta) <- meta$Sample_Name
   return(meta)
 }
 
@@ -320,6 +374,7 @@ LoadMeta <- function(input) {
 #' @param input Data frame or file path.
 #'
 #' @return Beta matrix/data frame with probe IDs as row names.
+#' @export
 LoadBeta <- function(input) {
   suppressMessages(suppressWarnings(library(data.table)))
   if (is.data.frame(input)) {
@@ -355,6 +410,32 @@ probeset_options <- c("classifier2","classifier3","selected","chr11p15","signatu
 
 ##################################################################
 
+.resolve_beta_input <- function(beta_input) {
+  if (methods::is(beta_input, "ImprintomeSet")) {
+    return(methods::slot(beta_input, "beta"))
+  }
+  beta_input
+}
+
+
+.resolve_beta_meta_inputs <- function(beta_input, meta_input = NULL, require_meta = TRUE) {
+  if (methods::is(beta_input, "ImprintomeSet")) {
+    obj <- beta_input
+    beta_input <- methods::slot(obj, "beta")
+    if (is.null(meta_input)) {
+      meta_input <- methods::slot(obj, "meta")
+    }
+  }
+
+  if (require_meta && is.null(meta_input)) {
+    stop("meta input is required unless beta input is an ImprintomeSet.")
+  }
+
+  list(beta = beta_input, meta = meta_input)
+}
+
+##################################################################
+
 #' Load Matched Metadata and Beta Matrix
 #'
 #' Loads metadata and beta tables, keeps only intersecting samples, and
@@ -365,11 +446,20 @@ probeset_options <- c("classifier2","classifier3","selected","chr11p15","signatu
 #' @param probeset Optional probeset name passed to `SubsetBeta_By_Probeset`.
 #'
 #' @return A list with `meta`, `beta`, and `probesets`.
-LoadMetaBeta <- function(metaFile, betaFile, probeset = NULL) {
+#' @export
+LoadMetaBeta <- function(metaFile, betaFile = NULL, probeset = NULL) {
   # if not all sampleIDs in meta and beta, subset or only keep matched ones.
-  meta <- LoadMeta(metaFile)
-  beta <- LoadBeta(betaFile)
-  validIds <- intersect(meta$SAMPLE_NAME, colnames(beta))    
+  if (methods::is(metaFile, "ImprintomeSet")) {
+    if (!is.null(betaFile)) {
+      stop("When metaFile is an ImprintomeSet, betaFile must be NULL.")
+    }
+    beta <- LoadBeta(methods::slot(metaFile, "beta"))
+    meta <- LoadMeta(methods::slot(metaFile, "meta"))
+  } else {
+    meta <- LoadMeta(metaFile)
+    beta <- LoadBeta(betaFile)
+  }
+  validIds <- intersect(meta$Sample_Name, colnames(beta))    
   if(length(validIds)>0){
     meta1 <- meta[validIds, ]
     if(length(validIds)==1){
@@ -386,8 +476,8 @@ LoadMetaBeta <- function(metaFile, betaFile, probeset = NULL) {
     cat("\n\t[beta dim:", nrow(beta2), "x", ncol(beta2), "]")
     return(list(meta = meta1, beta = beta2, probesets = result[["probesets"]]))    
   }else{
-    cat("\n ERROR: beta column does not match meta$SAMPLE_NAME.\n")
-    print(head(meta$SAMPLE_NAME,n=5))
+    cat("\n ERROR: beta column does not match meta$Sample_Name.\n")
+    print(head(meta$Sample_Name,n=5))
     print(head(colnames(beta),n=5))
     q("no")
   }

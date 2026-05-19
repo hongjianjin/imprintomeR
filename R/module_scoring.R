@@ -1,6 +1,7 @@
 # Auto-refactored from utilities2.R
 # Module: scoring
 
+#' @export
 DetectMosaicism <- function(res_table, roi_ref_mean = 0.06, roi_ref_sd = 0.03) {
   # 1. Calculate Z-score based on healthy reference distribution
   res_table$IDS_Zscore <- (res_table$IDS - roi_ref_mean) / roi_ref_sd
@@ -42,6 +43,7 @@ DetectMosaicism <- function(res_table, roi_ref_mean = 0.06, roi_ref_sd = 0.03) {
 #' @param maternal_median Numeric vector of maternal median beta values.
 #'
 #' @return Numeric vector of IDS values.
+#' @export
 compute_ids <- function(paternal_median, maternal_median) {
   sqrt((paternal_median - 0.5)^2 + (maternal_median - 0.5)^2)
 }
@@ -56,6 +58,7 @@ compute_ids <- function(paternal_median, maternal_median) {
 #' @param maternal_median Numeric vector of maternal median beta values.
 #'
 #' @return Numeric vector of angles in degrees, normalized to `[0, 360)`.
+#' @export
 compute_angle <- function(paternal_median, maternal_median) {
   radians <- atan2(maternal_median - 0.5, paternal_median - 0.5)
   (radians * 180 / pi + 360) %% 360
@@ -73,6 +76,7 @@ compute_angle <- function(paternal_median, maternal_median) {
 #' @param roi_cutoff Numeric ROI threshold used only when `ids` is provided.
 #'
 #' @return Character vector of mechanism labels.
+#' @export
 classify_mechanism <- function(angle_degrees, ids = NULL, roi_cutoff = 0.2) {
   mechanism_labels <- c(
     "Pat-Gain", "Global-Hyper", "Mat-Gain", "Mat-Gain/Pat-Loss",
@@ -88,7 +92,7 @@ classify_mechanism <- function(angle_degrees, ids = NULL, roi_cutoff = 0.2) {
   )]
 
   if (!is.null(ids)) {
-    mechanism <- if_else(ids < roi_cutoff, "ROI", as.character(mechanism))
+    mechanism <- ifelse(ids < roi_cutoff, "ROI", as.character(mechanism))
   }
 
   mechanism
@@ -107,6 +111,7 @@ classify_mechanism <- function(angle_degrees, ids = NULL, roi_cutoff = 0.2) {
 #' @param sample_ids Character vector of sample IDs to evaluate.
 #'
 #' @return Data frame with columns `pat_cons`, `mat_cons`, and `consistency`.
+#' @export
 compute_consistency <- function(paternal_beta, maternal_beta, sample_ids) {
   consistency_scores <- t(sapply(sample_ids, function(sid) {
     p_vals <- paternal_beta[, sid]
@@ -133,10 +138,46 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids) {
 
 #================================================================
 
+#' Comprehensive Imprinting Analysis for a Sample Cohort
+#'
+#' Computes maternal/paternal medians, IDS, angle, mechanism, status, and
+#' confidence per sample for a selected probeset. Supports both legacy
+#' beta/meta inputs and object-first `ImprintomeSet` input.
+#'
+#' @param betaFile Data frame/matrix or file path containing probe-by-sample
+#'   beta values, or an `ImprintomeSet` object.
+#' @param metaFile Metadata data frame or file path. Must be provided unless
+#'   `betaFile` is an `ImprintomeSet`.
+#' @param probeset Character scalar naming a probeset key.
+#' @param ids_cutoff Numeric scalar threshold used to call imprinting
+#'   alteration by IDS.
+#'
+#' @return Data frame with sample-level imprinting metrics and labels.
+
+#' @export
 AnalyzeImprintStatus <- function(betaFile, metaFile, 
                                  probeset = probeset_options,
                                  ids_cutoff = 0.2) {
-  suppressMessages(suppressWarnings(library(dplyr)))  
+  # Support object-first usage while preserving legacy beta/meta inputs.
+  if (methods::is(betaFile, "ImprintomeSet")) {
+    if (!missing(metaFile) && !is.null(metaFile)) {
+      stop("When betaFile is an ImprintomeSet, metaFile must be missing or NULL.")
+    }
+    obj <- betaFile
+    betaFile <- beta(obj)
+    metaFile <- meta(obj)
+  }
+
+  if (missing(metaFile) || is.null(metaFile)) {
+    stop("metaFile is required unless betaFile is an ImprintomeSet.")
+  }
+
+  if (!is.character(probeset) || length(probeset) != 1 || is.na(probeset) || !nzchar(probeset)) {
+    stop("probeset must be a single non-empty character value.")
+  }
+  if (!is.numeric(ids_cutoff) || length(ids_cutoff) != 1 || is.na(ids_cutoff) || !is.finite(ids_cutoff)) {
+    stop("ids_cutoff must be a single finite numeric value.")
+  }
   
   # 1. Feature Alignment
   input <- LoadMetaBeta(metaFile, betaFile, probeset = NULL)
@@ -146,17 +187,36 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   
   probesets <- tmp[["probesets"]]
   used <- tmp[["beta"]]
-  used <- na.omit(used) 
+  used <- na.omit(used)
+
+  if (is.null(used) || ncol(used) == 0) {
+    stop("No sample columns available after preprocessing.")
+  }
+
+  sample_ids <- intersect(meta$Sample_Name, colnames(used))
+  if (length(sample_ids) == 0) {
+    stop("No overlapping samples between metadata and processed beta matrix.")
+  }
+  meta <- meta[sample_ids, , drop = FALSE]
+  used <- used[, sample_ids, drop = FALSE]
+
+  if (is.null(probesets) || !is.data.frame(probesets) || nrow(probesets) == 0) {
+    warning("No probeset annotation rows found for [", probeset, "]. Defaulting both allelic medians to 0.5.")
+  }
   
-  maternal_probes <- intersect(probesets$NAME[grep("maternal", probesets$ORIGIN)], rownames(used))
-  paternal_probes <- intersect(probesets$NAME[grep("paternal", probesets$ORIGIN)], rownames(used))
+  maternal_probes <- character(0)
+  paternal_probes <- character(0)
+  if (!is.null(probesets) && nrow(probesets) > 0 && all(c("NAME", "ORIGIN") %in% colnames(probesets))) {
+    maternal_probes <- intersect(probesets$NAME[grep("maternal", probesets$ORIGIN)], rownames(used))
+    paternal_probes <- intersect(probesets$NAME[grep("paternal", probesets$ORIGIN)], rownames(used))
+  }
   
   # --- NEW LOGIC: Handle Missing Probesets ---
   # If probes exist, subset them. If not, create a 0.5 matrix for all samples.
   if (length(maternal_probes) > 0) {
     maternal_beta <- used[maternal_probes, , drop = FALSE]
   } else {
-    message("WARNING: No maternal probes found for [", probeset, "]. Defaulting to 0.5.")
+    warning("No maternal probes found for [", probeset, "]. Defaulting to 0.5.")
     maternal_beta <- matrix(0.5, nrow = 1, ncol = ncol(used), 
                             dimnames = list("Placeholder_Mat", colnames(used)))
   }
@@ -164,7 +224,7 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   if (length(paternal_probes) > 0) {
     paternal_beta <- used[paternal_probes, , drop = FALSE]
   } else {
-    message("WARNING: No paternal probes found for [", probeset, "]. Defaulting to 0.5.")
+    warning("No paternal probes found for [", probeset, "]. Defaulting to 0.5.")
     paternal_beta <- matrix(0.5, nrow = 1, ncol = ncol(used), 
                             dimnames = list("Placeholder_Pat", colnames(used)))
   }
@@ -173,7 +233,7 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   consistency_df <- compute_consistency(
     paternal_beta = paternal_beta,
     maternal_beta = maternal_beta,
-    sample_ids = meta$SAMPLE_NAME
+    sample_ids = sample_ids
   )
 
   # 2. Metric Calculation (Median aggregation) 
@@ -191,20 +251,16 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   mechanism <- classify_mechanism(degrees)
 
   # 6. Status and Confidence Logic
-  status_conf_logic <- data.frame(ids = ids) %>%
-    mutate(
-      Status = if_else(ids >= ids_cutoff, "Imprinting Alteration", "Normal"),
-      Confidence = case_when(
-        ids < 0.1  ~ "High (Normal)",
-        ids < 0.2  ~ "Low (Normal)",
-        ids < 0.4  ~ "Moderate (Alteration)",
-        TRUE       ~ "High (Alteration)"
-      ),
-      Final_Mechanism = classify_mechanism(degrees, ids = ids, roi_cutoff = 0.2)
-    )
+  status <- ifelse(ids >= ids_cutoff, "Imprinting Alteration", "Normal")
+  confidence <- ifelse(
+    ids < 0.1,
+    "High (Normal)",
+    ifelse(ids < 0.2, "Low (Normal)", ifelse(ids < 0.4, "Moderate (Alteration)", "High (Alteration)"))
+  )
+  final_mechanism <- classify_mechanism(degrees, ids = ids, roi_cutoff = 0.2)
 
   # 7. Metadata selection
-  cols_to_keep <- intersect(colnames(meta), c("SAMPLE_NAME", "SAMPLE_GROUP", "ID2"))
+  cols_to_keep <- intersect(colnames(meta), c("Sample_Name", "Sample_Group", "ID2"))
   meta_selected <- meta[, cols_to_keep, drop = FALSE]
 
   # 8. Final Results Assembly
@@ -216,9 +272,9 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
     consistency_df,
     IDS             = round(ids, 3),
     Angle           = round(degrees, 1),
-    Mechanism       = status_conf_logic$Final_Mechanism,
-    Status          = status_conf_logic$Status,
-    Confidence      = status_conf_logic$Confidence,
+    Mechanism       = final_mechanism,
+    Status          = status,
+    Confidence      = confidence,
     stringsAsFactors = FALSE
   )
 
@@ -227,14 +283,16 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
 #=====================================
 #================================================================
 
+#' @export
 Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("classifier2","classifier3","selected","signature_hc"), min_probes = 10, ids_cutoff=0.2) {
   suppressMessages(suppressWarnings(library("dplyr")))
   library(stringr)
   probeset <- match.arg(probeset)
+  beta <- .resolve_beta_input(beta)
   #================================================================
   # prepare chromosome
   beta <- as.data.frame(beta)
-  probesets <- readRDS("inst/extdata/probesets_hg19.rds")
+  probesets <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
@@ -342,7 +400,8 @@ Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("classifier2","cl
 
 #================================================================
 
-Survey_Global_Imprinting_Batch <- function(betaFile, metaFile,
+#' @export
+Survey_Global_Imprinting_Batch <- function(betaFile, metaFile = NULL,
                                           subset = "all", 
                                           probeset = c("classifier2", "classifier3", "selected", "signature_hc"), 
                                           min_probes = 10, 
@@ -356,6 +415,10 @@ Survey_Global_Imprinting_Batch <- function(betaFile, metaFile,
   }))
   
   probeset <- match.arg(probeset)
+
+  resolved <- .resolve_beta_meta_inputs(betaFile, metaFile, require_meta = TRUE)
+  betaFile <- resolved$beta
+  metaFile <- resolved$meta
   
   input <- LoadMetaBeta(metaFile, betaFile, probeset = NULL)
   beta0 <- input[["beta"]]
@@ -367,7 +430,7 @@ Survey_Global_Imprinting_Batch <- function(betaFile, metaFile,
   beta <- na.omit(beta) # removed NA
 
   # 2. Load Annotation
-  anno_path <- "inst/extdata/probesets_hg19.rds"
+  anno_path <- .resolve_extdata_file("probesets_hg19.rds")
   probesets <- readRDS(anno_path)
   
   probes_info <- probesets[[probeset]]
@@ -391,7 +454,7 @@ Survey_Global_Imprinting_Batch <- function(betaFile, metaFile,
            ORIGIN = anno[common_probes, "ORIGIN"]) %>%
     # Transform table so we have one row per Probe-Sample pair
     pivot_longer(cols = -c(Probe, Chromosome, ORIGIN), 
-                 names_to = "SAMPLE_NAME", 
+                 names_to = "Sample_Name", 
                  values_to = "beta_val")
 
   # 5. Global Calculation (Group by Sample AND Chromosome)
@@ -429,13 +492,13 @@ Survey_Global_Imprinting_Batch <- function(betaFile, metaFile,
     select(SAMPLE_NAME, Chromosome, n_mat, n_pat, IDS, Status, Mechanism, Angle) %>%
     arrange(SAMPLE_NAME, Chromosome)
 
-    cols_to_keep <- intersect(colnames(meta), c("SAMPLE_NAME", "SAMPLE_GROUP", "ID2"))
+    cols_to_keep <- intersect(colnames(meta), c("Sample_Name", "Sample_Group", "ID2"))
     meta_selected <- meta[, cols_to_keep, drop = FALSE]
   
   # Join metadata to the report
   final_report <- report %>%
-    left_join(meta_selected, by = "SAMPLE_NAME") %>%
-    select(SAMPLE_NAME, any_of(c("SAMPLE_GROUP", "ID2")), Chromosome, n_mat, n_pat, IDS, Status, Mechanism, Angle) %>%
+    left_join(meta_selected, by = "Sample_Name") %>%
+    select(SAMPLE_NAME, any_of(c("Sample_Group", "ID2")), Chromosome, n_mat, n_pat, IDS, Status, Mechanism, Angle) %>%
     arrange(SAMPLE_NAME, Chromosome)
 
   return(final_report)
@@ -564,6 +627,7 @@ library(circlize)
 #' @param results_dir Directory to save consensus plots
 #' @return A list containing cluster assignments and the signature heatmap
 
+#' @export
 run_pic_signature_finder <- function(icr_beta_matrix, results_dir = "PIC_Output") {
   
   # 1. Transform data to 'Deviation Space'
@@ -604,4 +668,5 @@ run_pic_signature_finder <- function(icr_beta_matrix, results_dir = "PIC_Output"
   return(list(clusters = cluster_assignments, heatmap = hm))
 }
 #================================================================
+
 

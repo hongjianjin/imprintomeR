@@ -4,7 +4,7 @@
 #' Calculate Row-Wise Group Means
 #'
 #' Computes per-row average values in `dat` for each `SAMPLE_GROUP` defined in
-#' `meta`, matching samples by `meta$SAMPLE_NAME` to column names in `dat`.
+#' `meta`, matching samples by `meta$Sample_Name` to column names in `dat`.
 #'
 #' @param dat Numeric matrix/data frame with probes/features in rows and samples
 #'   in columns.
@@ -12,13 +12,18 @@
 #'   `SAMPLE_GROUP`.
 #'
 #' @return Data frame of row-wise group means, one column per group.
-CalcAvgByGrp <- function(dat, meta) {
+#' @export
+CalcAvgByGrp <- function(dat, meta = NULL) {
+  resolved <- .resolve_beta_meta_inputs(dat, meta, require_meta = TRUE)
+  dat <- resolved$beta
+  meta <- resolved$meta
+
   # fucntion to calculate average value by Group
   # ID should match column name in datFile
   avg <- NULL
   cn <- NULL
-  for (group in unique(meta$SAMPLE_GROUP)) {
-    cols_grp <- colnames(dat)[colnames(dat) %in% meta$SAMPLE_NAME[meta$SAMPLE_GROUP == group]]
+  for (group in unique(meta$Sample_Group)) {
+    cols_grp <- colnames(dat)[colnames(dat) %in% meta$Sample_Name[meta$Sample_Group == group]]
     if (length(cols_grp) == 1) {
       grp.mean <- dat[, cols_grp]
     } else {
@@ -50,38 +55,75 @@ CalcAvgByGrp <- function(dat, meta) {
 #'   `inst/extdata/probesets_hg19.rds`.
 #'
 #' @return Data frame with aggregated loci as rows and samples as columns.
+#' @export
 AggregateByLocus <- function(beta, probeset="selected"){
-  probesets <- readRDS("inst/extdata/probesets_hg19.rds")
-   if (probeset %in% names(probesets)){
-      probeset1 <- probesets[[probeset]]
-      rownames(probeset1) <- probeset1$NAME
-   } else {
-      cat("\nERROR: unavailable probeset.\n")
-      q("no")
+  beta <- .resolve_beta_input(beta)
+
+  if (!(is.data.frame(beta) || is.matrix(beta))) {
+    stop("beta must be a matrix or data.frame with probe IDs as row names.")
   }
-  commonProbes <- intersect(rownames(beta), probeset1$NAME)
-  df <- beta[commonProbes, ]
-  df$NAME <- commonProbes
-  df$group <- paste(probeset1[commonProbes,"CHR"],probeset1[commonProbes,"ORIGIN"],probeset1[commonProbes,"Closest_TSS_gene_name"],sep='_')
-  suppressMessages(suppressWarnings(library(dplyr)))
-  suppressMessages(suppressWarnings(library(tidyr)))
+  if (is.null(rownames(beta))) {
+    stop("beta must include probe IDs as row names.")
+  }
+  if (!is.character(probeset) || length(probeset) != 1 || is.na(probeset) || !nzchar(probeset)) {
+    stop("probeset must be a single non-empty character value.")
+  }
 
-    # Convert to long format
-    df_long <- df %>% 
-      tidyr::pivot_longer(cols = -c(NAME, group), names_to = "sample", values_to = "expression")
+  beta_df <- as.data.frame(beta, stringsAsFactors = FALSE, check.names = FALSE)
+  numeric_cols <- vapply(beta_df, is.numeric, logical(1))
+  if (!all(numeric_cols)) {
+    dropped_cols <- colnames(beta_df)[!numeric_cols]
+    warning(
+      "AggregateByLocus: dropping non-numeric beta columns: ",
+      paste(dropped_cols, collapse = ", "),
+      call. = FALSE
+    )
+    beta_df <- beta_df[, numeric_cols, drop = FALSE]
+  }
+  if (ncol(beta_df) == 0L) {
+    stop("beta must include at least one numeric sample column.")
+  }
 
-    # Group by 'group' and 'sample', then compute mean
-    result <- df_long %>% 
-      group_by(group, sample) %>% 
-      summarise(mean_expression = mean(expression, na.rm = TRUE), .groups = 'drop')
+  probesets <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
 
-    # Pivot back to wide format if needed
-    result_wide <- result %>% 
-      tidyr::pivot_wider(names_from = sample, values_from = mean_expression)
-    result_wide <- as.data.frame(result_wide)  
-    rownames(result_wide) <- result_wide$group
-    result_wide$group <-NULL
-  return(result_wide)
+  if (!(probeset %in% names(probesets))) {
+    stop("Unavailable probeset: ", probeset)
+  }
 
+  probeset1 <- probesets[[probeset]]
+  required_cols <- c("NAME", "CHR", "ORIGIN", "Closest_TSS_gene_name")
+  missing_cols <- setdiff(required_cols, colnames(probeset1))
+  if (length(missing_cols) > 0) {
+    stop("Probeset annotation missing required columns: ", paste(missing_cols, collapse = ", "))
+  }
+  rownames(probeset1) <- probeset1$NAME
+
+  commonProbes <- intersect(rownames(beta_df), probeset1$NAME)
+  if (length(commonProbes) == 0) {
+    return(beta_df[0, , drop = FALSE])
+  }
+
+  beta_common <- beta_df[commonProbes, , drop = FALSE]
+  group_key <- paste(
+    probeset1[commonProbes, "CHR"],
+    probeset1[commonProbes, "ORIGIN"],
+    probeset1[commonProbes, "Closest_TSS_gene_name"],
+    sep = "_"
+  )
+
+  split_idx <- split(seq_along(commonProbes), group_key)
+  agg_list <- lapply(split_idx, function(idx) {
+    apply(beta_common[idx, , drop = FALSE], 2, median, na.rm = TRUE)
+  })
+
+  result_mat <- do.call(rbind, agg_list)
+  if (is.null(dim(result_mat))) {
+    result_mat <- matrix(result_mat, nrow = 1)
+  }
+  rownames(result_mat) <- names(agg_list)
+  colnames(result_mat) <- colnames(beta_common)
+
+  as.data.frame(result_mat, stringsAsFactors = FALSE, check.names = FALSE)
 }
 ##################################################################
+

@@ -1,0 +1,492 @@
+---
+title: "ImprintomeSet Visualization Gallery"
+author: "imprintomeR Team"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ImprintomeSet Visualization Gallery}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Overview
+
+This vignette demonstrates the full visualization and export workflow after completing
+imprinting analysis with `runImprintome()`.
+
+Visualization in imprintomeR follows the preprocessing-first architecture:
+
+1. **MethQcSet**: QC preprocessing (see *ImprintomeSet Workflow Quickstart*)
+2. **ImprintomeSet**: Analysis-ready container for imprinting studies (this vignette)
+3. **Results & Plots**: Stored in `results(x)` and `plots(x)` slots
+
+The examples below are organized by visualization level:
+
+- sample-level (polar, radar, rainfall)
+- probe-level (beeswarm, violin, mirror density)
+- cohort-level (heatmap, cor_heatmap, circular_heatmap)
+- chromosome-level (beeswarm_chr)
+
+For object construction and QC preprocessing, see
+*ImprintomeSet Workflow Quickstart*.
+
+## 1. Start from a QC-Approved ImprintomeSet Object
+
+Your `ImprintomeSet` object `x` should come from **either**:
+
+**Option A: QC-preprocessed data via MethQcSet**
+
+```{r, eval = FALSE}
+# Load metadata (requires Basename column with IDAT path prefixes)
+meta <- LoadMeta("meta.tsv")
+
+# Option A1: platform unknown — detect first
+meta <- check_platform(meta)
+meta_epic <- meta[meta$Platform == "EPIC", ]
+qcset <- runMethQC(meta_epic)  # platform auto-resolved from meta$Platform
+
+# Option A2: platform known — pass directly
+# qcset <- runMethQC(meta, platform = "EPIC")
+
+export(qcset, outdir = "qc_output", format = c("xlsx", "rds"))
+# xlsx: single workbook with sheets — meta (+ Platform, Final.QC),
+#   QC_matrix, recall_rate, cutoffs, ctrl_metrics, contamination,
+#   predUniqDonor_ID. Beta saved as .rds only.
+
+# QC visualizations
+p_bar  <- plot(qcset, type = "qc_bar")                          # PASS/FAIL bar
+p_int  <- plot(qcset, type = "intensity",  icutoff = 11)        # intensity scatter
+p_dp   <- plot(qcset, type = "detection_pval", pcutoff = 0.05)  # avg det p-val
+p_cov  <- plot(qcset, type = "probe_coverage")                  # % probes detected
+p_sex  <- plot(qcset, type = "predicted_sex")                   # predicted sex
+p_ctrl <- plot(qcset, type = "ctrl_metrics")                    # ewastools (if present)
+plot(qcset, type = "ctrl_metrics_detail",                       # per-metric detail PDFs
+     outFile = "qc_ctrl_metrics_detail")
+
+# EPICv2 only: aggregate replicate probes before conversion (required step)
+# as.ImprintomeSet() will error if this is skipped for EPICv2 data.
+if (qcset@platform == "EPICv2") {
+  qcset <- aggregate_probes(qcset)
+}
+
+# Convert the QC-clean MethQcSet to ImprintomeSet
+probesets <- readRDS(system.file("extdata", "probesets_hg19.rds", package = "imprintomeR"))
+x <- as.ImprintomeSet(
+  qcset,
+  probeset = probesets[["selected"]],
+  genome = "hg19"
+)
+```
+
+**Option B: Pre-cleaned data loaded directly**
+
+```{r, eval = FALSE}
+# If you already have QC-cleaned data, skip MethQcSet
+meta <- LoadMeta("meta.tsv")
+beta <- LoadBeta("cleaned_beta.tsv")
+
+x <- ImprintomeSet(
+  beta = beta,
+  meta = meta,
+  probeset = probesets[["selected"]],
+  genome = "hg19",
+  assay = "EPICv1"
+)
+```
+
+Then run analysis on your analysis-ready `ImprintomeSet`:
+
+```{r, eval = FALSE}
+library(imprintomeR)
+
+# x is a valid ImprintomeSet object (QC-approved data)
+
+# Run analysis on one or more probesets
+x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
+x <- runImprintome(x, probeset = "classifier3", ids_cutoff = 0.2,
+                   result_name = "AnalyzeImprintStatus.classifier3")
+
+names(results(x))
+```
+
+Extract slots once for plotting convenience:
+
+```{r, eval = FALSE}
+beta_x <- beta(x)
+meta_x <- meta(x)
+res_x <- results(x)[["AnalyzeImprintStatus.selected"]]
+```
+
+## 2. Generic S4 Plot Method
+
+The S4 `plot()` method supports explicit backend dispatch via `plot_type`.
+
+Available `plot_type` values are:
+
+- `auto`
+- `polar`
+- `mirror_density`
+- `beeswarm`
+- `beeswarm_origin`
+- `beeswarm_chr`
+- `violin`
+- `heatmap`
+- `circular_heatmap`
+- `cor_heatmap`
+- `rainfall`
+- `radar`
+
+### 2.1 Auto Dispatch
+
+`auto` first returns the latest stored plot from `plots(x)` when present;
+otherwise, it falls back to polar plotting from IDS/Angle results.
+
+```{r, eval = FALSE}
+p_auto <- plot(
+  x,
+  plot_type = "auto",
+  result_name = "AnalyzeImprintStatus.selected",
+  colorColumn = "SAMPLE_GROUP",
+  outFile = "auto_dispatch.pdf"
+)
+```
+
+### 2.2 Explicit Dispatch
+
+```{r, eval = FALSE}
+p_polar_s4 <- plot(
+  x,
+  plot_type = "polar",
+  result_name = "AnalyzeImprintStatus.selected",
+  colorColumn = "SAMPLE_GROUP",
+  title = "Selected Probeset Polar",
+  palette = "default",
+  alpha = 0.5,
+  outFile = "selected_polar.pdf"
+)
+```
+
+### 2.3 Compact All-Plot-Type Demo
+
+```{r, eval = FALSE}
+sample_id1 <- colnames(beta(x))[2]
+
+p_auto <- plot(x, plot_type = "auto", result_name = "AnalyzeImprintStatus.selected",
+               colorColumn = "SAMPLE_GROUP", outFile = "demo_auto.pdf")
+p_polar <- plot(x, plot_type = "polar", result_name = "AnalyzeImprintStatus.selected",
+                colorColumn = "SAMPLE_GROUP", outFile = "demo_polar.pdf")
+p_mirror <- plot(x, plot_type = "mirror_density", probeset = "selected",
+                 SAMPLEID = "SAMPLE_NAME", outFile = "demo_mirror_density.pdf")
+p_bee <- plot(x, plot_type = "beeswarm", SAMPLEID = "SAMPLE_NAME",
+        probeset = "selected",
+              outFile = "demo_beeswarm.pdf")
+p_bee_origin <- plot(x, plot_type = "beeswarm_origin", SAMPLEID = "SAMPLE_NAME",
+         probeset = "selected", title = "Beeswarm Origin (Cohort)",
+         outFile = "demo_beeswarm_origin.pdf")
+p_bee_chr <- plot(x, plot_type = "beeswarm_chr", probeset = "selected",
+      sample_id = sample_id1, chr = "chr11",
+      title = "Beeswarm by Chromosome", outFile = "demo_beeswarm_chr.pdf")
+p_vln <- plot(x, plot_type = "violin", SAMPLEID = "SAMPLE_NAME",
+        probeset = "selected",
+              outFile = "demo_violin.pdf")
+p_heatmap <- plot(x, plot_type = "heatmap", SAMPLEID = "SAMPLE_NAME",
+          probeset = "selected",
+                  outFile = "demo_heatmap.pdf")
+p_circular <- plot(x, plot_type = "circular_heatmap", SAMPLEID = "SAMPLE_NAME",
+                   sectionColumn = "SAMPLE_GROUP", probeset = "selected",
+                   outFile = "demo_circular_heatmap.pdf")
+cor_mat <- plot(x, plot_type = "cor_heatmap", SAMPLEID = "SAMPLE_NAME",
+                probeset = "selected",
+                prefix = "demo")
+outFile <- paste0("imprintomeset_quickstart_rainfall_", sample_id1, ".pdf")
+p_rain <- plot(x, plot_type = "rainfall", sample_id = sample_id1,
+               probeset = "classifier3", outFile = outFile)
+outFile <- paste0("imprintomeset_quickstart_radar_", sample_id1, ".pdf")
+p_radar <- plot(x, plot_type = "radar", probeset = "selected", sample_id = sample_id1,
+                title = "ImprintomeSet Radar", outFile = outFile)
+```
+
+## 3. Sample-Level Visualizations
+
+### 3.1 Polar Plot
+
+```{r, eval = FALSE}
+p_polar <- plot(
+  x,
+  plot_type = "polar",
+  result_name = "AnalyzeImprintStatus.selected",
+  colorColumn = "SAMPLE_GROUP",
+  title = "ImprintomeSet Polar",
+  palette = "default",
+  alpha = 0.5,
+  outFile = "polar_direct.pdf"
+)
+```
+
+### 3.2 Mirror Density
+
+```{r, eval = FALSE}
+p_mirror <- plot(
+  x,
+  plot_type = "mirror_density",
+  probeset = "selected",
+  SAMPLEID = "SAMPLE_NAME",
+  outFile = "mirror_density.pdf"
+)
+```
+
+### 3.3 Radar Plot
+
+```{r, eval = FALSE}
+sample_id1 <- colnames(beta(x))[2]
+outFile <- paste0("imprintomeset_quickstart_radar_", sample_id1, ".pdf")
+p_radar <- plot(
+  x,
+  plot_type = "radar",
+  probeset = "selected",
+  sample_id = sample_id1,
+  title = "ImprintomeSet Radar",
+  outFile = outFile
+)
+```
+
+## 4. Probe-Level Visualizations
+
+### 4.1 Violin Plot
+
+```{r, eval = FALSE}
+p_vln <- plot(
+  x,
+  plot_type = "violin",
+  probeset = "selected",
+  SAMPLEID = "SAMPLE_NAME",
+  outFile = "beta_violin.pdf"
+)
+```
+
+### 4.2 Beeswarm Plot
+
+```{r, eval = FALSE}
+p_bee <- plot(
+  x,
+  plot_type = "beeswarm",
+  probeset = "selected",
+  SAMPLEID = "SAMPLE_NAME",
+  outFile = "beta_beeswarm.pdf"
+)
+```
+
+### 4.3 Single-Chromosome Beeswarm
+
+```{r, eval = FALSE}
+p_bee_chr11 <- imprintomeR:::BetaBeePlot_single_chr(
+  beta = beta_x,
+  meta = meta_x,
+  SAMPLEID = "SAMPLE_NAME",
+  chr = "chr11",
+  probeset = "chr11p15",
+  outFile = "beeswarm_chr11.pdf"
+)
+```
+
+### 4.4 Origin-Split Beeswarm
+
+Use the ImprintomeSet dispatcher (`plot_type = "beeswarm_origin"`) for cohort-wide
+origin split plots.
+
+```{r, eval = FALSE}
+p_bee_origin <- plot(
+  x,
+  plot_type = "beeswarm_origin",
+  probeset = "selected",
+  SAMPLEID = "SAMPLE_NAME",
+  title = "Beeswarm Origin (Cohort)",
+  outFile = "beeswarm_origin_dispatch.pdf"
+)
+```
+
+### 4.5 Single-Sample Beeswarm Faceted by Chromosome
+
+```{r, eval = FALSE}
+sample_id1 <- colnames(beta(x))[2]
+p_bee_chr <- plot(
+  x,
+  plot_type = "beeswarm_chr",
+  probeset = "selected",
+  sample_id = sample_id1,
+  chr = "chr11",
+  title = "Beeswarm by Chromosome (Origin Split)",
+  outFile = "beeswarm_chr_dispatch.pdf"
+)
+```
+
+The subtitle reports the selected sample, probeset, and chromosome scope.
+Within each chromosome panel, maternal/paternal points are separated and median
+summary markers are overlaid.
+
+## 5. Cohort-Level Visualizations
+
+### 5.1 Correlation Heatmap
+
+```{r, eval = FALSE}
+cor_mat <- plot(
+  x,
+  plot_type = "cor_heatmap",
+  probeset = "selected",
+  SAMPLEID = "SAMPLE_NAME",
+  prefix = "cohort"
+)
+```
+
+### 5.2 Annotated Heatmap
+
+```{r, eval = FALSE}
+plot(
+  x,
+  plot_type = "heatmap",
+  probeset = "selected",
+  SAMPLEID = "SAMPLE_NAME",
+  outFile = "beta_heatmap.pdf"
+)
+```
+
+### 5.3 Circular Heatmap
+
+```{r, eval = FALSE}
+plot(
+  x,
+  plot_type = "circular_heatmap",
+  SAMPLEID = "SAMPLE_NAME",
+  sectionColumn = "SAMPLE_GROUP",
+  probeset = "selected",
+  outFile = "beta_circular_heatmap.pdf"
+)
+```
+
+## 6. Chromosome and Genome Visualizations
+
+### 6.1 Chromosome Beeswarm Panels
+
+```{r, eval = FALSE}
+p_bee_chr_all <- plot(
+  x,
+  plot_type = "beeswarm_chr",
+  probeset = "selected",
+  sample_id = sample_id1,
+  chr = NULL,
+  title = "Beeswarm by Chromosome (All Chromosomes)",
+  outFile = "beeswarm_by_chromosome.pdf"
+)
+```
+
+### 6.2 Rainfall Plot
+
+```{r, eval = FALSE}
+sample_id1 <- colnames(beta(x))[2]
+outFile <- paste0("imprintomeset_quickstart_rainfall_", sample_id1, ".pdf")
+
+p_rain <- plot(
+  x,
+  plot_type = "rainfall",
+  sample_id = sample_id1,
+  probeset = "classifier3",
+  outFile = outFile
+)
+```
+
+### 6.3 Chromosome vs Others Beeswarm
+
+```{r, eval = FALSE}
+probesets <- readRDS(system.file("extdata", "probesets_hg19.rds", package = "imprintomeR"))
+ps <- probesets[["classifier2"]]
+common_probes <- intersect(ps$NAME, rownames(beta_x))
+
+dat_chr <- beta_x[common_probes, , drop = FALSE]
+dat_chr$chr <- ifelse(ps[common_probes, "CHR"] %in% c("chr11", "11"), "chr11", "others")
+dat_chr$CATEGORY <- ps[common_probes, "ORIGIN"]
+
+imprintomeR:::Beeplot_chr_vs_other(
+  dat = dat_chr,
+  meta = meta_x,
+  group.by = "chr",
+  color.by = "CATEGORY",
+  outFile = "beeplot_chr11_vs_others.pdf"
+)
+```
+
+### 6.4 Batch Chromosome vs Others Convenience Wrapper
+
+```{r, eval = FALSE}
+imprintomeR:::Beeplot_chr_vs_other_single(
+  input = list(beta = beta_x, meta = meta_x),
+  chrs = "chr1,chr11,chr20",
+  prefix = "chr_vs_other_batch",
+  probeset = "classifier2"
+)
+```
+
+## 7. Persist Plot Objects Inside ImprintomeSet
+
+```{r, eval = FALSE}
+p_list <- plots(x)
+p_list[["polar.selected"]] <- p_polar
+p_list[["mirror.selected"]] <- p_mirror
+p_list[["radar.sample1"]] <- p_radar
+p_list[["beeswarm.cohort"]] <- p_bee
+p_list[["beeswarm.origin.cohort"]] <- p_bee_origin
+p_list[["beeswarm.chr.sample1"]] <- p_bee_chr
+p_list[["violin.cohort"]] <- p_vln
+p_list[["rainfall.sample1"]] <- p_rain
+plots(x) <- p_list
+
+names(plots(x))
+
+# Access stored plot objects
+p_origin_from_object <- plots(x)[["beeswarm.origin.cohort"]]
+p_chr_from_object <- plots(x)[["beeswarm.chr.sample1"]]
+
+p_origin_from_object
+p_chr_from_object
+```
+
+## 8. Summarize and Export
+
+```{r, eval = FALSE}
+s <- summarize(x)
+s$object
+s$results
+s$qc
+s$plots
+
+manifest <- export(
+  x,
+  outdir = "imprintome_export",
+  save_plots = TRUE,
+  plot_device = "pdf",
+  overwrite = TRUE
+)
+
+head(manifest)
+```
+
+`export()` currently writes result tables and stored plot objects. QC tables
+remain available through `qc(x)` and `summarize(x)$qc`.
+
+## 9. Notes
+
+- Several plotting functions write side-effect files and also return plot objects.
+- For large cohorts, disable per-sample side folders where optional (`pdfFolder = NULL`).
+- Keep `SAMPLE_NAME` alignment between `beta(x)` and `meta(x)`.
+- Advanced, non-dispatch plots can still be called directly when needed.
+
+## Session Info
+
+```{r, eval = FALSE}
+sessionInfo()
+```

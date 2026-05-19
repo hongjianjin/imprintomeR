@@ -1,0 +1,478 @@
+---
+title: "ImprintomeSet Workflow Quickstart"
+author: "imprintomeR Team"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ImprintomeSet Workflow Quickstart}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Overview
+
+This vignette presents a Bioconductor-style, object-first workflow using imprintomeR's preprocessing-first architecture:
+
+1. **MethQcSet**: Quality control for single-platform raw data
+2. **ImprintomeSet**: Analysis container for imprinting studies
+
+You will learn how to:
+
+- create a `MethQcSet` for preprocessing
+- run platform-specific QC
+- convert to `ImprintomeSet` for analysis
+- compute imprinting metrics with `runImprintome()`
+- summarize, visualize, and export results
+
+Core definitions used by imprintomeR:
+
+- IDS: `sqrt((paternal_median - 0.5)^2 + (maternal_median - 0.5)^2)`
+- Angle: derived from paternal/maternal deviations around `0.5`
+- IDI: `(beta - 0.5) * 2`
+
+## Package Startup
+
+```{r, eval = FALSE}
+library(imprintomeR)
+```
+
+## 1. QC Preprocessing (Optional if Data Already Cleaned)
+
+**If you have RAW data:**
+
+Load metadata. `meta` must have a `Basename` column containing the IDAT file path
+prefixes (e.g. `/path/to/idats/SentrixID_SentrixPosition`).
+
+```{r, eval = FALSE}
+meta <- LoadMeta("meta.tsv")
+```
+
+If the platform is **unknown or mixed**, detect it first:
+
+```{r, eval = FALSE}
+# Reads one IDAT per sample, infers platform from probe count
+# Appends Platform, Array_Size, Manifest, Status columns to meta
+meta <- check_platform(meta)
+table(meta$Platform)  # inspect; split if multiple platforms present
+
+# Run QC for one platform at a time
+meta_epic <- meta[meta$Platform == "EPIC", ]
+qcset <- runMethQC(meta_epic)  # platform auto-resolved from meta$Platform
+```
+
+If the platform is **already known**, pass it directly:
+
+```{r, eval = FALSE}
+# runMethQC() loads IDAT files, extracts beta + detection p-values, and runs QC
+qcset <- runMethQC(meta, platform = "EPIC")
+```
+
+Inspect QC results:
+
+```{r, eval = FALSE}
+qc_summary <- qc_summarize(qcset)
+qc_summary$platform
+qc_summary$n_samples
+qc_summary$n_probes
+qc_summary$aggregation_status
+```
+
+Visualize QC metrics:
+
+```{r, eval = FALSE}
+# PASS / FAIL sample count bar chart (default)
+p_bar <- plot(qcset, type = "qc_bar")
+
+# Methylated vs unmethylated intensity scatter, cutoff line at log2 = 11
+p_int <- plot(qcset, type = "intensity", icutoff = 11,
+              outFile = "qc_intensity.pdf")
+
+# Average detection p-value per sample, cutoff line at 0.05
+p_dp  <- plot(qcset, type = "detection_pval", pcutoff = 0.05)
+
+# % probes detected per sample, reference line at 95%
+p_cov <- plot(qcset, type = "probe_coverage")
+
+# Predicted sex distribution
+p_sex <- plot(qcset, type = "predicted_sex")
+
+# ewastools control probe metrics — summary (returns NULL silently if absent)
+p_ctrl <- plot(qcset, type = "ctrl_metrics")
+
+# Per-metric detail plots (Bisulfite Conversion, Specificity, Non-polymorphic)
+# outFile is used as a path prefix; one PDF is saved per control metric
+plot(qcset, type = "ctrl_metrics_detail",
+     outFile = "qc_ctrl_metrics_detail")
+```
+
+Export cleaned data:
+
+```{r, eval = FALSE}
+dir.create("qc_output", showWarnings = FALSE)
+
+exported_files <- export(
+  qcset,
+  outdir = "qc_output",
+  format = c("xlsx", "rds")
+)
+# xlsx: single workbook (prefix_qc_tables.xlsx) with sheets:
+#   meta (+ Platform, Final.QC columns), QC_matrix, recall_rate,
+#   cutoffs, ctrl_metrics, contamination, predUniqDonor_ID
+```
+
+**If you already have QC-cleaned data:**
+
+Skip MethQcSet and load pre-cleaned beta values:
+
+```{r, eval = FALSE}
+meta <- LoadMeta("meta.tsv")
+beta <- LoadBeta("cleaned_beta.tsv")  # Already QC-approved
+
+# Proceed to Section 2: Create ImprintomeSet
+```
+
+Optional: Merge multiple QC-approved single-platform datasets:
+
+```{r, eval = FALSE}
+# Two separate MethQcSet objects (same platform)
+qcset1 <- MethQcSet(meta1, beta1, platform = "EPICv1")
+qcset2 <- MethQcSet(meta2, beta2, platform = "EPICv1")
+
+# Synchronized merge (common samples/probes)
+merged <- merge(qcset1, qcset2, how = "inner")
+
+# Find common elements across objects
+common_samples <- find_intersection(qcset1, qcset2, by = "samples")
+common_probes <- find_intersection(qcset1, qcset2, by = "probes")
+```
+
+## 2. Create ImprintomeSet from QC-Approved Data
+
+Once your data passes QC, convert to analysis container:
+
+```{r, eval = FALSE}
+# Load probeset annotations
+probesets <- readRDS(
+  system.file("extdata", "probesets_hg19.rds", package = "imprintomeR")
+)
+
+# EPICv2 only: aggregate replicate probes before conversion (required)
+# Reduces ~937k probes to ~865k unique base probes (cg... IDs)
+# as.ImprintomeSet() will error if this step is skipped for EPICv2.
+if (qcset@platform == "EPICv2") {
+  qcset <- aggregate_probes(qcset)   # idempotent — safe to call again
+}
+
+# Convert MethQcSet to ImprintomeSet
+x <- as.ImprintomeSet(
+  qcset,
+  probeset = probesets[["selected"]],
+  genome = "hg19"
+)
+```
+
+Alternatively, construct `ImprintomeSet` directly if you've already completed QC:
+
+```{r, eval = FALSE}
+x <- ImprintomeSet(
+  beta = beta,
+  meta = meta,
+  probeset = probesets[["selected"]],
+  genome = "hg19",
+  assay = "EPICv1"
+)
+```
+
+Constructor validation includes:
+
+- overlapping sample IDs between `meta$Sample_Name` and beta columns
+- required metadata columns (`Sample_Name`, `Sample_Group`)
+- non-empty beta/probeset objects
+
+The object keeps derived outputs in separate slots:
+
+- `results(x)` for imprinting analysis tables
+- `plots(x)` for stored plot objects
+
+## 3. Run Core Analysis with runImprintome()
+
+`runImprintome()` stores the analysis table inside `results(x)`.
+
+```{r, eval = FALSE}
+x <- runImprintome(
+  x,
+  probeset = "selected",
+  ids_cutoff = 0.2
+)
+```
+
+You can run additional probesets and keep all outputs in the same object.
+
+```{r, eval = FALSE}
+x <- runImprintome(
+  x,
+  probeset = "classifier3",
+  ids_cutoff = 0.2,
+  result_name = "AnalyzeImprintStatus.classifier3"
+)
+```
+
+## 4. Inspect Results
+
+```{r, eval = FALSE}
+result_names <- names(results(x))
+result_names
+
+res <- results(x)[["AnalyzeImprintStatus.selected"]]
+head(res)
+```
+
+Expected columns include:
+
+- `paternal_median`
+- `maternal_median`
+- `IDS`
+- `Angle`
+- `Mechanism`
+- `Status`
+- `Confidence`
+
+## 5. Summarize Object State
+
+```{r, eval = FALSE}
+s <- summarize(x)
+s$object
+s$results
+s$plots
+```
+
+## 6. Access and Update Slots
+
+```{r, eval = FALSE}
+# Accessors
+head(beta(x))
+head(meta(x))
+assay(x)
+genome(x)
+
+# Replacement examples
+assay(x) <- "EPICv2"
+genome(x) <- "hg38"
+```
+
+## 7. Plot with ImprintomeSet Dispatcher
+
+Use `plot_type` to choose a visualization backend while keeping one unified
+object-first interface.
+
+Supported `plot_type` values:
+
+- `auto`
+- `polar`
+- `mirror_density`
+- `beeswarm`
+- `beeswarm_origin`
+- `beeswarm_chr`
+- `violin`
+- `heatmap`
+- `circular_heatmap`
+- `cor_heatmap`
+- `rainfall`
+- `radar`
+
+### 7.1 Example Code for Every Plot Type
+
+For a compact one-block demo of all plot backends, see
+*ImprintomeSet Visualization Gallery*, Section 2.3.
+
+```{r, eval = FALSE}
+# Use a real sample identifier for sample-level views
+sample_id1 <- colnames(beta(x))[2]
+
+# 1) auto: returns most recent stored plot when available, else polar fallback
+p_auto <- plot(
+  x,
+  plot_type = "auto",
+  result_name = "AnalyzeImprintStatus.selected",
+  colorColumn = "SAMPLE_GROUP",
+  title = "ImprintomeSet Auto",
+  outFile = "imprintomeset_quickstart_auto.pdf"
+)
+
+# 2) polar
+p_polar <- plot(
+  x,
+  plot_type = "polar",
+  result_name = "AnalyzeImprintStatus.selected",
+  colorColumn = "SAMPLE_GROUP",
+  title = "ImprintomeSet Polar",
+  outFile = "imprintomeset_quickstart_polar.pdf"
+)
+
+# 3) mirror_density
+p_mirror <- plot(
+  x,
+  plot_type = "mirror_density",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  outFile = "imprintomeset_quickstart_mirror.pdf"
+)
+
+# 4) beeswarm
+p_bee <- plot(
+  x,
+  plot_type = "beeswarm",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  outFile = "imprintomeset_quickstart_beeswarm.pdf"
+)
+
+# 5) beeswarm_origin
+p_bee_origin <- plot(
+  x,
+  plot_type = "beeswarm_origin",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  title = "Beeswarm Origin (Cohort)",
+  outFile = "imprintomeset_quickstart_beeswarm_origin.pdf"
+)
+
+# 6) beeswarm_chr
+p_bee_chr <- plot(
+  x,
+  plot_type = "beeswarm_chr",
+  probeset = "selected",
+  sample_id = sample_id1,
+  chr = "chr11",
+  title = "Beeswarm by Chromosome (Origin Split)",
+  outFile = "imprintomeset_quickstart_beeswarm_chr.pdf"
+)
+
+# 7) violin
+p_violin <- plot(
+  x,
+  plot_type = "violin",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  outFile = "imprintomeset_quickstart_violin.pdf"
+)
+
+# 8) heatmap
+p_heatmap <- plot(
+  x,
+  plot_type = "heatmap",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  outFile = "imprintomeset_quickstart_heatmap.pdf"
+)
+
+# 9) circular_heatmap
+p_circular <- plot(
+  x,
+  plot_type = "circular_heatmap",
+  SAMPLEID = "Sample_Name",
+  sectionColumn = "Sample_Group",
+  probeset = "selected",
+  outFile = "imprintomeset_quickstart_circular_heatmap.pdf"
+)
+
+# 10) cor_heatmap
+cor_mat <- plot(
+  x,
+  plot_type = "cor_heatmap",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  prefix = "imprintomeset_quickstart"
+)
+
+# 11) rainfall
+outFile <- paste0("imprintomeset_quickstart_rainfall_", sample_id1, ".pdf")
+p_rainfall <- plot(
+  x,
+  plot_type = "rainfall",
+  sample_id = sample_id1,
+  probeset = "classifier3",
+  outFile = outFile
+)
+
+# 12) radar
+outFile <- paste0("imprintomeset_quickstart_radar_", sample_id1, ".pdf")
+p_radar <- plot(
+  x,
+  plot_type = "radar",
+  probeset = "selected",
+  sample_id = sample_id1,
+  title = "ImprintomeSet Radar",
+  outFile = outFile
+)
+```
+
+`beeswarm_chr` returns a chromosome-faceted plot for one sample with
+maternal/paternal split points and per-group median summary markers.
+
+### 7.2 Access Plot Objects Stored in ImprintomeSet
+
+```{r, eval = FALSE}
+# Save selected plot outputs into the object
+p_list <- plots(x)
+p_list[["auto.selected"]] <- p_auto
+p_list[["polar.selected"]] <- p_polar
+p_list[["mirror.selected"]] <- p_mirror
+p_list[["beeswarm.selected"]] <- p_bee
+p_list[["beeswarm_origin.selected"]] <- p_bee_origin
+p_list[["beeswarm_chr.sample1"]] <- p_bee_chr
+p_list[["violin.selected"]] <- p_violin
+p_list[["heatmap.selected"]] <- p_heatmap
+p_list[["circular.selected"]] <- p_circular
+p_list[["rainfall.sample1"]] <- p_rainfall
+p_list[["radar.sample1"]] <- p_radar
+plots(x) <- p_list
+
+# List available stored plots
+names(plots(x))
+
+# Retrieve one plot object by name
+p_from_object <- plots(x)[["beeswarm_origin.selected"]]
+p_from_object
+
+# Retrieve a chromosome-faceted beeswarm plot
+p_chr_from_object <- plots(x)[["beeswarm_chr.sample1"]]
+p_chr_from_object
+```
+
+## 8. Export Results
+
+```{r, eval = FALSE}
+manifest <- export(
+  x,
+  outdir = "imprintome_results",
+  save_plots = TRUE,
+  plot_device = "pdf",
+  overwrite = TRUE
+)
+
+head(manifest)
+```
+
+`export()` writes `results(x)` and optionally `plots(x)`.
+
+## 9. Reproducibility Notes
+
+- Keep beta columns aligned with `meta$SAMPLE_NAME`.
+- Preserve maternal/paternal origin labels in probeset annotations.
+- Keep metric definitions unchanged unless method contracts are explicitly updated.
+- For reproducible QC workflows, save MethQcSet summaries with `qc_summarize()`.
+- Document platform and array type for reference.
+
+## Session Info
+
+```{r, eval = FALSE}
+sessionInfo()
+```
+
