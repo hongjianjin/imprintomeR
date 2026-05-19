@@ -402,7 +402,7 @@ p_polar <- plot(
   x,
   plot_type = "polar",
   result_name = "AnalyzeImprintStatus.selected",
-  colorColumn = "SAMPLE_GROUP",
+  colorColumn = "Sample_Group",
   outFile = "polar.pdf"
 )
 
@@ -411,7 +411,6 @@ p_bee_origin <- plot(
   x,
   plot_type = "beeswarm_origin",
   probeset = "selected",
-  SAMPLEID = "Sample_Name",
   outFile = "beeswarm_origin.pdf"
 )
 
@@ -437,67 +436,24 @@ manifest <- export(
 )
 ```
 
-## Testing
+## Test Suite
 
-imprintomeR includes a comprehensive test pipeline that validates both QC preprocessing (Phase 1) and analysis workflows (Phase 2).
+imprintomeR includes comprehensive unit tests (102+ passing tests). For development and contribution instructions, see `.github/copilot-instructions.md`.
 
-### Phase 1: QC Preprocessing (MethQcSet)
+### Running Tests Locally (Development)
 
-The Phase 1 test validates QC workflows across three scenarios:
-- **EPICv1 only** - Single platform, no aggregation required
-- **EPICv2 only** - Single platform with probe aggregation (replicate collapse)
-- **Mixed EPICv1/EPICv2** - Multi-platform detection and per-platform QC
+If you're contributing to the package, run the test suite:
 
-```bash
-# Run Phase 1 QC tests
-Rscript test_methqcset_rms.R
+```r
+devtools::test("path/to/imprintomeR")
 ```
 
-**Output:**
-- `results_epic*/*.qc_tables.xlsx` — Workbook with QC metrics (meta, QC_matrix, recall_rate, cutoffs, ctrl_metrics, etc.)
-- `results_epic*/*_qcset.rds` — Complete serialized MethQcSet object for downstream analysis
-
-### Phase 2: ImprintomeSet Analysis
-
-The Phase 2 test validates the full analysis workflow:
-- Load QC-cleaned `_qcset.rds` files from Phase 1
-- Create ImprintomeSet objects
-- Run `runImprintome()` core analysis
-- Generate 10+ visualization types
-- Export results as XLSX and TSV
-
-```bash
-# Run Phase 2 analysis tests (requires Phase 1 RDS files)
-Rscript test_imprintomeset.R
-```
-
-**Output:**
-- `results_epic*/analysis_results.xlsx` — Analysis results (IDS, Angle, mechanism classification)
-- `results_epic*/*.pdf` — Visualization plots (polar, beeswarm, violin, heatmap, rainfall, radar, etc.)
-
-### Full Pipeline Test
-
-Run both phases end-to-end with validation and error checking:
-
-```bash
-# Complete QC → Analysis pipeline
-bash test_full_imprintomeset_pipeline.sh
-```
-
-This script:
-1. **Phase 1**: Executes `test_methqcset_rms.R` (generates `_qcset.rds` files)
-2. **Phase 2**: Executes `test_imprintomeset.R` (loads RDS, runs analysis + visualizations)
-3. **Validation**: Confirms all output directories and key files are present
-4. **Logging**: Writes timestamped logs to `test_*.log`
-
-### Writing Your Own Tests
-
-To test with your own data:
+To test your own analysis workflows:
 
 ```r
 library(imprintomeR)
 
-# Phase 1: QC
+# Phase 1: QC Preprocessing
 meta <- LoadMeta("your_meta.tsv")
 meta <- check_platform(meta)
 qcset <- runMethQC(meta[meta$Platform == "EPIC", ])
