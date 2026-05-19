@@ -2,13 +2,18 @@
 *.tmp
 *.temp
 *.log
-# Large data files are downloaded on-demand to keep repository lean
-# See data-raw/README.md for setup instructions
-*.rds
-*.txt
 
-# Development files and test artifacts
+# Large data files (anno, probesets) are committed to inst/extdata/
+# but NOT tracked for changes to avoid bloat on updates
+# See data-raw/README.md for setup instructions
+inst/extdata/*.rds
+!inst/extdata/anno.uniq_harmonized.liftover.rds
+!inst/extdata/probesets_hg19.rds
+
+# Development files and test artifacts (not in tests/testthat/)
 dev_tmp/
+test_set/
 .Rhistory
 .Rdata
+.RProfile
 
