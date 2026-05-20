@@ -560,7 +560,7 @@ BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
 #' @param legend Logical; include legend page in saved output.
 #'
 #' @return A patchwork/ggplot object.
-BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 1, orderByGroup=FALSE, ylab="Methylation (Î²)", xlab="ID", legend=TRUE, title="ImprintomeR: beeswarm", subtitle=NULL) {
+BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 1, orderByGroup=FALSE, ylab="Methylation (Î²)", xlab="ID", legend=TRUE, title="ImprintomeR: beeswarm", subtitle=NULL, width=NULL, height=NULL) {
   # https://r-charts.com/distribution/ggbeeswarm/
   suppressMessages(suppressWarnings(library(ggplot2)))
   suppressMessages(suppressWarnings(library("ggbeeswarm")))
@@ -626,17 +626,17 @@ BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
   pg1 <- pg + theme(legend.position = "none")
   if(legend){
     pg2 <- suppressWarnings(cowplot::get_legend(pg + theme(legend.position = "right") + guides(color = guide_legend(ncol = 1))))
-    imgHeight <- 5 + max(nchar(meta$SAMPLEID)) / 20
+    imgHeight <- if (!is.null(height)) height else (5 + max(nchar(meta$SAMPLEID)) / 20)
     #legendWidth <- ifelse(max(nchar(meta$Sample_Group))<30, 1, 2)  # control the width of legend
     plots <- patchwork::wrap_plots(pg1, pg2, ncol = 1, widths = 10)  
   }else{
     plots <- pg1
-    imgHeight <- 5 
+    imgHeight <- if (!is.null(height)) height else 5
   }
 
   if (!is.null(outFile)) {
-    if (ncol(beta) > 20) {
-      imgWidth <- 5 + ncol(beta) / 5 + nrow(beta) / 400
+    if (!is.null(width)) {
+      imgWidth <- width
       #ggsave(file = outFile, pg1, width = imgWidth, height = imgHeight, units = "in", limitsize = F)
     } else {
       imgWidth <- min(5 + ncol(beta) / 10 + nrow(beta) / 400, 45)

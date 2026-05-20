@@ -531,7 +531,9 @@ methods::setMethod(
           SAMPLEID = SAMPLEID,
           outFile = outFile,
           alpha = alpha,
-          subtitle = paste0("Probeset: ", probeset_name)
+          subtitle = paste0("Probeset: ", probeset_name),
+          width = width,
+          height = height
         )
       )
     }
