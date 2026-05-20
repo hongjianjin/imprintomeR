@@ -502,6 +502,8 @@ BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
   })
   colnames(used)[1] <- "ID"
   used$value <- as.numeric(used$value) #* 100
+  # Filter out NA values to avoid warning about removed rows
+  used <- used[!is.na(used$value), ]
   meta <- meta[order(meta$Sample_Group), ]
   rownames(meta) <- as.character(meta$SAMPLEID)
   orderedIDs <- meta$SAMPLEID
@@ -622,7 +624,7 @@ BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
     scale_x_discrete(limits = orderedIDs) #  specify order on the X axis
   pg1 <- pg + theme(legend.position = "none")
   if(legend){
-    pg2 <- cowplot::get_legend(pg + theme(legend.position = "right") + guides(color = guide_legend(ncol = 1)))
+    pg2 <- suppressWarnings(cowplot::get_legend(pg + theme(legend.position = "right") + guides(color = guide_legend(ncol = 1))))
     imgHeight <- 5 + max(nchar(meta$SAMPLEID)) / 20
     #legendWidth <- ifelse(max(nchar(meta$Sample_Group))<30, 1, 2)  # control the width of legend
     plots <- patchwork::wrap_plots(pg1, pg2, ncol = 1, widths = 10)  
