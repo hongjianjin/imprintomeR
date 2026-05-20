@@ -560,7 +560,7 @@ BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
 #' @param legend Logical; include legend page in saved output.
 #'
 #' @return A patchwork/ggplot object.
-BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 1, orderByGroup=FALSE, ylab="Methylation (Î²)", xlab="ID", legend=TRUE) {
+BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 1, orderByGroup=FALSE, ylab="Methylation (Î²)", xlab="ID", legend=TRUE, title="ImprintomeR: beeswarm", subtitle=NULL) {
   # https://r-charts.com/distribution/ggbeeswarm/
   suppressMessages(suppressWarnings(library(ggplot2)))
   suppressMessages(suppressWarnings(library("ggbeeswarm")))
@@ -614,7 +614,7 @@ BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
     geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
     geom_quasirandom(cex = dotSize, alpha = alpha) +
     theme_classic(base_size = 10) +
-    labs(y = ylab, x = xlab) +
+    labs(y = ylab, x = xlab, title = title, subtitle = subtitle) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
     scale_color_manual(
       name = "GROUP",
@@ -822,7 +822,7 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
     geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
     geom_quasirandom(cex = dotSize,alpha = alpha) +
     theme_classic(base_size = 10) +
-    labs(y = "Methylation (Î²)", x = "ID", subtitle=paste0(probeset,":", chr) ) +
+    labs(y = "Methylation (Î²)", x = "ID", title = "ImprintomeR:beeswarm_chr", subtitle=paste0(probeset,":", chr) ) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
     scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
     scale_x_discrete(limits = orderedIDs) #  specify order on the X axis
@@ -990,7 +990,7 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
         geom_quasirandom(cex = dotSize,alpha = alpha) +
         theme_classic(base_size = 10) +
         facet_wrap(~CATEGORY, scales = "free_x") +
-        labs(y = "Methylation (Î²)", x = "ID") +
+        labs(y = "Methylation (Î²)", x = "ID", title = "ImprintomeR:beeswarm_origin") +
         scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
               # Optional: hide the legend since the facet labels now show the category

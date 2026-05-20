@@ -515,7 +515,8 @@ methods::setMethod(
           meta = meta_x,
           SAMPLEID = SAMPLEID,
           outFile = outFile,
-          alpha = alpha
+          alpha = alpha,
+          subtitle = paste0("Probeset: ", probeset_name)
         )
       )
     }
