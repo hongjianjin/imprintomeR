@@ -613,6 +613,7 @@ BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
   pg <- ggplot(used, aes(x = ID, y = value, color = GROUP)) +
     geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
     geom_quasirandom(cex = dotSize, alpha = alpha) +
+    theme_minimal() +
     theme_classic(base_size = 10) +
     labs(y = ylab, x = xlab, title = title, subtitle = subtitle) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
