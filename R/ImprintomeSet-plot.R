@@ -377,7 +377,22 @@ methods::setMethod(
     plot_name <- .imprint_get_arg_chr(args, "plot_name", NULL)
     result_name <- .imprint_get_arg_chr(args, "result_name", NULL)
     colorColumn <- .imprint_get_arg_chr(args, "colorColumn", "Sample_Group")
-    title <- .imprint_get_arg_chr(args, "title", "ImprintomeR:Polar")
+    # Determine plot-type-specific default title
+    default_title <- switch(plot_type,
+      "polar" = "ImprintomeR:Polar",
+      "mirror_density" = "ImprintomeR:Mirror Density",
+      "beeswarm" = "ImprintomeR: beeswarm",
+      "beeswarm_origin" = "ImprintomeR:beeswarm_origin",
+      "beeswarm_chr" = "ImprintomeR:beeswarm_chr",
+      "violin" = "ImprintomeR: Violin",
+      "heatmap" = "ImprintomeR: Heatmap",
+      "circular_heatmap" = "ImprintomeR: Circular Heatmap",
+      "cor_heatmap" = "ImprintomeR: Correlation",
+      "rainfall" = "ImprintomeR: Rainfall",
+      "radar" = "ImprintomeR: Radar",
+      "ImprintomeR:Polar"  # fallback
+    )
+    title <- .imprint_get_arg_chr(args, "title", default_title)
     palette <- .imprint_get_arg_chr(args, "palette", "default")
     alpha <- if (!is.null(args$alpha)) as.numeric(args$alpha)[1] else 0.5
     outFile <- .imprint_get_arg_chr(args, "outFile", NULL)
