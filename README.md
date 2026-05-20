@@ -402,40 +402,108 @@ s$plots
 ### Example plots
 
 ```r
-# Polar plot
+# 1) Auto dispatch (default polar plot from results)
+p_auto <- plot(
+  x,
+  plot_type = "auto",
+  result_name = "AnalyzeImprintStatus.selected",
+  outFile = "plot_auto.pdf"
+)
+
+# 2) Polar plot (IDS vs Angle scatter)
 p_polar <- plot(
   x,
   plot_type = "polar",
   result_name = "AnalyzeImprintStatus.selected",
   colorColumn = "Sample_Group",
-  outFile = "polar.pdf"
+  outFile = "plot_polar.pdf"
 )
 
-# Beeswarm by origin (cohort)
+# 3) Mirror density (maternal/paternal distributions)
+p_mirror <- plot(
+  x,
+  plot_type = "mirror_density",
+  probeset = "selected",
+  outFile = "plot_mirror_density.pdf"
+)
+
+# 4) Beeswarm (cohort probe methylation)
+p_beeswarm <- plot(
+  x,
+  plot_type = "beeswarm",
+  probeset = "selected",
+  outFile = "plot_beeswarm.pdf"
+)
+
+# 5) Beeswarm by origin (maternal/paternal probes)
 p_bee_origin <- plot(
   x,
   plot_type = "beeswarm_origin",
   probeset = "selected",
-  outFile = "beeswarm_origin.pdf"
+  outFile = "plot_beeswarm_origin.pdf"
 )
 
-# Rainfall plot (single sample)
+# 6) Beeswarm by chromosome (single sample)
 sample_id1 <- colnames(beta(x))[1]
-p_rainfall <- plot(
+p_bee_chr <- plot(
   x,
-  plot_type = "rainfall",
+  plot_type = "beeswarm_chr",
+  probeset = "selected",
   sample_id = sample_id1,
-  probeset = "classifier3",
-  outFile = paste0("rainfall_", sample_id1, ".pdf")
+  chr = "chr11",
+  outFile = paste0("plot_beeswarm_chr_", sample_id1, ".pdf")
 )
 
-# Circular heatmap (grouped by sample group)
+# 7) Violin plot (methylation distributions by sample)
+p_violin <- plot(
+  x,
+  plot_type = "violin",
+  probeset = "selected",
+  outFile = "plot_violin.pdf"
+)
+
+# 8) Heatmap (probes × samples with annotations)
+p_heatmap <- plot(
+  x,
+  plot_type = "heatmap",
+  probeset = "selected",
+  outFile = "plot_heatmap.pdf"
+)
+
+# 9) Circular heatmap (grouped by sample group)
 p_circle <- plot(
   x,
   plot_type = "circular_heatmap",
   probeset = "selected",
   sectionColumn = "Sample_Group",
-  outFile = "circular_heatmap.pdf"
+  outFile = "plot_circular_heatmap.pdf"
+)
+
+# 10) Correlation heatmap (sample-to-sample)
+cor_mat <- plot(
+  x,
+  plot_type = "cor_heatmap",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  prefix = "plot"
+)
+
+# 11) Rainfall plot (chromosomal distribution, single sample)
+p_rainfall <- plot(
+  x,
+  plot_type = "rainfall",
+  sample_id = sample_id1,
+  probeset = "classifier3",
+  outFile = paste0("plot_rainfall_", sample_id1, ".pdf")
+)
+
+# 12) Radar plot (imprinting metrics, single sample)
+p_radar <- plot(
+  x,
+  plot_type = "radar",
+  result_name = "AnalyzeImprintStatus.selected",
+  sample_id = sample_id1,
+  outFile = paste0("plot_radar_", sample_id1, ".pdf")
 )
 ```
 
