@@ -119,12 +119,19 @@ setClass(
 #' Construct an ImprintomeSet Object
 #'
 #' @param beta Matrix or data.frame of beta values (rows = probes, columns = samples).
-#' @param meta data.frame containing sample metadata with required columns `Sample_Name` and `Sample_Group`.
+#' @param meta data.frame containing sample metadata. Must include `Sample_Name`; `Sample_Group` is required unless `auto_group=TRUE`.
 #' @param probeset data.frame or list containing probeset annotation.
 #' @param genome Character scalar for genome build (for example, `"hg19"` or `"hg38"`).
 #' @param assay Character scalar for assay type (for example, `"450K"`, `"EPICv1"`, `"EPICv2"`).
 #' @param results Optional named list of result objects.
 #' @param plots Optional named list of plot objects.
+#' @param auto_group Logical. If `TRUE` and `Sample_Group` column is missing, auto-creates it with value `"Unknown"` for all samples (Tier C: minimal metadata). Default: `FALSE`.
+#'
+#' @details
+#' **Three metadata tiers supported:**
+#' - **Tier A (QC-ready):** Sample_Name + Sample_Group + Basename (for runMethQC)
+#' - **Tier B (Analysis-ready):** Sample_Name + Sample_Group (default requirement)
+#' - **Tier C (Auto-group):** Sample_Name only (if `auto_group=TRUE`; Sample_Group auto-created with "Unknown")
 #'
 #' @return An object of class `ImprintomeSet`.
 #' @export
@@ -134,7 +141,16 @@ ImprintomeSet <- function(beta,
                           genome,
                           assay,
                           results = list(),
-                          plots = list()) {
+                          plots = list(),
+                          auto_group = FALSE) {
+  # Auto-create Sample_Group if missing and auto_group=TRUE (Tier C: minimal metadata)
+  if (auto_group && !is.null(meta) && is.data.frame(meta)) {
+    if (!"Sample_Group" %in% colnames(meta)) {
+      meta$Sample_Group <- "Unknown"
+      message("[ImprintomeSet] Sample_Group column not found. Auto-created with value 'Unknown' (auto_group=TRUE).")
+    }
+  }
+  
   methods::new(
     "ImprintomeSet",
     beta = beta,

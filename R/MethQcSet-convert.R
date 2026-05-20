@@ -134,7 +134,7 @@ methods::setMethod("as.ImprintomeSet", "MethQcSet", function(x, probeset = NULL,
     colnames(meta)[colnames(meta) == "SAMPLE_NAME"] <- "Sample_Name"
   }
   
-  # Create Sample_Group if missing
+  # Create Sample_Group if missing (Tier B: Analysis-ready from QC output)
   if (!("Sample_Group" %in% colnames(meta))) {
     # Create Sample_Group with Sample_Name as fallback (each sample is its own group)
     if ("Sample_Name" %in% colnames(meta)) {
@@ -143,7 +143,13 @@ methods::setMethod("as.ImprintomeSet", "MethQcSet", function(x, probeset = NULL,
       # Ultimate fallback: use row index (should rarely reach here)
       meta$Sample_Group <- paste0("Sample_", seq_len(nrow(meta)))
     }
-    message("Sample_Group column not found. Created with Sample_Name values for each sample.")
+    message("Sample_Group column not found. Created with Sample_Name values for each sample (Tier B: Analysis-ready).")
+  }
+  
+  # Note: Basename column is dropped here (QC-specific, not needed for analysis)
+  if ("Basename" %in% colnames(meta)) {
+    message("Note: Basename column dropped during conversion to ImprintomeSet (QC-specific, not needed for analysis).")
+    meta$Basename <- NULL
   }
 
   # =========================================================================
