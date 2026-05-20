@@ -358,7 +358,26 @@ plot(
 
 ### 5.3 Circular Heatmap
 
+Circular heatmap displays methylation values arranged in a circular layout. Each chromosome forms a radial sector, 
+with probes arranged clockwise. Sample groups are rendered as separate "pie slices" around the center white circle,
+allowing visual comparison of methylation patterns across grouped samples and chromosomes simultaneously.
+
+**Parameters:**
+
+- `sectionColumn`: metadata column for grouping samples (default `"Sample_Group"`). If the column is missing, 
+  samples are grouped by `Sample_Name` (one section per sample). If both are missing, all samples appear in one section.
+- `probeset`: probeset name (default `"selected"`)
+- `SAMPLEID`: metadata column for sample labeling
+
+**Features:**
+
+- Shows probes × samples with chromosome organization
+- Color scale: blue (unmethylated, β ≈ 0) → white (hemimethylated, β ≈ 0.5) → red (methylated, β ≈ 1)
+- Automatic adaptive sizing: larger canvas (12×10 inches) accommodates 4+ sample groups
+- Section labels positioned in the inner white circle for clarity
+
 ```{r, eval = FALSE}
+# Group by sample group
 plot(
   x,
   plot_type = "circular_heatmap",
@@ -366,6 +385,16 @@ plot(
   sectionColumn = "SAMPLE_GROUP",
   probeset = "selected",
   outFile = "beta_circular_heatmap.pdf"
+)
+
+# Alternatively, group by individual sample (one section per sample)
+plot(
+  x,
+  plot_type = "circular_heatmap",
+  SAMPLEID = "SAMPLE_NAME",
+  sectionColumn = "SAMPLE_NAME",
+  probeset = "selected",
+  outFile = "beta_circular_heatmap_by_sample.pdf"
 )
 ```
 

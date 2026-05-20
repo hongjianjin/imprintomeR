@@ -171,7 +171,7 @@ qc_summary<span class="op">$</span>n_probes</code></pre></div>
 <p>Visualize QC metrics:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;qc_bar&quot;</span>)                          <span class="co"># PASS/FAIL bar chart</span>
 <span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;intensity&quot;</span>,  <span class="dt">icutoff =</span> <span class="dv">11</span>)        <span class="co"># intensity scatter</span>
-<span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;detection_pval&quot;</span>, <span class="dt">pcutoff =</span> <span class="fl">0.03</span>)  <span class="co"># detection p-value per sample</span>
+<span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;detection_pval&quot;</span>, <span class="dt">pcutoff =</span> <span class="fl">0.05</span>)  <span class="co"># detection p-value per sample</span>
 <span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;probe_coverage&quot;</span>)                  <span class="co"># % probes detected per sample</span>
 <span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;predicted_sex&quot;</span>)                   <span class="co"># predicted sex distribution</span>
 <span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;ctrl_metrics&quot;</span>)                    <span class="co"># ewastools scores (if present)</span>
@@ -231,7 +231,7 @@ beta &lt;-<span class="st"> </span>input<span class="op">$</span>beta</code></pr
 <div id="optional-additional-plots" class="section level3">
 <h3>Optional Additional Plots</h3>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Probe-level distributions</span>
-p_bee &lt;-<span class="st"> </span><span class="kw">BetaBeePlot</span>(beta, meta, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>, <span class="dt">outFile =</span> <span class="st">&quot;beeswarm.pdf&quot;</span>)
+p_bee &lt;-<span class="st"> </span><span class="kw">BetaBeePlot</span>(beta, meta, <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>, <span class="dt">outFile =</span> <span class="st">&quot;beeswarm.pdf&quot;</span>)
 
 <span class="co"># Mirror density by parental origin</span>
 p_mirror &lt;-<span class="st"> </span><span class="kw">MirrorDensity</span>(
@@ -293,7 +293,7 @@ p2 &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_beeswarm.pdf&quot;</span>
 )
 
@@ -301,7 +301,7 @@ p_bee_origin &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm_origin&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
   <span class="dt">title =</span> <span class="st">&quot;Beeswarm Origin (Cohort)&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_beeswarm_origin.pdf&quot;</span>
 )

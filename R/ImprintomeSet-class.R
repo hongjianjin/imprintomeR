@@ -3,7 +3,7 @@
 #' Formal container for imprintomeR inputs and derived outputs.
 #'
 #' @slot beta Matrix or data.frame of beta values (rows = probes, columns = samples).
-#' @slot meta data.frame of sample metadata. Must include `SAMPLE_NAME`.
+#' @slot meta data.frame of sample metadata. Must include `Sample_Name` and `Sample_Group` columns.
 #' @slot probeset data.frame or list containing probeset annotation.
 #' @slot genome Character scalar indicating genome build.
 #' @slot assay Character scalar indicating array assay.
@@ -51,6 +51,7 @@ setClassUnion("DataFrameOrList", c("data.frame", "list"))
     if (nrow(meta) < 1L) {
       errors <- c(errors, "slot 'meta' must have at least 1 row")
     }
+    # Check required columns
     if (!("Sample_Name" %in% colnames(meta))) {
       errors <- c(errors, "slot 'meta' must contain column 'Sample_Name'")
     } else {
@@ -63,6 +64,9 @@ setClassUnion("DataFrameOrList", c("data.frame", "list"))
           errors <- c(errors, "no overlapping samples between colnames(beta) and meta$Sample_Name")
         }
       }
+    }
+    if (!("Sample_Group" %in% colnames(meta))) {
+      errors <- c(errors, "slot 'meta' must contain column 'Sample_Group'")
     }
   }
 
@@ -115,7 +119,7 @@ setClass(
 #' Construct an ImprintomeSet Object
 #'
 #' @param beta Matrix or data.frame of beta values (rows = probes, columns = samples).
-#' @param meta data.frame containing sample metadata with `SAMPLE_NAME`.
+#' @param meta data.frame containing sample metadata with required columns `Sample_Name` and `Sample_Group`.
 #' @param probeset data.frame or list containing probeset annotation.
 #' @param genome Character scalar for genome build (for example, `"hg19"` or `"hg38"`).
 #' @param assay Character scalar for assay type (for example, `"450K"`, `"EPICv1"`, `"EPICv2"`).

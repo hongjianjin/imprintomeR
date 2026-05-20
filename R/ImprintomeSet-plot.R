@@ -10,25 +10,27 @@
 #' @param ... Optional named arguments:
 #'   - `plot_type`: one of `"auto"`, `"polar"`, `"mirror_density"`,
 #'     `"beeswarm"`, `"beeswarm_origin"`, `"beeswarm_chr"`, `"violin"`,
-#'     `"heatmap"`, `"circular_heatmap"`, `"cor_heatmap"`, `"rainfall"`,
-#'     `"radar"`.
+#'     `"heatmap"`, `"circular_heatmap"`,
+#'     `"cor_heatmap"`, `"rainfall"`, `"radar"`.
 #'   - `plot_name`: specific stored plot name in `plots(x)`.
 #'   - `result_name`: specific results table name in `results(x)`.
-#'   - `colorColumn`: grouping column for `PlotPolar()` (default `"Sample_Group"`).
+#'   - `colorColumn`: grouping column for `PlotPolar()` (default `"Sample_Group"`; if missing from result data, automatically created with all samples grouped as `"All"`).
 #'   - `title`: plot title (default `"ImprintomeR:Polar"`).
 #'   - `palette`: palette passed to `PlotPolar()` (default `"default"`).
 #'   - `alpha`: point alpha passed to `PlotPolar()` (default `0.5`).
 #'   - `SAMPLEID`: metadata column used for sample labels in selected plot types
 #'     (default `"Sample_Name"`).
 #'   - `probeset`: probeset name used by `"mirror_density"`, `"beeswarm"`,
-#'     `"violin"`, `"heatmap"`, `"circular_heatmap"`, `"cor_heatmap"`,
-#'     `"rainfall"`, and `"radar"` (default `"selected"`).
+#'     `"violin"`, `"heatmap"`, `"circular_heatmap"`,
+#'     `"cor_heatmap"`, `"rainfall"`, and `"radar"` (default `"selected"`).
 #'   - `sample_id`: explicit sample ID used by rainfall/radar plot types.
 #'   - `chr`: chromosome label used by `plot_type = "beeswarm_chr"`
 #'     (e.g. `"chr11"` or `"11"`; default uses all chromosomes).
 #'   - `prefix`: output prefix used by `plot_type = "cor_heatmap"`.
 #'   - `sectionColumn`: metadata grouping column used by
-#'     `plot_type = "circular_heatmap"` (default `"Sample_Group"`).
+#'     `plot_type = "circular_heatmap"` (default `"Sample_Group"`; if column doesn't exist in metadata:
+#'     uses `Sample_Name` if available, otherwise creates it with all samples grouped as `"all"`).
+#'   - `Samples`: character vector of sample names to include (applied with `plot_type = "circular_heatmap"`, default: all samples).
 #'   - `outFile`: optional file path for saving output.
 #'   - `width`: optional width in inches when saving stored plots.
 #'   - `height`: optional height in inches when saving stored plots.
@@ -47,6 +49,7 @@
 #' p <- plot(x, plot_type = "beeswarm_origin", probeset = "selected", SAMPLEID = "Sample_Name")
 #' p <- plot(x, plot_type = "beeswarm_chr", probeset = "selected", sample_id = colnames(beta(x))[1], chr = "chr11")
 #' p <- plot(x, plot_type = "mirror_density", probeset = "selected")
+#' p <- plot(x, plot_type = "circular_heatmap", probeset = "selected", sectionColumn = "Sample_Name")
 #' p <- plot(x, plot_type = "rainfall", sample_id = colnames(beta(x))[1])
 #' }
 if (!methods::isGeneric("plot")) {
@@ -430,7 +433,7 @@ methods::setMethod(
     r_list <- results(x)
 
     r_names <- names(r_list)
-    if (is.null(r_names)) {
+    if (is.null(r_names) && length(r_list) > 0L) {
       r_names <- paste0("result_", seq_along(r_list))
       names(r_list) <- r_names
     }
@@ -577,11 +580,23 @@ methods::setMethod(
     }
 
     if (plot_type == "circular_heatmap") {
+      # Use same probeset subsetting logic as beeswarm: subset beta first, then visualize
+      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "circular_heatmap")
+      
+      # Ensure sectionColumn exists in metadata; if not, create it with a fallback
+      if (!sectionColumn %in% colnames(meta_x)) {
+        if ("Sample_Name" %in% colnames(meta_x)) {
+          meta_x[[sectionColumn]] <- meta_x$Sample_Name
+        } else {
+          meta_x[[sectionColumn]] <- "all"
+        }
+      }
+      
       return(
         BetaCircularHeatmap(
-          beta = beta_x,
+          beta = beta_plot,
           meta = meta_x,
-          probeset = probeset_name,
+          probeset = NULL,
           SAMPLEID = SAMPLEID,
           sectionColumn = sectionColumn,
           outFile = outFile

@@ -60,6 +60,7 @@ p <- plot(x, plot_type = "beeswarm", probeset = "selected", SAMPLEID = "Sample_N
 p <- plot(x, plot_type = "beeswarm_origin", probeset = "selected", SAMPLEID = "Sample_Name")
 p <- plot(x, plot_type = "beeswarm_chr", probeset = "selected", sample_id = colnames(beta(x))[1], chr = "chr11")
 p <- plot(x, plot_type = "mirror_density", probeset = "selected")
+p <- plot(x, plot_type = "circular_heatmap", probeset = "selected", sectionColumn = "Sample_Group", outFile = "circular_heatmap.pdf")
 p <- plot(x, plot_type = "rainfall", sample_id = colnames(beta(x))[1])
 }
 }

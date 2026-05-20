@@ -179,8 +179,8 @@ p_bar &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span cl
 p_int &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;intensity&quot;</span>, <span class="dt">icutoff =</span> <span class="dv">11</span>,
               <span class="dt">outFile =</span> <span class="st">&quot;qc_intensity.pdf&quot;</span>)
 
-<span class="co"># Average detection p-value per sample, cutoff line at 0.03</span>
-p_dp  &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;detection_pval&quot;</span>, <span class="dt">pcutoff =</span> <span class="fl">0.03</span>)
+<span class="co"># Average detection p-value per sample, cutoff line at 0.05</span>
+p_dp  &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;detection_pval&quot;</span>, <span class="dt">pcutoff =</span> <span class="fl">0.05</span>)
 
 <span class="co"># % probes detected per sample, reference line at 95%</span>
 p_cov &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;probe_coverage&quot;</span>)
@@ -255,8 +255,8 @@ x &lt;-<span class="st"> </span><span class="kw">as.ImprintomeSet</span>(
 )</code></pre></div>
 <p>Constructor validation includes:</p>
 <ul>
-<li>overlapping sample IDs between <code>meta$SAMPLE_NAME</code> and beta columns</li>
-<li>required metadata columns (<code>SAMPLE_NAME</code>, <code>SAMPLE_GROUP</code>)</li>
+<li>overlapping sample IDs between <code>meta$Sample_Name</code> and beta columns</li>
+<li>required metadata columns (<code>Sample_Name</code>, <code>Sample_Group</code>)</li>
 <li>non-empty beta/probeset objects</li>
 </ul>
 <p>The object keeps derived outputs in separate slots:</p>
@@ -367,7 +367,7 @@ p_mirror &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;mirror_density&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_mirror.pdf&quot;</span>
 )
 
@@ -376,7 +376,7 @@ p_bee &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_beeswarm.pdf&quot;</span>
 )
 
@@ -385,7 +385,7 @@ p_bee_origin &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm_origin&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
   <span class="dt">title =</span> <span class="st">&quot;Beeswarm Origin (Cohort)&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_beeswarm_origin.pdf&quot;</span>
 )
@@ -406,7 +406,7 @@ p_violin &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;violin&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_violin.pdf&quot;</span>
 )
 
@@ -415,7 +415,7 @@ p_heatmap &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;heatmap&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_heatmap.pdf&quot;</span>
 )
 
@@ -423,8 +423,8 @@ p_heatmap &lt;-<span class="st"> </span><span class="kw">plot</span>(
 p_circular &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;circular_heatmap&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
-  <span class="dt">sectionColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
+  <span class="dt">sectionColumn =</span> <span class="st">&quot;Sample_Group&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_circular_heatmap.pdf&quot;</span>
 )
@@ -434,7 +434,7 @@ cor_mat &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;cor_heatmap&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
   <span class="dt">prefix =</span> <span class="st">&quot;imprintomeset_quickstart&quot;</span>
 )
 

@@ -163,7 +163,7 @@ qcset &lt;-<span class="st"> </span><span class="kw">runMethQC</span>(meta_epic)
 <span class="co"># QC visualizations</span>
 p_bar  &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;qc_bar&quot;</span>)                          <span class="co"># PASS/FAIL bar</span>
 p_int  &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;intensity&quot;</span>,  <span class="dt">icutoff =</span> <span class="dv">11</span>)        <span class="co"># intensity scatter</span>
-p_dp   &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;detection_pval&quot;</span>, <span class="dt">pcutoff =</span> <span class="fl">0.03</span>)  <span class="co"># avg det p-val</span>
+p_dp   &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;detection_pval&quot;</span>, <span class="dt">pcutoff =</span> <span class="fl">0.05</span>)  <span class="co"># avg det p-val</span>
 p_cov  &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;probe_coverage&quot;</span>)                  <span class="co"># % probes detected</span>
 p_sex  &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;predicted_sex&quot;</span>)                   <span class="co"># predicted sex</span>
 p_ctrl &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;ctrl_metrics&quot;</span>)                    <span class="co"># ewastools (if present)</span>
@@ -415,13 +415,38 @@ p_bee_chr &lt;-<span class="st"> </span><span class="kw">plot</span>(
 </div>
 <div id="circular-heatmap" class="section level3">
 <h3>5.3 Circular Heatmap</h3>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(
+<p>Circular heatmap displays methylation values arranged in a circular layout. Each chromosome forms a radial sector, with probes arranged clockwise. Sample groups are rendered as separate &quot;pie slices&quot; around the center white circle, allowing visual comparison of methylation patterns across grouped samples and chromosomes simultaneously.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>sectionColumn</code>: metadata column for grouping samples (default <code>&quot;Sample_Group&quot;</code>). If the column is missing, samples are grouped by <code>Sample_Name</code> (one section per sample). If both are missing, all samples appear in one section.</li>
+<li><code>probeset</code>: probeset name (default <code>&quot;selected&quot;</code>)</li>
+<li><code>SAMPLEID</code>: metadata column for sample labeling</li>
+</ul>
+<p><strong>Features:</strong></p>
+<ul>
+<li>Shows probes × samples with chromosome organization</li>
+<li>Color scale: blue (unmethylated, β ≈ 0) → white (hemimethylated, β ≈ 0.5) → red (methylated, β ≈ 1)</li>
+<li>Automatic adaptive sizing: larger canvas (12×10 inches) accommodates 4+ sample groups</li>
+<li>Section labels positioned in the inner white circle for clarity</li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Group by sample group</span>
+<span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;circular_heatmap&quot;</span>,
   <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
   <span class="dt">sectionColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;beta_circular_heatmap.pdf&quot;</span>
+)
+
+<span class="co"># Alternatively, group by individual sample (one section per sample)</span>
+<span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;circular_heatmap&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">sectionColumn =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;beta_circular_heatmap_by_sample.pdf&quot;</span>
 )</code></pre></div>
 </div>
 </div>

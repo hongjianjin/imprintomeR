@@ -619,54 +619,8 @@ if(F){
 
 #================================================================
 library(ComplexHeatmap)
-library(ConsensusClusterPlus)
 library(circlize)
 
-#' Pan-Imprint Clustering (PIC) Module
-#' @param icr_beta_matrix Matrix of beta values filtered for ICR sites only
-#' @param results_dir Directory to save consensus plots
-#' @return A list containing cluster assignments and the signature heatmap
 
-#' @export
-run_pic_signature_finder <- function(icr_beta_matrix, results_dir = "PIC_Output") {
-  
-  # 1. Transform data to 'Deviation Space'
-  # We care about the distance from 0.5 (balanced imprinting)
-  pic_matrix <- abs(icr_beta_matrix - 0.5)
-  
-  # 2. Consensus Clustering
-  # This determines the stability of the clusters
-  results <- ConsensusClusterPlus(
-    d = as.matrix(pic_matrix),
-    maxK = 6,
-    reps = 100,
-    pItem = 0.8,
-    clusterAlg = "hc",
-    distance = "pearson",
-    title = results_dir,
-    plot = "pdf"
-  )
-  
-  # 3. Extract the optimal Cluster (e.g., K=3)
-  # In a real scenario, you'd pick K based on the CDF plot provided by ConsensusClusterPlus
-  optimal_k <- 3
-  cluster_assignments <- results[[optimal_k]][["consensusClass"]]
-  
-  # 4. Generate the Signature Heatmap
-  col_fun = colorRamp2(c(0, 0.25, 0.5), c("white", "orange", "red"))
-  
-  hm <- Heatmap(
-    pic_matrix,
-    name = "Deviation from 0.5",
-    col = col_fun,
-    column_split = cluster_assignments,
-    show_row_names = FALSE,
-    column_title = paste("PIC Signatures (K =", optimal_k, ")"),
-    clustering_distance_columns = "pearson"
-  )
-  
-  return(list(clusters = cluster_assignments, heatmap = hm))
-}
-#================================================================
 
 

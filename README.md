@@ -387,12 +387,17 @@ s$plots
 ### Available plot types
 
 - `auto` - smart dispatch
-- `polar` - IDS vs Angle scatter
-- `mirror_density` - maternal/paternal distributions
-- `beeswarm` - cohort probe methylation
-- `beeswarm_origin` - origin-split beeswarm
-- `beeswarm_chr` - chromosome-faceted beeswarm
-- `violin`, `heatmap`, `circular_heatmap`, `cor_heatmap`, `rainfall`, `radar`
+- `polar` - IDS vs Angle scatter with colored samples
+- `mirror_density` - maternal/paternal methylation density distributions
+- `beeswarm` - cohort probe methylation by sample
+- `beeswarm_origin` - origin-split beeswarm (maternal/paternal probes)
+- `beeswarm_chr` - chromosome-faceted beeswarm (single sample)
+- `violin` - methylation distribution by sample (violin plots)
+- `heatmap` - annotated heatmap (probes × samples)
+- `circular_heatmap` - circular heatmap with grouped sections (probes × samples arranged in circle by sample groups)
+- `cor_heatmap` - sample-to-sample correlation heatmap
+- `rainfall` - chromosomal rainfall plot (single sample)
+- `radar` - radar/star plot of imprinting metrics (single sample)
 
 ### Example plots
 
@@ -422,6 +427,15 @@ p_rainfall <- plot(
   sample_id = sample_id1,
   probeset = "classifier3",
   outFile = paste0("rainfall_", sample_id1, ".pdf")
+)
+
+# Circular heatmap (grouped by sample group)
+p_circle <- plot(
+  x,
+  plot_type = "circular_heatmap",
+  probeset = "selected",
+  sectionColumn = "Sample_Group",
+  outFile = "circular_heatmap.pdf"
 )
 ```
 

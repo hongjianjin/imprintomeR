@@ -376,3 +376,84 @@ test_that("AnalyzeImprintStatus accepts ImprintomeSet input", {
     expect_true(all(c("IDS", "Angle", "Mechanism") %in% colnames(res)))
   })
 })
+
+
+test_that("plot() method works with CircularHeatmap plot_type", {
+  with_synthetic_probeset_fixture({
+    d <- make_synthetic_imprintome_inputs()
+    x <- ImprintomeSet(
+      beta = d$beta,
+      meta = d$meta,
+      probeset = d$probeset,
+      genome = "hg19",
+      assay = "EPICv1"
+    )
+
+    outfile <- tempfile(fileext = ".pdf")
+    on.exit(unlink(outfile), add = TRUE)
+
+    # Test 1: Basic CircularHeatmap plot
+    p <- plot(
+      x,
+      plot_type = "CircularHeatmap",
+      outFile = outfile
+    )
+
+    expect_true(file.exists(outfile))
+    expect_true(file.size(outfile) > 0)
+  })
+})
+
+
+test_that("plot() method supports sample subsetting for CircularHeatmap", {
+  with_synthetic_probeset_fixture({
+    d <- make_synthetic_imprintome_inputs()
+    x <- ImprintomeSet(
+      beta = d$beta,
+      meta = d$meta,
+      probeset = d$probeset,
+      genome = "hg19",
+      assay = "EPICv1"
+    )
+
+    outfile <- tempfile(fileext = ".pdf")
+    on.exit(unlink(outfile), add = TRUE)
+
+    # Test with sample subsetting (first 2 samples)
+    samples_subset <- colnames(beta(x))[1:2]
+
+    p <- plot(
+      x,
+      plot_type = "CircularHeatmap",
+      Samples = samples_subset,
+      outFile = outfile
+    )
+
+    expect_true(file.exists(outfile))
+    expect_true(file.size(outfile) > 0)
+  })
+})
+
+
+test_that("plot() CircularHeatmap errors on invalid sample names", {
+  with_synthetic_probeset_fixture({
+    d <- make_synthetic_imprintome_inputs()
+    x <- ImprintomeSet(
+      beta = d$beta,
+      meta = d$meta,
+      probeset = d$probeset,
+      genome = "hg19",
+      assay = "EPICv1"
+    )
+
+    # Test with non-existent sample names
+    expect_error(
+      plot(
+        x,
+        plot_type = "CircularHeatmap",
+        Samples = c("INVALID_SAMPLE_1", "INVALID_SAMPLE_2")
+      ),
+      "No valid samples found"
+    )
+  })
+})

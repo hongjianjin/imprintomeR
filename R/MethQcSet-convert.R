@@ -125,11 +125,21 @@ methods::setMethod("as.ImprintomeSet", "MethQcSet", function(x, probeset = NULL,
   }
 
   # =========================================================================
+  # Ensure Sample_Group exists in metadata (required for ImprintomeSet)
+  # =========================================================================
+  meta <- x@meta
+  if (!("Sample_Group" %in% colnames(meta))) {
+    # Create Sample_Group with "Unknown" value (fallback for missing grouping)
+    meta$Sample_Group <- "Unknown"
+    message("Sample_Group column not found. Created with 'Unknown' value for all samples.")
+  }
+
+  # =========================================================================
   # Create and return ImprintomeSet
   # =========================================================================
   iset <- ImprintomeSet(
     beta = x@beta,
-    meta = x@meta,
+    meta = meta,
     probeset = probeset,
     genome = genome,
     assay = x@platform,

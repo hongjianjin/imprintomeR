@@ -47,7 +47,7 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
   betaFile <- resolved$beta
   metaFile <- resolved$meta
 
-  if((class(betaFile) %in% c('data.frame', 'matrix')) & class(metaFile) =='data.frame'){ # data.frame or matrix as input
+  if((inherits(betaFile, c('data.frame', 'matrix'))) && inherits(metaFile, 'data.frame')){ # data.frame or matrix as input
     meta <- metaFile
     beta <- as.data.frame(betaFile)
   }else{ # filename as input
@@ -81,7 +81,7 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
  # Define breaks from -1 to 1
    breaks_list <- seq(-1, 1, length.out = 101)
   # Generate heatmap
-  outFile1 <- paste0(prefix, "_cor.heatmap_detail.pdf")  
+  outFile1 <- paste0(prefix, "_detail.pdf")  
   hm <- pheatmap(cor_matrix,
           color = color_palette,
           breaks = breaks_list,
@@ -94,7 +94,7 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
           width=plotWidth,height=plotHeight)
   cat(paste0('\nInfo: ',basename(outFile1),'[saved]'))            
   #================================================================
-  outFile2 <- paste0(prefix, "_cor.heatmap_simple.pdf")            
+  outFile2 <- paste0(prefix, "_simple.pdf")            
   hm <- pheatmap(cor_matrix,
           color = color_palette,
           breaks = breaks_list,
@@ -107,7 +107,7 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
           width=plotWidth/2,height=plotHeight/2)
   cat(paste0('\nInfo: ',basename(outFile2),'[saved]'))     
   #================================================================
-  outFile3 <- paste0(prefix, "_cor.heatmap_auto.simple.pdf") 
+  outFile3 <- paste0(prefix, "_auto.simple.pdf") 
   hm <- pheatmap(cor_matrix,
           color = color_palette,
           display_numbers = FALSE,     # Optional: show correlation values
@@ -493,6 +493,10 @@ BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
     return(NULL)
   }
   colnames(beta) <- newIDs
+  # Ensure Sample_Group exists; create if missing
+  if (!"Sample_Group" %in% colnames(meta)) {
+    meta$Sample_Group <- "All"
+  }
   suppressMessages({
     used <- reshape2::melt(t(as.matrix(beta)))
   })
@@ -508,9 +512,9 @@ BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
   uniqComb <- data.frame(GROUP = unique(meta$Sample_Group), COLOR = uniqCols)
 
   cat("\n generate violin plot ...\n")
-  pg <- ggplot(used, aes(x = ID, y = value), alpha = alpha) +
+  pg <- ggplot(used, aes(x = ID, y = value)) +
     geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
-    geom_violin(aes(x = ID, y = value, fill = GROUP), trim = FALSE) +
+    geom_violin(aes(x = ID, y = value, fill = GROUP), trim = FALSE, alpha = alpha) +
     theme_classic(base_size = 10) +
     labs(y = "Methylation (Î²)", x = "ID") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
@@ -582,6 +586,10 @@ BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
     return(NULL)
   }
   colnames(beta) <- newIDs
+  # Ensure Sample_Group exists; create if missing
+  if (!"Sample_Group" %in% colnames(meta)) {
+    meta$Sample_Group <- "All"
+  }
   suppressMessages({
     used <- reshape2::melt(as.matrix(beta))
   })
@@ -600,9 +608,9 @@ BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
   uniqCols <- standardColors()[1:length(unique(meta$Sample_Group))]
   uniqComb <- data.frame(GROUP = unique(meta$Sample_Group), COLOR = uniqCols)
   cat("\n generate dotplot ...\n")
-  pg <- ggplot(used, aes(x = ID, y = value, color = GROUP), alpha = alpha) +
+  pg <- ggplot(used, aes(x = ID, y = value, color = GROUP)) +
     geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
-    geom_quasirandom(cex = dotSize) +
+    geom_quasirandom(cex = dotSize, alpha = alpha) +
     theme_classic(base_size = 10) +
     labs(y = ylab, x = xlab) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
@@ -1276,6 +1284,15 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
   }
   colnames(beta) <- meta$SAMPLEID
 
+  # Ensure Sample_Group exists; create if missing
+  if (!"Sample_Group" %in% colnames(meta)) {
+    meta$Sample_Group <- "All"
+  }
+  # Ensure annoColumn exists; fallback to Sample_Group if missing
+  if (!annoColumn %in% colnames(meta)) {
+    annoColumn <- "Sample_Group"
+  }
+  
   meta <- meta[order(meta$Sample_Group), ] # order GROUP
   beta <- beta[, as.character(meta$SAMPLEID)] # order SMAPLEID by GROUP
   rownames(meta) <- as.character(meta$SAMPLEID)
@@ -1366,8 +1383,34 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
   }
 }
 
-##################################################################
-
+#' Circular Heatmap of Beta Values
+#'
+#' Generates a circular/radial heatmap visualization of beta values using
+#' ComplexHeatmap and circlize packages.
+#'
+#' @param beta Matrix or data.frame of beta values (rows = probes, columns = samples).
+#' @param meta Optional data.frame of sample metadata with `SAMPLEID` column.
+#' @param probes.all Optional probe annotation data.
+#' @param probeset Character scalar for probeset name or NULL.
+#' @param version Character genome version (default "HG19").
+#' @param SAMPLEID Column name for sample identifiers (default "Sample_Name").
+#' @param sectionColumn Column name for grouping samples into sections. Use "Sample_Name"
+#'   to show each sample as its own section, or "Sample_Group" to group multiple samples.
+#'   Circular heatmaps work best with 1-5 sections.
+#' @param sectionLabels Optional custom section labels.
+#' @param outFile Optional output PDF file path.
+#' @param nchars Number of characters to show in gene labels (default 5).
+#'   Note: This applies to gene names only, not group labels which are shown in full.
+#'
+#' @details
+#' **Crowding considerations:**
+#' - Circular heatmaps are optimized for small numbers of samples (1-5 per section).
+#' - For 5-10+ samples per section, consider using `plot_type = "heatmap"` instead
+#'   (rectangular heatmap) which handles many samples better.
+#' - Each section represents a unique value in `sectionColumn`.
+#'
+#' @return Invisibly returns the heatmap object.
+#' @export
 BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NULL, version = "HG19", SAMPLEID = "Sample_Name", sectionColumn = "Sample_Group", sectionLabels = NULL, outFile = NULL, nchars = 5) {
   # values of SAMPLEID column, sectionColumn must be present in meta column names
   #
@@ -1406,9 +1449,13 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
   }
   col_meth <- colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
   lgd_meth <- ComplexHeatmap::Legend(title = "Methylation", col_fun = col_meth)
-  circlize_plot <- function(beta_list, beta_anno, sectionLabels = NULL, colors = col_meth, track_height = 0.1) {
+  circlize_plot <- function(beta_list, beta_anno, sectionLabels = NULL, colors = col_meth, track_height = NULL) {
     if (is.null(sectionLabels)) {
       sectionLabels <- names(beta_list)
+    }
+    # Adaptive track height based on number of groups for better label spacing
+    if (is.null(track_height)) {
+      track_height <- max(0.10, 0.035 * length(beta_list))
     }
     probe_info <- data.frame(beta_anno[, c("CHR", "MAPINFO", "GENE")])
     probe_info$CHR <- factor(probe_info$CHR, levels = unique(probe_info$CHR))
@@ -1442,10 +1489,12 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
     idx <- !duplicated(probe_info$GENE)
     geneSymbols <- probe_info$GENE[idx]
 
-    pos <- circos.heatmap.get.x(seq(row(dat1)))
+    pos <- circos.heatmap.get.x(seq_len(nrow(dat1)))
     circos.labels(pos$sector[idx], x = pos$x[idx], labels = geneSymbols, side = "outside", cex = 0.8) #
     print(sectionLabels)
     print(head(pos))
+    # Adaptive font size for section labels based on number of groups
+    section_cex <- min(1.2, 0.8 + 0.08 * length(beta_list))
     for (i in seq(length(beta_list))) {
       cat("\nINFO: process section #", x, sectionLabels[x], "\n")
       dat <- beta_list[[i]]
@@ -1456,10 +1505,11 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
         ylim <- get.cell.meta.data("ylim")
         if (CELL_META$sector.numeric.index == n) { # the last sector
           n <- ncol(dat)
-          offset <- max(1, 8 - i * 3)
+          # Adaptive offset: increases spacing for more sections
+          offset <- max(2, 10 - i * 2)
           circos.text(max(xlim) + convert_x(offset, "mm"),
             mean(ylim), sectionLabels[i],
-            cex = 0.8, adj = c(0, 0.5), col = "blue", facing = "bending.inside"
+            cex = section_cex, adj = c(0, 0.5), col = "blue", facing = "bending.inside"
           )
         }
       }, bg.border = NA)
@@ -1510,27 +1560,33 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
   beta_list <- list()
   for (x in seq(ngroups)) {
     grpLabel <- grpLabels[x]
-    beta_list[[x]] <- beta[rownames(beta_anno), rownames(meta)[meta[, sectionColumn] %in% grpLabel]]
+    beta_list[[x]] <- beta[rownames(beta_anno), rownames(meta)[meta[, sectionColumn] %in% grpLabel], drop = FALSE]
   }
-  print(length(beta_list))
-  names(beta_list) <- substr(gsub("[[:space:]]", "_", trimws(grpLabels)), 1, nchars) # trim each element to nchars
+  # Use full group labels (don't truncate) - replace underscores with spaces for readability
+  names(beta_list) <- gsub("_", " ", trimws(grpLabels))
 
   # generate circular heatmap
-  circos.clear()
   circle_size <- unit(1, "snpc")
   if (is.null(outFile)) {
     timeStamp <- substr(strtrim(gsub("[-: ]", "", Sys.time()), 16), 5, 12) # "11301304"
     outFile <- paste0("circular_heatmap_", timeStamp, ".pdf")
   }
-  pdf(outFile, width = 10, height = 8)
+  
+  # Clear any previous circos state AFTER setting up parameters
+  circos.clear()
+  
+  pdf(outFile, width = 12, height = 10)  # Larger canvas: 12x10 inches
+  # Initialize base graphics system explicitly to avoid blank pages
+  plot.new()
+  
   pushViewport(viewport(
-    x = 0, y = 0.5, width = circle_size, height = circle_size,
+    x = 0.05, y = 0.5, width = circle_size, height = circle_size,
     just = c("left", "center")
   ))
-  par(omi = gridOMI(), new = FALSE)
+  par(omi = gridOMI(), new = TRUE)  # new = TRUE to allow overwriting plot.new()
   circlize_plot(beta_list, beta_anno, colors = col_meth, track_height = 0.1)
   upViewport()
-  draw(lgd_meth, x = circle_size, just = "left")
+  draw(lgd_meth, x = unit(1.2, "npc"), just = "left")
   garbage <- dev.off()
   cat("\n\t", basename(outFile), "[saved]\n")
   # system(paste0("ls ", outFile, ">pdf.lst"))
@@ -1710,7 +1766,7 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
   betaFile <- resolved$beta
   metaFile <- resolved$meta
 
-    if((class(betaFile) %in% c('data.frame', 'matrix')) & class(metaFile) =='data.frame'){ # data.frame or matrix as input
+    if((inherits(betaFile, c('data.frame', 'matrix'))) && inherits(metaFile, 'data.frame')){ # data.frame or matrix as input
       meta <- metaFile
       beta <- as.data.frame(betaFile)
     }else{ # filename as input
@@ -1771,7 +1827,7 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
       # Add the 0.5 reference line (now horizontal)
       geom_vline(xintercept = 0.5, linetype = "dashed", color = "black") +
       # Flip the coordinates
-      coord_flip() + facet_wrap(~SAMPLE_NAME) +
+      coord_flip() + facet_wrap(~Sample_Name) +
       # Formatting
       scale_fill_manual(values = .imprint_origin_colors()[c("maternal", "paternal")]) +
       theme_minimal() +
