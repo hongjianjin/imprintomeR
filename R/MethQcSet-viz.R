@@ -136,10 +136,21 @@ methods::setMethod("export", "MethQcSet", function(x, outdir, format = c("xlsx",
       meta_out <- x@meta
       meta_out[["Platform"]] <- x@platform
       qcm <- x@qc_tables[["QC_matrix"]]
-      if (!is.null(qcm) && "SAMPLE_NAME" %in% colnames(qcm) && "Final.QC" %in% colnames(qcm)) {
-        idx <- match(as.character(meta_out[["SAMPLE_NAME"]]),
-                     as.character(qcm[["SAMPLE_NAME"]]))
-        meta_out[["Final.QC"]] <- qcm[["Final.QC"]][idx]
+      
+      # Match Final.QC from QC_matrix to metadata (handle case-sensitive column names)
+      if (!is.null(qcm) && "Final.QC" %in% colnames(qcm)) {
+        # Find the sample name column in QC_matrix (could be "SAMPLE_NAME" or "Sample_Name")
+        qc_sample_col <- intersect(c("SAMPLE_NAME", "Sample_Name"), colnames(qcm))[1]
+        # Find the sample name column in metadata (could be "Sample_Name" or "SAMPLE_NAME")
+        meta_sample_col <- intersect(c("Sample_Name", "SAMPLE_NAME"), colnames(meta_out))[1]
+        
+        if (!is.na(qc_sample_col) && !is.na(meta_sample_col)) {
+          idx <- match(as.character(meta_out[[meta_sample_col]]),
+                       as.character(qcm[[qc_sample_col]]))
+          if (!all(is.na(idx))) {
+            meta_out[["Final.QC"]] <- qcm[["Final.QC"]][idx]
+          }
+        }
       }
       openxlsx::addWorksheet(wb, "meta")
       openxlsx::writeData(wb, "meta", meta_out, rowNames = FALSE)

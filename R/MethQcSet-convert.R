@@ -128,10 +128,22 @@ methods::setMethod("as.ImprintomeSet", "MethQcSet", function(x, probeset = NULL,
   # Ensure Sample_Group exists in metadata (required for ImprintomeSet)
   # =========================================================================
   meta <- x@meta
+  
+  # Normalize column names: MethQcSet uses SAMPLE_NAME (all caps), ImprintomeSet expects Sample_Name
+  if ("SAMPLE_NAME" %in% colnames(meta) && !("Sample_Name" %in% colnames(meta))) {
+    colnames(meta)[colnames(meta) == "SAMPLE_NAME"] <- "Sample_Name"
+  }
+  
+  # Create Sample_Group if missing
   if (!("Sample_Group" %in% colnames(meta))) {
-    # Create Sample_Group with "Unknown" value (fallback for missing grouping)
-    meta$Sample_Group <- "Unknown"
-    message("Sample_Group column not found. Created with 'Unknown' value for all samples.")
+    # Create Sample_Group with Sample_Name as fallback (each sample is its own group)
+    if ("Sample_Name" %in% colnames(meta)) {
+      meta$Sample_Group <- meta$Sample_Name
+    } else {
+      # Ultimate fallback: use row index (should rarely reach here)
+      meta$Sample_Group <- paste0("Sample_", seq_len(nrow(meta)))
+    }
+    message("Sample_Group column not found. Created with Sample_Name values for each sample.")
   }
 
   # =========================================================================

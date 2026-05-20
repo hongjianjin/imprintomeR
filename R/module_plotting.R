@@ -1499,7 +1499,7 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
     # Adaptive font size for section labels based on number of groups
     section_cex <- min(1.2, 0.8 + 0.08 * length(beta_list))
     for (i in seq(length(beta_list))) {
-      cat("\nINFO: process section #", x, sectionLabels[x], "\n")
+      cat("\nINFO: process section #", i, sectionLabels[i], "\n")
       dat <- beta_list[[i]]
       # dat <- apply(dat, 2, as.numeric)
       circos.heatmap(dat, cluster = FALSE, col = colors, split = probe_info$CHR, track.height = track_height)

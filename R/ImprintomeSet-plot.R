@@ -601,12 +601,17 @@ methods::setMethod(
       # Use same probeset subsetting logic as beeswarm: subset beta first, then visualize
       beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "circular_heatmap")
       
-      # Ensure sectionColumn exists in metadata; if not, create it with a fallback
+      # Check if sectionColumn exists and has meaningful values (not all "Unknown")
+      effective_section_column <- sectionColumn
       if (!sectionColumn %in% colnames(meta_x)) {
-        if ("Sample_Name" %in% colnames(meta_x)) {
-          meta_x[[sectionColumn]] <- meta_x$Sample_Name
-        } else {
-          meta_x[[sectionColumn]] <- "all"
+        # sectionColumn doesn't exist; try to use Sample_Name instead
+        effective_section_column <- "Sample_Name"
+      } else {
+        # sectionColumn exists but check if all values are "Unknown"
+        unique_values <- unique(as.character(meta_x[[sectionColumn]]))
+        if (length(unique_values) == 1 && unique_values[1] == "Unknown") {
+          # All values are "Unknown"; use Sample_Name instead for meaningful grouping
+          effective_section_column <- "Sample_Name"
         }
       }
       
@@ -616,7 +621,7 @@ methods::setMethod(
           meta = meta_x,
           probeset = NULL,
           SAMPLEID = SAMPLEID,
-          sectionColumn = sectionColumn,
+          sectionColumn = effective_section_column,
           outFile = outFile
         )
       )
