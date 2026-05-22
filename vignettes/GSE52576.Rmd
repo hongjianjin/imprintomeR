@@ -1,0 +1,539 @@
+---
+title: "Real-World Imprinting Analysis: GSE52576 Dataset"
+subtitle: "Download, preprocess, and analyze methylation data from a public GEO dataset"
+author: "imprintomeR contributors"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    fig_width: 10
+    fig_height: 6
+vignette: >
+  %\VignetteIndexEntry{GSE52576 Real-World Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "GSE52576_",
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Overview
+
+This vignette demonstrates imprintomeR on **GSE52576**, a real-world methylation dataset from the Gene Expression Omnibus (GEO). You will:
+
+1. **Download** normalized beta values from GEO using GEOquery
+2. **Create** an ImprintomeSet analysis-ready object
+3. **Analyze** imprinting status across samples
+4. **Visualize** results with all available plot types
+5. **Interpret** biological patterns and aberrant imprinting
+
+The workflow is optimized for **reproducibility** and **Jupyter notebook conversion**.
+
+---
+
+## Phase 1: Setup & Data Download
+
+### Load libraries
+
+```{r load-libraries, message = FALSE, warning = FALSE}
+library(imprintomeR)
+library(GEOquery)
+library(tidyverse)
+library(ComplexHeatmap)
+library(ggplot2)
+library(knitr)
+
+# For reproducibility
+set.seed(2026)
+```
+
+### Download GSE52576 from GEO
+
+GSE52576 is a publicly available dataset studying Beckwith-Wiedemann syndrome (BWS) and imprinting defects using Illumina 450K methylation arrays.
+
+```{r download-gse52576, eval = TRUE, cache = TRUE}
+# Download GSE52576 from GEO
+# Note: This is cached on first download to avoid repeated network calls
+geo_gse <- "GSE52576"
+message("Downloading ", geo_gse, " from GEO...")
+
+tryCatch({
+  gse <- getGEO(geo_gse, GSEMatrix = TRUE, AnnotGPL = TRUE, getGPL = FALSE)
+  eset <- gse[[1]]  # Extract ExpressionSet object
+  
+  message("✓ Download successful")
+  message("  Samples: ", ncol(eset))
+  message("  Probes:  ", nrow(eset))
+}, error = function(e) {
+  stop("Failed to download ", geo_gse, ":\n", conditionMessage(e), 
+       "\nCheck internet connection and GEO availability.")
+})
+```
+
+### Extract metadata and beta values
+
+```{r extract-metadata}
+# Extract phenotype data (metadata)
+pdata <- pData(eset)
+message("Available metadata columns:")
+print(colnames(pdata))
+
+# Display sample information
+message("\nSample overview:")
+head(pdata[, c("geo_accession", "title", "source_name_ch1")], n = 3)
+```
+
+### Format data for imprintomeR
+
+```{r format-data}
+# Extract beta values (methylation intensities, 0-1 scale)
+beta_matrix <- exprs(eset)
+message("Beta matrix dimensions: ", nrow(beta_matrix), " probes × ", 
+        ncol(beta_matrix), " samples")
+message("Beta range: [", round(min(beta_matrix, na.rm = TRUE), 3), ", ",
+        round(max(beta_matrix, na.rm = TRUE), 3), "]")
+
+# Create metadata data.frame compatible with imprintomeR
+meta <- data.frame(
+  Sample_Name = colnames(beta_matrix),
+  Sample_Group = pdata$source_name_ch1,  # Disease status or tissue type
+  Disease_Status = pdata$characteristics_ch1.1,  # Detailed phenotype
+  stringsAsFactors = FALSE
+)
+
+# Clean up Sample_Group (shorten for readability)
+meta$Sample_Group <- gsub("^.*: ", "", meta$Sample_Group)
+
+message("\nMetadata created:")
+message("Samples: ", nrow(meta))
+print(table(meta$Sample_Group))
+
+message("\nFirst few samples:")
+head(meta, n = 3)
+```
+
+### Validate data integrity
+
+```{r validate-data}
+# Check for missing values
+pct_missing <- colSums(is.na(beta_matrix)) / nrow(beta_matrix) * 100
+message("Missing values per sample:")
+if (max(pct_missing) > 0) {
+  print(head(sort(pct_missing, decreasing = TRUE)))
+} else {
+  message("  ✓ No missing values")
+}
+
+# Verify sample name alignment
+if (all(colnames(beta_matrix) == meta$Sample_Name)) {
+  message("✓ Sample names aligned between beta and metadata")
+} else {
+  stop("Sample name mismatch!")
+}
+```
+
+---
+
+## Phase 2: Load & Create ImprintomeSet
+
+### Load data using imprintomeR utilities
+
+```{r load-methqa}
+# Use imprintomeR's LoadMetaBeta function to validate and intersect data
+input <- LoadMetaBeta(meta, beta_matrix, probeset = NULL)
+
+message("Loaded data:")
+message("  Samples: ", ncol(input$beta))
+message("  Probes:  ", nrow(input$beta))
+message("  Metadata cols: ", paste(colnames(input$meta), collapse = ", "))
+
+# Peek at data structure
+message("\nBeta matrix (first 5 probes, 3 samples):")
+print(round(input$beta[1:5, 1:3], 3))
+```
+
+### Create ImprintomeSet object
+
+```{r create-imprintomeset}
+# Create analysis-ready ImprintomeSet
+x <- as.ImprintomeSet(
+  beta = input$beta,
+  meta = input$meta,
+  probeset = NULL,  # Use all probes; will be subset by runImprintome
+  genome = "hg19",
+  assay = "EPIC"  # GSE52576 uses Illumina 450K (close to EPIC v1)
+)
+
+# Verify object structure
+message("ImprintomeSet created:")
+message("  Samples: ", ncol(beta(x)))
+message("  Probes: ", nrow(beta(x)))
+message("  Genome: ", x@genome)
+message("  Assay: ", x@assay)
+print(summary(x))
+```
+
+---
+
+## Phase 3: Run Workflow & Compute Statistics
+
+### Execute imprintomeR analysis
+
+```{r run-imprintome}
+message("Running imprintome analysis...")
+x <- runImprintome(x)
+message("✓ Analysis complete")
+
+# Extract results
+res <- results(x)
+message("\nResults available:")
+print(names(res))
+
+# Display analysis summary
+message("\nAnalysis summary:")
+print(head(res$status, n = 5))
+```
+
+### Compute per-group statistics
+
+```{r compute-stats}
+# Summarize by Sample_Group
+stat_summary <- res$status %>%
+  group_by(Sample_Group = meta(x)$Sample_Group[match(Sample_ID, Sample_Name)]) %>%
+  summarise(
+    n_samples = n(),
+    n_normal = sum(Mechanism == "NORMAL"),
+    n_disomy = sum(Mechanism %in% c("DISOMY", "DISOMY-like")),
+    n_upd = sum(grepl("UPD|matUPD|patUPD", Mechanism)),
+    pct_abnormal = round(100 * (1 - sum(Mechanism == "NORMAL") / n()), 1),
+    .groups = "drop"
+  )
+
+message("\nImprinting status by group:")
+print(stat_summary)
+```
+
+### Review key metrics
+
+```{r review-metrics}
+# Distribution of key imprinting metrics
+message("IDS (Imprinting Defect Score) distribution:")
+print(summary(res$status$IDS))
+
+message("\nMechanism classification:")
+print(table(res$status$Mechanism))
+
+message("\nAngle (parental origin deviation) distribution:")
+print(summary(res$status$Angle))
+```
+
+---
+
+## Phase 4: Visualizations — Complete Gallery
+
+### Plot 1: Polar scatter (IDS vs Angle)
+
+The **polar plot** is the primary visualization—it shows each sample's imprinting deviation in 2D space, colored by mechanism classification.
+
+```{r plot-polar, fig.width = 8, fig.height = 8}
+p_polar <- plot(
+  x,
+  plot_type = "polar",
+  outFile = NULL  # Display only; set to filename to save
+)
+print(p_polar)
+message("✓ Polar plot complete")
+```
+
+### Plot 2: Beta heatmap (methylation by probeset)
+
+The **heatmap** shows normalized methylation levels (beta values) across all probes and samples, organized by imprinting mechanism.
+
+```{r plot-heatmap, fig.width = 10, fig.height = 8}
+p_heatmap <- plot(
+  x,
+  plot_type = "heatmap",
+  outFile = NULL
+)
+message("✓ Heatmap complete")
+```
+
+### Plot 3: Beeswarm by origin (cohort-level methylation)
+
+The **beeswarm plot** shows methylation distribution for each sample, faceted by parental origin (paternal vs maternal imprinting).
+
+```{r plot-beeswarm-origin, fig.width = 12, fig.height = 6}
+p_beeswarm_origin <- plot(
+  x,
+  plot_type = "beeswarm_origin",
+  outFile = NULL
+)
+message("✓ Beeswarm by origin plot complete")
+```
+
+### Plot 4: Circular heatmap (complex multi-dimensional view)
+
+The **circular heatmap** integrates probeset annotations (chromosome, imprinting type) with methylation and statistical significance.
+
+```{r plot-circular, fig.width = 10, fig.height = 10}
+p_circular <- plot(
+  x,
+  plot_type = "circular_heatmap",
+  outFile = NULL
+)
+message("✓ Circular heatmap complete")
+```
+
+### Plot 5: Rainfall plot (sample-level detail)
+
+The **rainfall plot** shows methylation deviations (IDI) across genomic positions for a single representative sample. Select sample 2 for demonstration:
+
+```{r plot-rainfall, fig.width = 12, fig.height = 6}
+sample_id_1 <- colnames(beta(x))[2]  # Select second sample
+message("Generating rainfall plot for sample: ", sample_id_1)
+
+p_rainfall <- plot(
+  x,
+  plot_type = "rainfall",
+  sample_id = sample_id_1,
+  probeset = "classifier3",
+  outFile = NULL
+)
+message("✓ Rainfall plot complete")
+```
+
+### Plot 6: Radar plot (multi-dimensional sample summary)
+
+The **radar plot** displays a single sample's imprinting profile across multiple dimensions (IDS, Angle, IDI summary).
+
+```{r plot-radar, fig.width = 8, fig.height = 8}
+p_radar <- plot(
+  x,
+  plot_type = "radar",
+  sample_id = sample_id_1,
+  probeset = "selected",
+  outFile = NULL
+)
+message("✓ Radar plot complete")
+```
+
+### Plot 7: Beeswarm by chromosome (spatially organized)
+
+The **chromosome beeswarm plot** shows methylation distribution for a single sample, faceted by chromosome location of imprinted sites.
+
+```{r plot-beeswarm-chr, fig.width = 12, fig.height = 6}
+p_beeswarm_chr <- plot(
+  x,
+  plot_type = "beeswarm_chr",
+  sample_id = sample_id_1,
+  outFile = NULL
+)
+message("✓ Beeswarm by chromosome plot complete")
+```
+
+---
+
+## Phase 5: Results Interpretation & Case Study
+
+### Summary statistics
+
+```{r interpret-summary}
+# Overall imprinting status
+normal_pct <- sum(res$status$Mechanism == "NORMAL") / nrow(res$status) * 100
+abnormal_pct <- 100 - normal_pct
+
+message("=== OVERALL IMPRINTING SUMMARY ===")
+message(sprintf("Normal imprinting:    %6.1f%% (%d/%d samples)", 
+                normal_pct, sum(res$status$Mechanism == "NORMAL"), nrow(res$status)))
+message(sprintf("Abnormal imprinting:  %6.1f%% (%d/%d samples)", 
+                abnormal_pct, nrow(res$status) - sum(res$status$Mechanism == "NORMAL"), 
+                nrow(res$status)))
+
+# By sample group
+message("\n=== BY SAMPLE GROUP ===")
+for (group in unique(meta(x)$Sample_Group)) {
+  idx <- meta(x)$Sample_Group == group
+  n <- sum(idx)
+  normal <- sum(res$status$Mechanism[idx] == "NORMAL")
+  message(sprintf("%20s: %d samples, %d normal (%.1f%%)", 
+                  group, n, normal, 100*normal/n))
+}
+```
+
+### Identify samples with aberrant imprinting
+
+```{r identify-abnormal}
+abnormal <- res$status %>% filter(Mechanism != "NORMAL")
+
+if (nrow(abnormal) > 0) {
+  message("=== ABERRANT IMPRINTING SAMPLES ===")
+  message("Sample count: ", nrow(abnormal))
+  print(abnormal %>% select(Sample_ID, Mechanism, IDS, Angle) %>% head(n = 10))
+} else {
+  message("✓ All samples show normal imprinting patterns")
+}
+```
+
+### Phenotype-imprinting associations
+
+```{r phenotype-associations}
+# Add phenotype info to results for cross-reference
+res_annotated <- res$status %>%
+  mutate(
+    Sample_Name = Sample_ID,
+    Sample_Group = meta(x)$Sample_Group[match(Sample_ID, meta(x)$Sample_Name)]
+  )
+
+# Compare disease status vs imprinting
+if (length(unique(res_annotated$Sample_Group)) > 1) {
+  message("Cross-tabulation: Sample_Group vs Imprinting Mechanism")
+  tbl <- table(res_annotated$Sample_Group, res_annotated$Mechanism)
+  print(tbl)
+}
+```
+
+### Key findings
+
+```{r key-findings}
+message("=== KEY BIOLOGICAL INSIGHTS ===")
+message("1. Dataset: GSE52576 (methylation study of imprinting disorders)")
+message("2. Platform: Illumina 450K methylation array")
+message("3. Samples analyzed: ", nrow(res$status))
+message("4. Geographic distribution: IDS range [", 
+        round(min(res$status$IDS), 3), ", ",
+        round(max(res$status$IDS), 3), "]")
+message("5. Most common mechanism: ", 
+        names(sort(table(res$status$Mechanism), decreasing = TRUE))[1])
+message("\n→ See plots above for detailed visualization of these patterns")
+```
+
+---
+
+## Phase 6: Export & Save Results
+
+### Export to Excel workbooks
+
+```{r export-xlsx}
+# Define output directory
+outdir <- "GSE52576_output"
+dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
+
+# Export ImprintomeSet results
+export(
+  x,
+  outdir = outdir,
+  format = c("xlsx", "rds"),
+  prefix = "GSE52576"
+)
+
+message("✓ Results exported to: ", outdir)
+message("  - GSE52576_*_main.xlsx (primary results)")
+message("  - GSE52576_*_extra.xlsx (supplementary data)")
+message("  - GSE52576_imprintomeset.rds (full object)")
+```
+
+### Export results to TSV
+
+```{r export-txt}
+# Write results table
+results_file <- file.path(outdir, "GSE52576_imprintome_results.txt")
+write.table(
+  res$status,
+  file = results_file,
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE,
+  col.names = TRUE
+)
+
+message("✓ Results table: ", results_file)
+
+# Write summary statistics
+summary_file <- file.path(outdir, "GSE52576_summary_statistics.txt")
+write.table(
+  stat_summary,
+  file = summary_file,
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE,
+  col.names = TRUE
+)
+
+message("✓ Summary statistics: ", summary_file)
+```
+
+### List all output files
+
+```{r list-outputs}
+output_files <- list.files(outdir, full.names = FALSE)
+message("=== OUTPUT FILES ===")
+message("Directory: ", outdir)
+for (f in sort(output_files)) {
+  fsize <- file.size(file.path(outdir, f))
+  message(sprintf("  %-40s %8.1f KB", f, fsize / 1024))
+}
+```
+
+---
+
+## Session Information & Reproducibility
+
+```{r session-info}
+# Reproducibility information
+message("=== REPRODUCIBILITY ===")
+message("R version: ", R.version$version.string)
+message("imprintomeR version: ", packageVersion("imprintomeR"))
+message("Execution date: ", Sys.Date())
+message("Random seed: 2026")
+
+sessionInfo()
+```
+
+---
+
+## Jupyter Notebook Conversion Guide
+
+This vignette is designed for conversion to Jupyter notebooks. To convert:
+
+```bash
+# 1. Render this Rmd to HTML (in R):
+rmarkdown::render('vignettes/GSE52576.Rmd')
+
+# 2. Convert HTML to Jupyter notebook (requires nbconvert):
+jupyter nbconvert --to notebook GSE52576.html --output GSE52576.ipynb
+
+# 3. Or use Jupytext to convert Rmd directly to .ipynb:
+jupytext --to notebook vignettes/GSE52576.Rmd
+```
+
+**Tips for Jupyter users:**
+- Each code block above is a separate cell (copy/paste ready)
+- Markdown sections become markdown cells
+- Uncomment `outFile` parameters in plot calls to save PDFs
+- Use `cache=TRUE` on the download cell to avoid re-downloading
+- All plots can be viewed inline; no file system navigation required
+
+---
+
+## References
+
+- **GSE52576**: [NCBI GEO record](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE52576)
+- **imprintomeR documentation**: See package vignettes
+- **GEOquery**: Bioconductor package for GEO data access
+- **Imprinting Control Regions**: See `?setup_imprintome_data` for probeset annotations
+
+---
+
+## License & Attribution
+
+This vignette uses publicly available data from NCBI Gene Expression Omnibus (GEO). 
+Please cite the original GSE52576 study and imprintomeR when using this analysis.
+
