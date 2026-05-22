@@ -29,5 +29,8 @@ in the analysis workflow and serves as the preprocessing/QC container.
 \item{\code{aggregation_status}}{Character scalar: "none", "epicv2_aggregated", or other flag.}
 
 \item{\code{qc_params}}{Named list of QC parameters used (pcutoff, icutoff, method, etc.).}
+
+\item{\code{statistics}}{data.frame or NULL. Per-group QC statistics (GROUP, Total, PASS, FAIL, PASS.RATIO, FAIL.RATIO).
+Populated on export when Sample_Group is present in metadata.}
 }}
 

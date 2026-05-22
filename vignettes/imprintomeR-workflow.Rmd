@@ -44,7 +44,9 @@ Load metadata and detect platform from IDAT files:
 ```{r, eval = FALSE}
 library(imprintomeR)
 
-# meta must have Basename column (IDAT path prefixes)
+# meta.tsv must be tab-delimited with at least Sample_Name and Sample_Group columns.
+# For QC workflow (raw IDAT files): also include Basename (IDAT path prefixes).
+# For direct analysis (QC already done externally): Basename is not needed.
 meta <- LoadMeta("meta.tsv")
 ```
 
@@ -85,17 +87,52 @@ plot(qcset, type = "probe_coverage")                  # % probes detected per sa
 plot(qcset, type = "predicted_sex")                   # predicted sex distribution
 plot(qcset, type = "ctrl_metrics")                    # ewastools scores (if present)
 plot(qcset, type = "ctrl_metrics_detail",             # per-metric detail PDFs
-     outFile = "qc_ctrl_metrics_detail")
+     outFile = "qc_ctrl_matrix_detail")
 ```
 
-Export QC-cleaned data:
+Export QC-cleaned data and results:
 
 ```{r, eval = FALSE}
-export(
+# Export to two organized Excel workbooks
+manifest <- export(
   qcset,
   outdir = "qc_output",
   format = c("xlsx", "rds")
 )
+
+# Creates:
+# - qc_table_main.xlsx: metadata, QC_matrix, Ctrl_matrix (optional), statistics
+# - qc_table_extra.xlsx: QC_metrics (thresholds), contamination (opt), recall_rate (opt), predUniqDonor_ID (opt)
+# - qcset.rds: Full MethQcSet object for programmatic access
+# - summary.txt: Summary report with Notes section documenting any missing optional sheets
+```
+
+**Understanding the Notes Section in summary.txt:**
+
+The `summary.txt` file includes a "Notes" section that documents missing sheets:
+
+```
+# If some optional sheets are missing:
+Notes
+=====
+
+The following sheets were not included in the exported workbook(s):
+- Ctrl_matrix
+- contamination
+
+# If all documented sheets exist:
+Notes
+=====
+
+All documented sheets were successfully created.
+```
+
+Access the computed statistics directly:
+
+```{r, eval = FALSE}
+stats_tbl <- statistics(qcset)  # Returns per-Sample_Group summary table
+# Columns: GROUP, Total, PASS, FAIL, PASS.RATIO, FAIL.RATIO
+head(stats_tbl)
 ```
 
 **If you already have QC-cleaned data:**
@@ -219,7 +256,8 @@ Available `plot_type` values in the `ImprintomeSet` dispatcher are:
 - `beeswarm_origin`
 - `beeswarm_chr`
 - `violin`
-- `heatmap`
+- `heatmap_by_probe`
+- `heatmap_by_gene`
 - `circular_heatmap`
 - `cor_heatmap`
 - `rainfall`

@@ -46,8 +46,11 @@ library(imprintomeR)
 
 **If you have RAW data:**
 
-Load metadata. `meta` must have a `Basename` column containing the IDAT file path
-prefixes (e.g. `/path/to/idats/SentrixID_SentrixPosition`).
+Load metadata. `meta.tsv` must be a tab-delimited file with at least `Sample_Name` and `Sample_Group` columns.
+
+**For QC workflow (raw IDAT files):** also include `Basename` column (IDAT file path prefixes, e.g. `/path/to/idats/SentrixID_SentrixPosition`).
+
+**For direct analysis (QC already done):** `Basename` is not needed.
 
 ```{r, eval = FALSE}
 meta <- LoadMeta("meta.tsv")
@@ -108,7 +111,7 @@ p_ctrl <- plot(qcset, type = "ctrl_metrics")
 # Per-metric detail plots (Bisulfite Conversion, Specificity, Non-polymorphic)
 # outFile is used as a path prefix; one PDF is saved per control metric
 plot(qcset, type = "ctrl_metrics_detail",
-     outFile = "qc_ctrl_metrics_detail")
+     outFile = "qc_ctrl_matrix_detail")
 ```
 
 Export cleaned data:
@@ -121,17 +124,20 @@ exported_files <- export(
   outdir = "qc_output",
   format = c("xlsx", "rds")
 )
-# xlsx: single workbook (prefix_qc_tables.xlsx) with sheets:
-#   meta (+ Platform, Final.QC columns), QC_matrix, recall_rate,
-#   cutoffs, ctrl_metrics, contamination, predUniqDonor_ID
+# Creates two Excel workbooks:
+#   qc_table_main.xlsx: metadata, QC_matrix, Ctrl_matrix (if available), statistics
+#   qc_table_extra.xlsx: QC_metrics (thresholds), recall_rate (if available), 
+#                         contamination (if available), predUniqDonor_ID (if available)
+# Plus: qcset.rds (full MethQcSet object)
+# Plus: qcset_summary.txt (summary report with Notes section documenting missing sheets)
 ```
 
 **If you already have QC-cleaned data:**
 
-Skip MethQcSet and load pre-cleaned beta values:
+Skip MethQcSet and load pre-cleaned beta values. Note: `Basename` column is not needed since QC is already done.
 
 ```{r, eval = FALSE}
-meta <- LoadMeta("meta.tsv")
+meta <- LoadMeta("meta.tsv")  # Only needs Sample_Name and Sample_Group
 beta <- LoadBeta("cleaned_beta.tsv")  # Already QC-approved
 
 # Proceed to Section 2: Create ImprintomeSet
@@ -281,6 +287,7 @@ Supported `plot_type` values:
 - `beeswarm_chr`
 - `violin`
 - `heatmap`
+- `heatmap_by_gene`
 - `circular_heatmap`
 - `cor_heatmap`
 - `rainfall`
@@ -320,7 +327,7 @@ p_mirror <- plot(
   x,
   plot_type = "mirror_density",
   probeset = "selected",
-  SAMPLEID = "Sample_Name",
+  SAMPLEID = "SAMPLE_NAME",
   outFile = "imprintomeset_quickstart_mirror.pdf"
 )
 
@@ -329,7 +336,7 @@ p_bee <- plot(
   x,
   plot_type = "beeswarm",
   probeset = "selected",
-  SAMPLEID = "Sample_Name",
+  SAMPLEID = "SAMPLE_NAME",
   outFile = "imprintomeset_quickstart_beeswarm.pdf"
 )
 
@@ -338,7 +345,7 @@ p_bee_origin <- plot(
   x,
   plot_type = "beeswarm_origin",
   probeset = "selected",
-  SAMPLEID = "Sample_Name",
+  SAMPLEID = "SAMPLE_NAME",
   title = "Beeswarm Origin (Cohort)",
   outFile = "imprintomeset_quickstart_beeswarm_origin.pdf"
 )
@@ -359,25 +366,37 @@ p_violin <- plot(
   x,
   plot_type = "violin",
   probeset = "selected",
-  SAMPLEID = "Sample_Name",
+  SAMPLEID = "SAMPLE_NAME",
   outFile = "imprintomeset_quickstart_violin.pdf"
 )
 
-# 8) heatmap
+# 8) heatmap_by_probe
 p_heatmap <- plot(
   x,
-  plot_type = "heatmap",
+  plot_type = "heatmap_by_probe",
   probeset = "selected",
-  SAMPLEID = "Sample_Name",
+  SAMPLEID = "SAMPLE_NAME",
   outFile = "imprintomeset_quickstart_heatmap.pdf"
 )
 
-# 9) circular_heatmap
+# 9) heatmap_by_gene (aggregates probes to gene level)
+p_heatmap_by_gene <- plot(
+  x,
+  plot_type = "heatmap_by_gene",
+  probeset = "selected",
+  SAMPLEID = "SAMPLE_NAME",
+  annoColumn = "SAMPLE_GROUP",
+  clusterRows = TRUE,
+  clusterColumns = TRUE,
+  outFile = "imprintomeset_quickstart_heatmap_by_gene.pdf"
+)
+
+# 10) circular_heatmap
 p_circular <- plot(
   x,
   plot_type = "circular_heatmap",
-  SAMPLEID = "Sample_Name",
-  sectionColumn = "Sample_Group",
+  SAMPLEID = "SAMPLE_NAME",
+  sectionColumn = "SAMPLE_GROUP",
   probeset = "selected",
   outFile = "imprintomeset_quickstart_circular_heatmap.pdf"
 )
@@ -387,11 +406,11 @@ cor_mat <- plot(
   x,
   plot_type = "cor_heatmap",
   probeset = "selected",
-  SAMPLEID = "Sample_Name",
+  SAMPLEID = "SAMPLE_NAME",
   prefix = "imprintomeset_quickstart"
 )
 
-# 11) rainfall
+# 12) rainfall
 outFile <- paste0("imprintomeset_quickstart_rainfall_", sample_id1, ".pdf")
 p_rainfall <- plot(
   x,
@@ -401,7 +420,7 @@ p_rainfall <- plot(
   outFile = outFile
 )
 
-# 12) radar
+# 13) radar
 outFile <- paste0("imprintomeset_quickstart_radar_", sample_id1, ".pdf")
 p_radar <- plot(
   x,
@@ -429,6 +448,7 @@ p_list[["beeswarm_origin.selected"]] <- p_bee_origin
 p_list[["beeswarm_chr.sample1"]] <- p_bee_chr
 p_list[["violin.selected"]] <- p_violin
 p_list[["heatmap.selected"]] <- p_heatmap
+p_list[["heatmap_by_gene.selected"]] <- p_heatmap_by_gene
 p_list[["circular.selected"]] <- p_circular
 p_list[["rainfall.sample1"]] <- p_rainfall
 p_list[["radar.sample1"]] <- p_radar
@@ -462,6 +482,13 @@ head(manifest)
 
 `export()` writes `results(x)` and optionally `plots(x)`.
 
+**For QC preprocessing (MethQcSet)**, the export includes `summary.txt` with a "Notes" section documenting any optional sheets not created due to missing underlying data. Check it to understand data availability:
+
+```{r, eval = FALSE}
+# View what sheets were and were not created
+readLines("qc_output/methqcset_summary.txt")
+```
+
 ## 9. Reproducibility Notes
 
 - Keep beta columns aligned with `meta$SAMPLE_NAME`.
@@ -475,4 +502,3 @@ head(manifest)
 ```{r, eval = FALSE}
 sessionInfo()
 ```
-

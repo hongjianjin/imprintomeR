@@ -1,6 +1,72 @@
 ﻿# Auto-refactored from utilities2.R
 # Module: utilities
 
+##################################################################
+# QC Cutoff Definitions for Conditional Formatting in Excel Export
+##################################################################
+
+#' QC Final Cutoffs for Conditional Formatting
+#'
+#' Data frame defining pass/fail expressions for QC_matrix sheet.
+#' Used by SaveTableStyle() to apply conditional formatting (colors) to Excel output.
+#'
+#' @format A data frame with columns:
+#'   - `Control`: Column name in QC_matrix (e.g., "pctDetectedCpG_dP0.05")
+#'   - `Threshold`: Threshold value (used for warning highlighting on "Final.QC" fields)
+#'   - `Pass`: Expression for pass condition (e.g., ">95")
+#'   - `Fail`: Expression for fail condition (e.g., "<=95")
+#'
+#' @details
+#' Pass expressions are formatted as R expressions (e.g., ">95", ">=11").
+#' Fail expressions should be the logical inverse of Pass.
+#'
+#' @export
+QC_final_Cutoffs <- read.table(text = "
+Control Threshold Pass Fail
+pctDetectedCpG_dP0.05 95 >95 <=95
+Final.QC WARN PASS FAIL
+", header = T, row.names = NULL, stringsAsFactors = F)
+
+#' Control Metrics Cutoffs for Conditional Formatting
+#'
+#' Data frame defining pass/fail expressions for ctrl_metrics sheet.
+#' Used by SaveTableStyle() to apply conditional formatting (colors) to Excel output.
+#'
+#' @format A data frame with columns:
+#'   - `Control`: Column name in ctrl_metrics (e.g., "Bisulfite_Conversion_I_Green")
+#'   - `Threshold`: Threshold value (used for warning highlighting)
+#'   - `Pass`: Expression for pass condition (e.g., ">1")
+#'   - `Fail`: Expression for fail condition (e.g., "<=1")
+#'
+#' @details
+#' Rows cover Bisulfite Conversion, Specificity, Non-polymorphic controls, and overall QC status.
+#' Most control metrics use >1 threshold for PASS, <=1 for FAIL.
+#'
+#' @export
+ctrlMatCutoffs <- read.table(text = "
+Control Threshold Pass Fail
+Restoration 0 >0    <=0
+Staining_Green 5 >5 <=5
+Staining_Red 5 >5   <=5
+Extension_Green 5   >5 <=5
+Extension_Red 5 >5 <=5
+Hybridization_High/Medium 1 >1 <=1
+Hybridization_Medium/Low 1 >1 <=1
+Target_Removal_1 1  >1 <=1
+Target_Removal_2 1 >1 <=1
+Bisulfite_Conversion_I_Green 1 >1 <=1
+Bisulfite_Conversion_I_Red 1 >1 <=1
+Bisulfite_Conversion_II 1 >1 <=1
+Specificity_I_Green 1 >1 <=1
+Specificity_I_Red 1 >1 <=1
+Specificity_II 1 >1 <=1
+Non-polymorphic_Green 5 >5 <=5
+Non-polymorphic_Red 5 >5 <=5
+CtrlMetrics.QC WARN PASS FAIL
+", header = T, row.names = NULL, stringsAsFactors = F)
+
+##################################################################
+
 standardColors <- function() {
   colors <- c(
     "turquoise", "blue", "brown", "green", "red", "black", "pink", "magenta", "purple", "greenyellow", "tan", "salmon", "cyan", "midnightblue", "lightcyan",
@@ -42,6 +108,74 @@ standardColors <- function() {
   )
   return(colors)
 }
+
+##################################################################
+# Metadata validation helper for three-tier system (Tier A/B/C)
+
+#' Validate Metadata Against Tier Requirements
+#'
+#' Checks if metadata data.frame conforms to specified tier requirements:
+#' - **Tier A:** Sample_Name + Sample_Group + Basename (QC-ready for runMethQC)
+#' - **Tier B:** Sample_Name + Sample_Group (analysis-ready for ImprintomeSet)
+#' - **Tier C:** Sample_Name only (minimal; allows auto_group=TRUE)
+#'
+#' @param meta data.frame containing sample metadata
+#' @param tier Character scalar: one of "A", "B", or "C" (default: "B")
+#' @param verbose Logical. If TRUE, print detailed validation messages (default: TRUE)
+#'
+#' @return Logical: TRUE if meta satisfies tier requirements, FALSE otherwise.
+#'         If verbose=TRUE, prints detailed status; returns invisibly.
+#'
+#' @examples
+#' # Tier B (standard)
+#' meta_b <- data.frame(
+#'   Sample_Name = c("S1", "S2"),
+#'   Sample_Group = c("case", "control")
+#' )
+#' validate_meta_tier(meta_b, tier = "B")
+#'
+#' # Tier C (minimal, allows auto_group)
+#' meta_c <- data.frame(Sample_Name = c("S1", "S2"))
+#' validate_meta_tier(meta_c, tier = "C")
+#'
+#' @export
+validate_meta_tier <- function(meta, tier = "B", verbose = TRUE) {
+  if (!is.data.frame(meta)) {
+    if (verbose) cat("[validate_meta_tier] ERROR: meta is not a data.frame\n")
+    return(FALSE)
+  }
+
+  if (nrow(meta) < 1L) {
+    if (verbose) cat("[validate_meta_tier] ERROR: meta has no rows\n")
+    return(FALSE)
+  }
+
+  tier <- match.arg(tier, c("A", "B", "C"))
+  required_cols <- switch(tier,
+    "A" = c("Sample_Name", "Sample_Group", "Basename"),
+    "B" = c("Sample_Name", "Sample_Group"),
+    "C" = c("Sample_Name")
+  )
+
+  missing <- setdiff(required_cols, colnames(meta))
+  is_valid <- length(missing) == 0L
+
+  if (verbose) {
+    tier_desc <- switch(tier,
+      "A" = "QC-ready (Sample_Name + Sample_Group + Basename)",
+      "B" = "Analysis-ready (Sample_Name + Sample_Group)",
+      "C" = "Minimal (Sample_Name only)"
+    )
+    cat(sprintf("[validate_meta_tier] Tier %s (%s): %s\n", tier, tier_desc, if (is_valid) "PASS" else "FAIL"))
+    if (!is_valid) {
+      cat(sprintf("  Missing columns: %s\n", paste(missing, collapse = ", ")))
+    }
+    cat(sprintf("  Samples: %d\n", nrow(meta)))
+  }
+
+  invisible(is_valid)
+}
+
 ##################################################################
 suppressMessages(library("openxlsx"))
 #-----------------------------------------------------

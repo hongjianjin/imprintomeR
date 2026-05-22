@@ -16,6 +16,8 @@
 \alias{aggregation_status<-,MethQcSet-method}
 \alias{qc_params,MethQcSet-method}
 \alias{qc_params<-,MethQcSet-method}
+\alias{statistics,MethQcSet-method}
+\alias{statistics<-,MethQcSet-method}
 \title{Accessors for MethQcSet}
 \usage{
 \S4method{meta}{MethQcSet}(x)
@@ -45,6 +47,10 @@
 \S4method{qc_params}{MethQcSet}(x)
 
 \S4method{qc_params}{MethQcSet}(x) <- value
+
+\S4method{statistics}{MethQcSet}(x)
+
+\S4method{statistics}{MethQcSet}(x) <- value
 }
 \arguments{
 \item{x}{A \code{MethQcSet} object.}

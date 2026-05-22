@@ -13,7 +13,11 @@ BetaBeePlot(
   orderByGroup = FALSE,
   ylab = "Methylation (Î²)",
   xlab = "ID",
-  legend = TRUE
+  legend = TRUE,
+  title = "ImprintomeR: beeswarm",
+  subtitle = NULL,
+  width = NULL,
+  height = NULL
 )
 }
 \arguments{

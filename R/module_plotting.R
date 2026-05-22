@@ -110,6 +110,7 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
   outFile3 <- paste0(prefix, "_auto.simple.pdf") 
   hm <- pheatmap(cor_matrix,
           color = color_palette,
+          breaks = breaks_list,
           display_numbers = FALSE,     # Optional: show correlation values
           clustering_distance_rows = "euclidean",
           clustering_distance_cols = "euclidean",
@@ -1325,20 +1326,12 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
   # print(annotation)
   # print(meta)
   # print(colnames(used))
-  if ("Sample_Group" %in% pheno) { # keep GROUP order in legend
-    top_ha <- HeatmapAnnotation(
-      df = annotation,
-      col = anno_colors,
-      annotation_name_side = "right",
-      annotation_legend_param = list(SAMPLE_GROUP = list(title = "GROUP", at = unique(annotation[, 1])))
-    )
-  } else {
-    top_ha <- HeatmapAnnotation(
-      df = annotation,
-      col = anno_colors,
-      annotation_name_side = "right"
-    )
-  }
+  # Create heatmap annotation with auto legend
+  top_ha <- HeatmapAnnotation(
+    df = annotation,
+    col = anno_colors,
+    annotation_name_side = "right"
+  )
   minimum <- min(used)
   maximum <- max(used)
   bk <- unique(c(
@@ -1386,6 +1379,243 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
   }
 }
 
+##################################################################
+
+#' Heatmap of Beta Values Aggregated by Gene Symbol
+#'
+#' Aggregates probe-level beta values to gene-level means by `Closest_TSS_gene_name`
+#' from the selected probeset, then generates a heatmap visualization. Genes with
+#' the same symbol are aggregated via median across probes.
+#'
+#' @param beta Numeric beta matrix/data.frame with probe IDs as row names and
+#'   samples as columns.
+#' @param meta Optional sample metadata data frame with `Sample_Name` and
+#'   `Sample_Group` columns.
+#' @param probeset Character probeset key (default `"selected"`).
+#'   Must be present in `inst/extdata/probesets_hg19.rds`.
+#' @param SAMPLEID Metadata column name used as sample label in heatmap
+#'   (default `"Sample_Name"`).
+#' @param annoColumn Annotation column for heatmap top annotation
+#'   (default `"Sample_Group"`).
+#' @param clusterRows Logical; cluster genes (rows) hierarchically
+#'   (default `TRUE`).
+#' @param clusterColumns Logical; cluster samples (columns) hierarchically
+#'   (default `TRUE`).
+#' @param outFile Optional output PDF file path. If provided, heatmap is saved
+#'   to disk.
+#' @param imgSizeFactor Numeric scaling factor for saved image dimensions
+#'   (default `0.5`).
+#'
+#' @return Invisibly returns the `ComplexHeatmap::Heatmap` object (or NULL if
+#'   no output file and function exits silently).
+#'
+#' @details
+#' **Aggregation Logic:**
+#' Probes are matched to the selected probeset by `NAME`. Probes are grouped by
+#' their `Closest_TSS_gene_name` annotation. Beta values within each gene are
+#' aggregated per sample using the median function, producing one row per unique
+#' gene symbol.
+#'
+#' **Colors & Annotations:**
+#' Uses a red-blue color palette spanning the observed beta range. Sample groups
+#' are annotated at the top with automatic color assignment via `standardColors()`.
+#'
+#' **Clustering:**
+#' If `clusterRows = TRUE`, genes are clustered via Euclidean distance and
+#' Ward linkage. If `clusterRows = FALSE`, genes are sorted by their row names.
+#'
+#' @examples
+#' \dontrun{
+#'   # Load beta and metadata
+#'   beta <- LoadBeta("beta.txt")
+#'   meta <- LoadMeta("meta.txt")
+#'
+#'   # Generate gene-level heatmap
+#'   BetaHeatmapByGene(beta, meta, probeset = "selected",
+#'     outFile = "gene_heatmap.pdf")
+#' }
+#'
+#' @export
+BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
+                              SAMPLEID = "Sample_Name", annoColumn = "Sample_Group",
+                              clusterRows = TRUE, clusterColumns = TRUE,
+                              outFile = NULL, imgSizeFactor = 0.5) {
+  suppressMessages(library(circlize))
+  suppressMessages(library(ComplexHeatmap))
+  suppressMessages(library(edgeR))
+  suppressMessages(library(RColorBrewer))
+  suppressMessages(library(dplyr))
+  suppressMessages(library(stringr))
+
+  # Resolve input
+  resolved <- .resolve_beta_meta_inputs(beta, meta, require_meta = TRUE)
+  beta <- resolved$beta
+  meta <- resolved$meta
+
+  # Load probeset and aggregate by gene
+  probesets <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
+  if (!(probeset %in% names(probesets))) {
+    stop("Unavailable probeset: ", probeset)
+  }
+  probeset_df <- probesets[[probeset]]
+  required_cols <- c("NAME", "Closest_TSS_gene_name")
+  missing_cols <- setdiff(required_cols, colnames(probeset_df))
+  if (length(missing_cols) > 0) {
+    stop("Probeset missing required columns: ", paste(missing_cols, collapse = ", "))
+  }
+
+  # Match probes and aggregate by gene
+  common_probes <- intersect(rownames(beta), probeset_df$NAME)
+  if (length(common_probes) == 0) {
+    stop("No probes match between beta and probeset.")
+  }
+
+  beta_sub <- beta[common_probes, , drop = FALSE]
+  gene_map <- setNames(probeset_df$Closest_TSS_gene_name, probeset_df$NAME)
+  genes <- gene_map[common_probes]
+
+  # Aggregate by gene using median
+  unique_genes <- unique(genes)
+  beta_agg <- as.data.frame(matrix(NA, nrow = length(unique_genes), ncol = ncol(beta_sub)))
+  rownames(beta_agg) <- unique_genes
+  colnames(beta_agg) <- colnames(beta_sub)
+
+  for (gene in unique_genes) {
+    idx <- which(genes == gene)
+    if (length(idx) == 1) {
+      beta_agg[gene, ] <- beta_sub[idx, ]
+    } else {
+      beta_agg[gene, ] <- apply(beta_sub[idx, , drop = FALSE], 2, median, na.rm = TRUE)
+    }
+  }
+
+  beta_agg <- as.matrix(beta_agg)
+
+  # Prepare samples
+  validIds <- intersect(meta$Sample_Name, colnames(beta_agg))
+  if (length(validIds) == 0) {
+    stop("No samples match between beta and meta.")
+  }
+  meta$SAMPLEID <- meta[, SAMPLEID]
+  meta <- meta[validIds, ]
+  beta_agg <- beta_agg[, validIds]
+  colnames(beta_agg) <- meta$SAMPLEID
+
+  # Ensure Sample_Group exists
+  if (!"Sample_Group" %in% colnames(meta)) {
+    meta$Sample_Group <- "All"
+  }
+  if (!annoColumn %in% colnames(meta)) {
+    annoColumn <- "Sample_Group"
+  }
+
+  # Order by group
+  meta <- meta[order(meta$Sample_Group), ]
+  beta_agg <- beta_agg[, as.character(meta$SAMPLEID)]
+  rownames(meta) <- as.character(meta$SAMPLEID)
+
+  # Assign colors if needed
+  if (!"COLOR" %in% colnames(meta)) {
+    groupNum <- length(unique(meta$Sample_Group))
+    usedColors <- standardColors()[1:groupNum]
+    meta$COLOR <- usedColors[as.integer(as.factor(meta$Sample_Group))]
+  }
+
+  # Prepare annotation
+  pheno <- intersect(annoColumn, colnames(meta))
+  annotation <- data.frame(meta[, pheno])
+  colnames(annotation) <- pheno
+  rownames(annotation) <- meta$SAMPLEID
+
+  # Remove all-NA genes and all-zero genes
+  used <- na.omit(beta_agg)
+  used <- used[rowSums(abs(used)) > 0, ]
+
+  if (nrow(used) == 0) {
+    stop("No valid genes after filtering NA and zero-only rows.")
+  }
+
+  # Prepare colors
+  anno_colors <- list()
+  for (i in 1:ncol(annotation)) {
+    if (colnames(annotation)[i] != "Sample_Group") {
+      annotation[, i] <- factor(annotation[, i])
+    }
+    myColors <- standardColors()[as.integer(as.factor(annotation[, i]))]
+    anno_colors[[i]] <- setNames(unique(myColors), unique(annotation[, i]))
+  }
+  names(anno_colors) <- colnames(annotation)
+
+  # Create heatmap annotation with auto legend
+  top_ha <- HeatmapAnnotation(
+    df = annotation,
+    col = anno_colors,
+    annotation_name_side = "right"
+  )
+
+  # Define color scale
+  minimum <- min(used, na.rm = TRUE)
+  maximum <- max(used, na.rm = TRUE)
+  bk <- unique(c(
+    seq(minimum, maximum / 3, length = 30),
+    seq(maximum / 3, maximum * 2 / 3, length = 30),
+    seq(maximum * 2 / 3, maximum, length = 30)
+  ))
+
+  hmCols0 <- colorRampPalette(c("#083160", "#2668AA", "#4794C1", "#94C5DD", "#D2E5EF", "#F7F7F7", "#FCDBC8", "#F2A585", "#D46151", "#B01B2F", "#660220"))
+  hmCols <- hmCols0(length(bk) - 1)
+
+  # Clustering
+  if (clusterRows) {
+    dd <- dist(used, method = "euclidean")
+    cluster_rows <- hclust(dd, method = "ward.D")
+    row_dend <- TRUE
+  } else {
+    row_dend <- FALSE
+    cluster_rows <- FALSE
+    used <- used[str_sort(rownames(used), numeric = TRUE), ]
+  }
+
+  cluster_cols <- clusterColumns
+
+  # Dimensions
+  plotWidth <- 5 + log10(ncol(used) + 1) * 6
+  plotHeight <- 5 + log10(nrow(used) + 1) * 7
+  fontsize <- (18 - log2(nrow(used) + 1)) / 2
+
+  # Create heatmap
+  hm <- Heatmap(as.matrix(used),
+    column_dend_height = unit(6, "mm"),
+    col = hmCols,
+    cluster_rows = cluster_rows,
+    show_row_dend = row_dend,
+    show_column_dend = cluster_cols,
+    cluster_columns = cluster_cols,
+    border = "grey",
+    show_row_names = TRUE,
+    show_column_names = TRUE,
+    name = "Methylation",
+    clustering_distance_rows = "euclidean",
+    clustering_method_rows = "ward.D",
+    top_annotation = top_ha,
+    row_names_gp = gpar(fontsize = fontsize),
+    column_names_gp = gpar(fontsize = fontsize)
+  )
+
+  # Save if needed
+  if (!is.null(outFile)) {
+    outFile <- paste0(tools::file_path_sans_ext(outFile), ".pdf")
+    pdf(outFile, width = plotWidth * imgSizeFactor, height = plotHeight * imgSizeFactor)
+    ht <- draw(hm, merge_legend = TRUE)
+    garbage <- dev.off()
+    cat("\n\t", basename(outFile), "[saved]")
+  }
+
+  invisible(hm)
+}
+
+##################################################################
+
 #' Circular Heatmap of Beta Values
 #'
 #' Generates a circular/radial heatmap visualization of beta values using
@@ -1408,7 +1638,7 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
 #' @details
 #' **Crowding considerations:**
 #' - Circular heatmaps are optimized for small numbers of samples (1-5 per section).
-#' - For 5-10+ samples per section, consider using `plot_type = "heatmap"` instead
+#' - For 5-10+ samples per section, consider using `plot_type = "heatmap_by_probe"` instead
 #'   (rectangular heatmap) which handles many samples better.
 #' - Each section represents a unique value in `sectionColumn`.
 #'

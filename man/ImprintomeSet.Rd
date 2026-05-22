@@ -11,13 +11,14 @@ ImprintomeSet(
   genome,
   assay,
   results = list(),
-  plots = list()
+  plots = list(),
+  auto_group = FALSE
 )
 }
 \arguments{
 \item{beta}{Matrix or data.frame of beta values (rows = probes, columns = samples).}
 
-\item{meta}{data.frame containing sample metadata with \code{SAMPLE_NAME}.}
+\item{meta}{data.frame containing sample metadata. Must include \code{Sample_Name}; \code{Sample_Group} is required unless \code{auto_group=TRUE}.}
 
 \item{probeset}{data.frame or list containing probeset annotation.}
 
@@ -28,10 +29,20 @@ ImprintomeSet(
 \item{results}{Optional named list of result objects.}
 
 \item{plots}{Optional named list of plot objects.}
+
+\item{auto_group}{Logical. If \code{TRUE} and \code{Sample_Group} column is missing, auto-creates it with value \code{"Unknown"} for all samples (Tier C: minimal metadata). Default: \code{FALSE}.}
 }
 \value{
 An object of class \code{ImprintomeSet}.
 }
 \description{
 Construct an ImprintomeSet Object
+}
+\details{
+\strong{Three metadata tiers supported:}
+\itemize{
+\item \strong{Tier A (QC-ready):} Sample_Name + Sample_Group + Basename (for runMethQC)
+\item \strong{Tier B (Analysis-ready):} Sample_Name + Sample_Group (default requirement)
+\item \strong{Tier C (Auto-group):} Sample_Name only (if \code{auto_group=TRUE}; Sample_Group auto-created with "Unknown")
+}
 }

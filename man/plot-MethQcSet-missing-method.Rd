@@ -30,5 +30,22 @@ A ggplot object. Also written to \code{outFile} when provided.
 Generate QC-stage visualizations from stored QC tables.
 }
 \details{
-
+\strong{Plot types:}
+\describe{
+\item{\code{qc_bar}}{PASS / FAIL sample count bar chart from \code{QC_matrix$Final.QC}.}
+\item{\code{intensity}}{Scatter of mMed.Intensity vs uMed.Intensity per sample, colored by
+\code{Final.QC}, with a horizontal reference line at \code{icutoff}.}
+\item{\code{detection_pval}}{Per-sample average detection p-value dot plot, colored by
+\code{Final.QC}, with a horizontal reference line at \code{pcutoff}.}
+\item{\code{probe_coverage}}{Per-sample percent of probes detected (dP < 0.05), colored by
+\code{Final.QC}, with a reference line at 95\%.}
+\item{\code{predicted_sex}}{Bar chart of predicted sex counts from \code{QC_matrix$predictedSex}.}
+\item{\code{ctrl_metrics}}{Per-sample dot chart of ewastools \code{CtrlMetrics.QC} from \code{ctrl_metrics}.
+Returns \code{NULL} silently if \code{ctrl_metrics} is absent.}
+\item{\code{ctrl_metrics_detail}}{One jitter-dot plot per ewastools control metric
+(Bisulfite Conversion, Specificity, Non-polymorphic). \code{outFile} is used as a
+path prefix; individual files are saved as \verb{\{prefix\}_CtrlMetrics_\{Metric\}.pdf}.
+Returns a named list of ggplot objects.}
+}
+All types return \code{NULL} with a message if the required data are not yet present.
 }

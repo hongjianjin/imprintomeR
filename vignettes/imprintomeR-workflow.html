@@ -148,7 +148,9 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p>Load metadata and detect platform from IDAT files:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(imprintomeR)
 
-<span class="co"># meta must have Basename column (IDAT path prefixes)</span>
+<span class="co"># meta.tsv must be tab-delimited with at least Sample_Name and Sample_Group columns.</span>
+<span class="co"># For QC workflow (raw IDAT files): also include Basename (IDAT path prefixes).</span>
+<span class="co"># For direct analysis (QC already done externally): Basename is not needed.</span>
 meta &lt;-<span class="st"> </span><span class="kw">LoadMeta</span>(<span class="st">&quot;meta.tsv&quot;</span>)</code></pre></div>
 <p><code>runMethQC()</code> reads IDAT files directly — no separate beta loading step needed.</p>
 <p>If the platform is <strong>unknown or mixed</strong>, detect it first:</p>
@@ -275,7 +277,8 @@ s<span class="op">$</span>plots</code></pre></div>
 <li><code>beeswarm_origin</code></li>
 <li><code>beeswarm_chr</code></li>
 <li><code>violin</code></li>
-<li><code>heatmap</code></li>
+<li><code>heatmap_by_probe</code></li>
+<li><code>heatmap_by_gene</code></li>
 <li><code>circular_heatmap</code></li>
 <li><code>cor_heatmap</code></li>
 <li><code>rainfall</code></li>

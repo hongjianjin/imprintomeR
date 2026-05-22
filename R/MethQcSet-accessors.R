@@ -164,3 +164,25 @@ methods::setReplaceMethod("qc_params", "MethQcSet", function(x, value) {
   methods::validObject(x)
   x
 })
+
+# ============================================================================
+# statistics() accessor
+# ============================================================================
+
+#' @export
+methods::setGeneric("statistics", function(x) standardGeneric("statistics"))
+
+#' @rdname MethQcSet-accessors
+#' @export
+methods::setMethod("statistics", "MethQcSet", function(x) x@statistics)
+
+#' @export
+methods::setGeneric("statistics<-", function(x, value) standardGeneric("statistics<-"))
+
+#' @rdname MethQcSet-accessors
+#' @export
+methods::setReplaceMethod("statistics", "MethQcSet", function(x, value) {
+  x@statistics <- value
+  methods::validObject(x)
+  x
+})

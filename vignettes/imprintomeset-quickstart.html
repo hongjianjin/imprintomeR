@@ -151,7 +151,9 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <div id="qc-preprocessing-optional-if-data-already-cleaned" class="section level2">
 <h2>1. QC Preprocessing (Optional if Data Already Cleaned)</h2>
 <p>**If you have RAW <a href="data:**" class="uri">data:**</a></p>
-<p>Load metadata. <code>meta</code> must have a <code>Basename</code> column containing the IDAT file path prefixes (e.g. <code>/path/to/idats/SentrixID_SentrixPosition</code>).</p>
+<p>Load metadata. <code>meta.tsv</code> must be a tab-delimited file with at least <code>Sample_Name</code> and <code>Sample_Group</code> columns.</p>
+<p><strong>For QC workflow (raw IDAT files):</strong> also include <code>Basename</code> column (IDAT file path prefixes, e.g. <code>/path/to/idats/SentrixID_SentrixPosition</code>).</p>
+<p><strong>For direct analysis (QC already done):</strong> <code>Basename</code> is not needed.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">meta &lt;-<span class="st"> </span><span class="kw">LoadMeta</span>(<span class="st">&quot;meta.tsv&quot;</span>)</code></pre></div>
 <p>If the platform is <strong>unknown or mixed</strong>, detect it first:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Reads one IDAT per sample, infers platform from probe count</span>
@@ -207,8 +209,8 @@ exported_files &lt;-<span class="st"> </span><span class="kw">export</span>(
 <span class="co">#   meta (+ Platform, Final.QC columns), QC_matrix, recall_rate,</span>
 <span class="co">#   cutoffs, ctrl_metrics, contamination, predUniqDonor_ID</span></code></pre></div>
 <p>**If you already have QC-cleaned <a href="data:**" class="uri">data:**</a></p>
-<p>Skip MethQcSet and load pre-cleaned beta values:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">meta &lt;-<span class="st"> </span><span class="kw">LoadMeta</span>(<span class="st">&quot;meta.tsv&quot;</span>)
+<p>Skip MethQcSet and load pre-cleaned beta values. Note: <code>Basename</code> column is not needed since QC is already done.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">meta &lt;-<span class="st"> </span><span class="kw">LoadMeta</span>(<span class="st">&quot;meta.tsv&quot;</span>)  <span class="co"># Only needs Sample_Name and Sample_Group</span>
 beta &lt;-<span class="st"> </span><span class="kw">LoadBeta</span>(<span class="st">&quot;cleaned_beta.tsv&quot;</span>)  <span class="co"># Already QC-approved</span>
 
 <span class="co"># Proceed to Section 2: Create ImprintomeSet</span></code></pre></div>
@@ -331,6 +333,7 @@ s<span class="op">$</span>plots</code></pre></div>
 <li><code>beeswarm_chr</code></li>
 <li><code>violin</code></li>
 <li><code>heatmap</code></li>
+<li><code>heatmap_by_gene</code></li>
 <li><code>circular_heatmap</code></li>
 <li><code>cor_heatmap</code></li>
 <li><code>rainfall</code></li>
@@ -367,7 +370,7 @@ p_mirror &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;mirror_density&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_mirror.pdf&quot;</span>
 )
 
@@ -376,7 +379,7 @@ p_bee &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_beeswarm.pdf&quot;</span>
 )
 
@@ -385,7 +388,7 @@ p_bee_origin &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm_origin&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
   <span class="dt">title =</span> <span class="st">&quot;Beeswarm Origin (Cohort)&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_beeswarm_origin.pdf&quot;</span>
 )
@@ -406,25 +409,37 @@ p_violin &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;violin&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_violin.pdf&quot;</span>
 )
 
-<span class="co"># 8) heatmap</span>
+<span class="co"># 8) heatmap_by_probe</span>
 p_heatmap &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
-  <span class="dt">plot_type =</span> <span class="st">&quot;heatmap&quot;</span>,
+  <span class="dt">plot_type =</span> <span class="st">&quot;heatmap_by_probe&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_heatmap.pdf&quot;</span>
 )
 
-<span class="co"># 9) circular_heatmap</span>
+<span class="co"># 9) heatmap_by_gene (aggregates probes to gene level)</span>
+p_heatmap_by_gene &lt;-<span class="st"> </span><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;heatmap_by_gene&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">annoColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
+  <span class="dt">clusterRows =</span> <span class="ot">TRUE</span>,
+  <span class="dt">clusterColumns =</span> <span class="ot">TRUE</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_heatmap_by_gene.pdf&quot;</span>
+)
+
+<span class="co"># 10) circular_heatmap</span>
 p_circular &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;circular_heatmap&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
-  <span class="dt">sectionColumn =</span> <span class="st">&quot;Sample_Group&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">sectionColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_circular_heatmap.pdf&quot;</span>
 )
@@ -434,11 +449,11 @@ cor_mat &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;cor_heatmap&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
   <span class="dt">prefix =</span> <span class="st">&quot;imprintomeset_quickstart&quot;</span>
 )
 
-<span class="co"># 11) rainfall</span>
+<span class="co"># 12) rainfall</span>
 outFile &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;imprintomeset_quickstart_rainfall_&quot;</span>, sample_id1, <span class="st">&quot;.pdf&quot;</span>)
 p_rainfall &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
@@ -448,7 +463,7 @@ p_rainfall &lt;-<span class="st"> </span><span class="kw">plot</span>(
   <span class="dt">outFile =</span> outFile
 )
 
-<span class="co"># 12) radar</span>
+<span class="co"># 13) radar</span>
 outFile &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;imprintomeset_quickstart_radar_&quot;</span>, sample_id1, <span class="st">&quot;.pdf&quot;</span>)
 p_radar &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
@@ -472,6 +487,7 @@ p_list[[<span class="st">&quot;beeswarm_origin.selected&quot;</span>]] &lt;-<spa
 p_list[[<span class="st">&quot;beeswarm_chr.sample1&quot;</span>]] &lt;-<span class="st"> </span>p_bee_chr
 p_list[[<span class="st">&quot;violin.selected&quot;</span>]] &lt;-<span class="st"> </span>p_violin
 p_list[[<span class="st">&quot;heatmap.selected&quot;</span>]] &lt;-<span class="st"> </span>p_heatmap
+p_list[[<span class="st">&quot;heatmap_by_gene.selected&quot;</span>]] &lt;-<span class="st"> </span>p_heatmap_by_gene
 p_list[[<span class="st">&quot;circular.selected&quot;</span>]] &lt;-<span class="st"> </span>p_circular
 p_list[[<span class="st">&quot;rainfall.sample1&quot;</span>]] &lt;-<span class="st"> </span>p_rainfall
 p_list[[<span class="st">&quot;radar.sample1&quot;</span>]] &lt;-<span class="st"> </span>p_radar

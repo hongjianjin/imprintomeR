@@ -16,25 +16,27 @@
 \itemize{
 \item \code{plot_type}: one of \code{"auto"}, \code{"polar"}, \code{"mirror_density"},
 \code{"beeswarm"}, \code{"beeswarm_origin"}, \code{"beeswarm_chr"}, \code{"violin"},
-\code{"heatmap"}, \code{"circular_heatmap"}, \code{"cor_heatmap"}, \code{"rainfall"},
-\code{"radar"}.
+\code{"heatmap_by_probe"}, \code{"heatmap_by_gene"}, \verb{"circular_heatmap",}
+\code{"cor_heatmap"}, \code{"rainfall"}, \code{"radar"}.
 \item \code{plot_name}: specific stored plot name in \code{plots(x)}.
 \item \code{result_name}: specific results table name in \code{results(x)}.
-\item \code{colorColumn}: grouping column for \code{PlotPolar()} (default \code{"Sample_Group"}).
+\item \code{colorColumn}: grouping column for \code{PlotPolar()} (default \code{"Sample_Group"}; if missing from result data, automatically created with all samples grouped as \code{"All"}).
 \item \code{title}: plot title (default \code{"ImprintomeR:Polar"}).
 \item \code{palette}: palette passed to \code{PlotPolar()} (default \code{"default"}).
 \item \code{alpha}: point alpha passed to \code{PlotPolar()} (default \code{0.5}).
 \item \code{SAMPLEID}: metadata column used for sample labels in selected plot types
 (default \code{"Sample_Name"}).
 \item \code{probeset}: probeset name used by \code{"mirror_density"}, \code{"beeswarm"},
-\code{"violin"}, \code{"heatmap"}, \code{"circular_heatmap"}, \code{"cor_heatmap"},
-\code{"rainfall"}, and \code{"radar"} (default \code{"selected"}).
+\code{"violin"}, \code{"heatmap_by_probe"}, \code{"heatmap_by_gene"}, \verb{"circular_heatmap",}
+\code{"cor_heatmap"}, \code{"rainfall"}, and \code{"radar"} (default \code{"selected"}).
 \item \code{sample_id}: explicit sample ID used by rainfall/radar plot types.
 \item \code{chr}: chromosome label used by \code{plot_type = "beeswarm_chr"}
 (e.g. \code{"chr11"} or \code{"11"}; default uses all chromosomes).
 \item \code{prefix}: output prefix used by \code{plot_type = "cor_heatmap"}.
 \item \code{sectionColumn}: metadata grouping column used by
-\code{plot_type = "circular_heatmap"} (default \code{"Sample_Group"}).
+\code{plot_type = "circular_heatmap"} (default \code{"Sample_Group"}; if column doesn't exist in metadata:
+uses \code{Sample_Name} if available, otherwise creates it with all samples grouped as \code{"all"}).
+\item \code{Samples}: character vector of sample names to include (applied with \code{plot_type = "circular_heatmap"}, default: all samples).
 \item \code{outFile}: optional file path for saving output.
 \item \code{width}: optional width in inches when saving stored plots.
 \item \code{height}: optional height in inches when saving stored plots.
@@ -59,8 +61,9 @@ p <- plot(x, result_name = "AnalyzeImprintStatus.selected", outFile = "polar.pdf
 p <- plot(x, plot_type = "beeswarm", probeset = "selected", SAMPLEID = "Sample_Name")
 p <- plot(x, plot_type = "beeswarm_origin", probeset = "selected", SAMPLEID = "Sample_Name")
 p <- plot(x, plot_type = "beeswarm_chr", probeset = "selected", sample_id = colnames(beta(x))[1], chr = "chr11")
+p <- plot(x, plot_type = "heatmap_by_gene", probeset = "selected", outFile = "heatmap_gene.pdf")
 p <- plot(x, plot_type = "mirror_density", probeset = "selected")
-p <- plot(x, plot_type = "circular_heatmap", probeset = "selected", sectionColumn = "Sample_Group", outFile = "circular_heatmap.pdf")
+p <- plot(x, plot_type = "circular_heatmap", probeset = "selected", sectionColumn = "Sample_Name")
 p <- plot(x, plot_type = "rainfall", sample_id = colnames(beta(x))[1])
 }
 }

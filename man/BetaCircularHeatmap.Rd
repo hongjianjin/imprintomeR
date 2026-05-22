@@ -30,13 +30,16 @@ BetaCircularHeatmap(
 
 \item{SAMPLEID}{Column name for sample identifiers (default "Sample_Name").}
 
-\item{sectionColumn}{Column name for grouping samples (default "Sample_Group").}
+\item{sectionColumn}{Column name for grouping samples into sections. Use "Sample_Name"
+to show each sample as its own section, or "Sample_Group" to group multiple samples.
+Circular heatmaps work best with 1-5 sections.}
 
 \item{sectionLabels}{Optional custom section labels.}
 
 \item{outFile}{Optional output PDF file path.}
 
-\item{nchars}{Number of characters to show in gene labels (default 5).}
+\item{nchars}{Number of characters to show in gene labels (default 5).
+Note: This applies to gene names only, not group labels which are shown in full.}
 }
 \value{
 Invisibly returns the heatmap object.
@@ -44,4 +47,13 @@ Invisibly returns the heatmap object.
 \description{
 Generates a circular/radial heatmap visualization of beta values using
 ComplexHeatmap and circlize packages.
+}
+\details{
+\strong{Crowding considerations:}
+\itemize{
+\item Circular heatmaps are optimized for small numbers of samples (1-5 per section).
+\item For 5-10+ samples per section, consider using \code{plot_type = "heatmap_by_probe"} instead
+(rectangular heatmap) which handles many samples better.
+\item Each section represents a unique value in \code{sectionColumn}.
+}
 }

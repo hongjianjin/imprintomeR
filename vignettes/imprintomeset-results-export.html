@@ -144,7 +144,9 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <h2>1. Start from a QC-Approved ImprintomeSet Object</h2>
 <p>Your <code>ImprintomeSet</code> object <code>x</code> should come from <strong>either</strong>:</p>
 <p><strong>Option A: QC-preprocessed data via MethQcSet</strong></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Load metadata (requires Basename column with IDAT path prefixes)</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Load metadata: tab-delimited with at least Sample_Name and Sample_Group.</span>
+<span class="co"># For QC workflow (raw IDAT files): also include Basename column (IDAT path prefixes).</span>
+<span class="co"># For direct analysis (QC already done): Basename is not needed.</span>
 meta &lt;-<span class="st"> </span><span class="kw">LoadMeta</span>(<span class="st">&quot;meta.tsv&quot;</span>)
 
 <span class="co"># Option A1: platform unknown — detect first</span>
@@ -185,7 +187,8 @@ x &lt;-<span class="st"> </span><span class="kw">as.ImprintomeSet</span>(
 )</code></pre></div>
 <p><strong>Option B: Pre-cleaned data loaded directly</strong></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># If you already have QC-cleaned data, skip MethQcSet</span>
-meta &lt;-<span class="st"> </span><span class="kw">LoadMeta</span>(<span class="st">&quot;meta.tsv&quot;</span>)
+<span class="co"># Note: Basename column is not needed since QC step is skipped.</span>
+meta &lt;-<span class="st"> </span><span class="kw">LoadMeta</span>(<span class="st">&quot;meta.tsv&quot;</span>)  <span class="co"># Only needs Sample_Name and Sample_Group</span>
 beta &lt;-<span class="st"> </span><span class="kw">LoadBeta</span>(<span class="st">&quot;cleaned_beta.tsv&quot;</span>)
 
 x &lt;-<span class="st"> </span><span class="kw">ImprintomeSet</span>(
@@ -275,7 +278,7 @@ p_bee_chr &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span cl
 p_vln &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;violin&quot;</span>, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
         <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
               <span class="dt">outFile =</span> <span class="st">&quot;demo_violin.pdf&quot;</span>)
-p_heatmap &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;heatmap&quot;</span>, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+p_heatmap &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;heatmap_by_probe&quot;</span>, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
           <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
                   <span class="dt">outFile =</span> <span class="st">&quot;demo_heatmap.pdf&quot;</span>)
 p_circular &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;circular_heatmap&quot;</span>, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
@@ -403,11 +406,12 @@ p_bee_chr &lt;-<span class="st"> </span><span class="kw">plot</span>(
   <span class="dt">prefix =</span> <span class="st">&quot;cohort&quot;</span>
 )</code></pre></div>
 </div>
-<div id="annotated-heatmap" class="section level3">
-<h3>5.2 Annotated Heatmap</h3>
+<div id="heatmap_by_probe-probe-level-heatmap" class="section level3">
+<h3>5.2 Heatmap_by_probe (Probe-Level Heatmap)</h3>
+<p>Displays individual Illumina probe IDs (e.g., cg00000029) as rows and samples as columns with their methylation values color-coded.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(
   x,
-  <span class="dt">plot_type =</span> <span class="st">&quot;heatmap&quot;</span>,
+  <span class="dt">plot_type =</span> <span class="st">&quot;heatmap_by_probe&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
   <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;beta_heatmap.pdf&quot;</span>
@@ -447,6 +451,48 @@ p_bee_chr &lt;-<span class="st"> </span><span class="kw">plot</span>(
   <span class="dt">sectionColumn =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;beta_circular_heatmap_by_sample.pdf&quot;</span>
+)</code></pre></div>
+</div>
+<div id="heatmap-aggregated-by-gene-symbol" class="section level3">
+<h3>5.4 Heatmap Aggregated by Gene Symbol</h3>
+<p>This visualization aggregates probe-level beta values to gene-level summaries by grouping probes with the same <code>Closest_TSS_gene_name</code> from the selected probeset. Within each gene, probes are aggregated per sample using the <strong>median</strong> function.</p>
+<p><strong>Features:</strong></p>
+<ul>
+<li>Shows gene symbols as rows and samples as columns</li>
+<li>Robust aggregation: reduces ~865k probes (EPICv2) → ~50-200 unique genes per probeset</li>
+<li>Clustered by default: genes clustered via Euclidean distance (Ward linkage)</li>
+<li>Top annotation: sample groups with automatic color assignment</li>
+<li>Color scale: blue (unmethylated) → white (hemimethylated) → red (methylated)</li>
+</ul>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>probeset</code>: probeset name (default <code>&quot;selected&quot;</code>)</li>
+<li><code>SAMPLEID</code>: metadata column for sample labels</li>
+<li><code>annoColumn</code>: annotation column for top heatmap header (default <code>&quot;Sample_Group&quot;</code>)</li>
+<li><code>clusterRows</code>: hierarchical cluster genes? (default <code>TRUE</code>)</li>
+<li><code>clusterColumns</code>: hierarchical cluster samples? (default <code>TRUE</code>)</li>
+<li><code>outFile</code>: output PDF file path</li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(
+  x,
+  <span class="dt">plot_type =</span> <span class="st">&quot;heatmap_by_gene&quot;</span>,
+  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">annoColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
+  <span class="dt">clusterRows =</span> <span class="ot">TRUE</span>,
+  <span class="dt">clusterColumns =</span> <span class="ot">TRUE</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;beta_heatmap_by_gene.pdf&quot;</span>
+)</code></pre></div>
+<p>Alternatively, using the backend function directly:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">hm &lt;-<span class="st"> </span><span class="kw">BetaHeatmapByGene</span>(
+  <span class="dt">beta =</span> <span class="kw">beta</span>(x),
+  <span class="dt">meta =</span> <span class="kw">meta</span>(x),
+  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">annoColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
+  <span class="dt">clusterRows =</span> <span class="ot">TRUE</span>,
+  <span class="dt">clusterColumns =</span> <span class="ot">TRUE</span>,
+  <span class="dt">outFile =</span> <span class="st">&quot;beta_heatmap_by_gene_direct.pdf&quot;</span>
 )</code></pre></div>
 </div>
 </div>

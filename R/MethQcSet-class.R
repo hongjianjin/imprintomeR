@@ -23,12 +23,15 @@ methods::setGeneric("export", function(x, ...) standardGeneric("export"))
 #'   `QC_matrix`, `ctrl_metrics`, `recall_rate`, `contamination`, `predUniqDonor_ID`, `cutoffs`.
 #' @slot aggregation_status Character scalar: "none", "epicv2_aggregated", or other flag.
 #' @slot qc_params Named list of QC parameters used (pcutoff, icutoff, method, etc.).
+#' @slot statistics data.frame or NULL. Per-group QC statistics (GROUP, Total, PASS, FAIL, PASS.RATIO, FAIL.RATIO).
+#'   Populated on export when Sample_Group is present in metadata.
 #'
 #' @name MethQcSet-class
 #' @exportClass MethQcSet
 NULL
 
 setClassUnion("MatrixOrNull", c("matrix", "NULL"))
+setClassUnion("data.frameOrNULL", c("data.frame", "NULL"))
 
 .validate_MethQcSet <- function(object) {
   errors <- character()
@@ -133,6 +136,18 @@ setClassUnion("MatrixOrNull", c("matrix", "NULL"))
     errors <- c(errors, "slot 'qc_params' must be a list")
   }
 
+  # Statistics validation (optional)
+  statistics <- object@statistics
+  if (!is.null(statistics)) {
+    if (!is.data.frame(statistics)) {
+      errors <- c(errors, "slot 'statistics' must be a data.frame or NULL")
+    } else if (nrow(statistics) > 0L) {
+      if (!all(c("GROUP", "Total", "PASS", "FAIL", "PASS.RATIO", "FAIL.RATIO") %in% colnames(statistics))) {
+        errors <- c(errors, "slot 'statistics' must contain columns: GROUP, Total, PASS, FAIL, PASS.RATIO, FAIL.RATIO")
+      }
+    }
+  }
+
   if (length(errors)) errors else TRUE
 }
 
@@ -145,13 +160,15 @@ setClass(
     detection_pval = "MatrixOrNull",
     qc_tables = "list",
     aggregation_status = "character",
-    qc_params = "list"
+    qc_params = "list",
+    statistics = "data.frameOrNULL"
   ),
   prototype = list(
     detection_pval = NULL,
     qc_tables = list(),
     aggregation_status = "none",
-    qc_params = list()
+    qc_params = list(),
+    statistics = NULL
   ),
   validity = .validate_MethQcSet
 )

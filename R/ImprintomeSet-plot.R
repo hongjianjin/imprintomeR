@@ -10,7 +10,7 @@
 #' @param ... Optional named arguments:
 #'   - `plot_type`: one of `"auto"`, `"polar"`, `"mirror_density"`,
 #'     `"beeswarm"`, `"beeswarm_origin"`, `"beeswarm_chr"`, `"violin"`,
-#'     `"heatmap"`, `"circular_heatmap"`,
+#'     `"heatmap_by_probe"`, `"heatmap_by_gene"`, `"circular_heatmap",`
 #'     `"cor_heatmap"`, `"rainfall"`, `"radar"`.
 #'   - `plot_name`: specific stored plot name in `plots(x)`.
 #'   - `result_name`: specific results table name in `results(x)`.
@@ -21,7 +21,7 @@
 #'   - `SAMPLEID`: metadata column used for sample labels in selected plot types
 #'     (default `"Sample_Name"`).
 #'   - `probeset`: probeset name used by `"mirror_density"`, `"beeswarm"`,
-#'     `"violin"`, `"heatmap"`, `"circular_heatmap"`,
+#'     `"violin"`, `"heatmap_by_probe"`, `"heatmap_by_gene"`, `"circular_heatmap",`
 #'     `"cor_heatmap"`, `"rainfall"`, and `"radar"` (default `"selected"`).
 #'   - `sample_id`: explicit sample ID used by rainfall/radar plot types.
 #'   - `chr`: chromosome label used by `plot_type = "beeswarm_chr"`
@@ -48,6 +48,7 @@
 #' p <- plot(x, plot_type = "beeswarm", probeset = "selected", SAMPLEID = "Sample_Name")
 #' p <- plot(x, plot_type = "beeswarm_origin", probeset = "selected", SAMPLEID = "Sample_Name")
 #' p <- plot(x, plot_type = "beeswarm_chr", probeset = "selected", sample_id = colnames(beta(x))[1], chr = "chr11")
+#' p <- plot(x, plot_type = "heatmap_by_gene", probeset = "selected", outFile = "heatmap_gene.pdf")
 #' p <- plot(x, plot_type = "mirror_density", probeset = "selected")
 #' p <- plot(x, plot_type = "circular_heatmap", probeset = "selected", sectionColumn = "Sample_Name")
 #' p <- plot(x, plot_type = "rainfall", sample_id = colnames(beta(x))[1])
@@ -385,7 +386,7 @@ methods::setMethod(
       "beeswarm_origin" = "ImprintomeR:beeswarm_origin",
       "beeswarm_chr" = "ImprintomeR:beeswarm_chr",
       "violin" = "ImprintomeR: Violin",
-      "heatmap" = "ImprintomeR: Heatmap",
+      "heatmap_by_probe" = "ImprintomeR: Heatmap",
       "circular_heatmap" = "ImprintomeR: Circular Heatmap",
       "cor_heatmap" = "ImprintomeR: Correlation",
       "rainfall" = "ImprintomeR: Rainfall",
@@ -407,7 +408,7 @@ methods::setMethod(
 
     valid_plot_types <- c(
       "auto", "polar", "mirror_density", "beeswarm", "beeswarm_origin", "beeswarm_chr", "violin",
-      "heatmap", "circular_heatmap", "cor_heatmap", "rainfall", "radar"
+      "heatmap_by_probe", "heatmap_by_gene", "circular_heatmap", "cor_heatmap", "rainfall", "radar"
     )
     if (!(plot_type %in% valid_plot_types)) {
       stop("Unsupported plot_type: ", plot_type)
@@ -585,14 +586,30 @@ methods::setMethod(
       )
     }
 
-    if (plot_type == "heatmap") {
-      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "heatmap")
+    if (plot_type == "heatmap_by_probe") {
+      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "heatmap_by_probe")
       return(
         BetaHeatmap(
           beta = beta_plot,
           meta = meta_x,
           SAMPLEID = SAMPLEID,
           outFile = outFile
+        )
+      )
+    }
+
+    if (plot_type == "heatmap_by_gene") {
+      return(
+        BetaHeatmapByGene(
+          beta = beta_x,
+          meta = meta_x,
+          probeset = probeset_name,
+          SAMPLEID = SAMPLEID,
+          annoColumn = "Sample_Group",
+          clusterRows = TRUE,
+          clusterColumns = TRUE,
+          outFile = outFile,
+          imgSizeFactor = 0.5
         )
       )
     }

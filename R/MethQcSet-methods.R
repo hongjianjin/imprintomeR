@@ -97,10 +97,61 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
     recall_rate$pct_detected_fail <- NA_real_
   }
 
-  # Cutoffs table
+  # Cutoffs table (22 core QC metrics + control metrics)
+  # Structured to match legacy meth_QC.R for compatibility
   cutoffs <- data.frame(
-    criteria = c("log2MedianIntensity", "aveDetectionPval", "pctDetectedCpG_dP0.05"),
-    cutoff   = c(paste0(">", icutoff), paste0("<", pcutoff), ">95"),
+    criteria = c(
+      "log2MedianIntensity", "aveDetectionPval", "pctDetectedCpG_dP0.05",
+      "snps_outliers_aveLogOdds",
+      "Restoration", "Staining_Green", "Staining_Red",
+      "Extension_Green", "Extension_Red", "Hybridization_High/Medium", "Hybridization_Medium/Low",
+      "Target_Removal_1", "Target_Removal_2",
+      "Bisulfite_Conversion_I_Green", "Bisulfite_Conversion_I_Red", "Bisulfite_Conversion_II",
+      "Specificity_I_Green", "Specificity_I_Red", "Specificity_II",
+      "Non-polymorphic_Green", "Non-polymorphic_Red",
+      "CtrlMetrics.QC"
+    ),
+    cutoff   = c(
+      paste0(">", icutoff), paste0("<", pcutoff), ">95",
+      ">-4",
+      ">0", ">5", ">5", ">5", ">5", ">1", ">1",
+      ">1", ">1",
+      ">1", ">1", ">1", ">1", ">1", ">1",
+      ">5", ">5",
+      "PASS"
+    ),
+    Pass = c(
+      paste0(">=", icutoff), paste0("<=", pcutoff), ">=95",
+      "NA",
+      ">0", ">5", ">5", ">5", ">5", ">1", ">1",
+      ">1", ">1",
+      ">1", ">1", ">1", ">1", ">1", ">1",
+      ">5", ">5",
+      "PASS"
+    ),
+    Fail = c(
+      paste0("<", icutoff), paste0(">", pcutoff), "<=95",
+      "NA",
+      "<=0", "<=5", "<=5", "<=5", "<=5", "<=1", "<=1",
+      "<=1", "<=1",
+      "<=1", "<=1", "<=1", "<=1", "<=1", "<=1",
+      "<=5", "<=5",
+      "FAIL"
+    ),
+    Final.QC = c(
+      "required", "required", "required",
+      NA,
+      NA, NA, NA, NA, NA, NA, NA, NA, NA,
+      "required", "required", NA, NA, NA, NA, NA, NA,
+      "required"
+    ),
+    CtrlMetrics.QC = c(
+      NA, NA, NA,
+      NA,
+      NA, NA, NA, NA, NA, NA, NA, NA, NA,
+      "required", "required", NA, NA, NA, NA, NA, NA,
+      "required"
+    ),
     stringsAsFactors = FALSE
   )
 

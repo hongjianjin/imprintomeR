@@ -11,7 +11,7 @@ Formal container for imprintomeR inputs and derived outputs.
 \describe{
 \item{\code{beta}}{Matrix or data.frame of beta values (rows = probes, columns = samples).}
 
-\item{\code{meta}}{data.frame of sample metadata. Must include \code{SAMPLE_NAME}.}
+\item{\code{meta}}{data.frame of sample metadata. Must include \code{Sample_Name} and \code{Sample_Group} columns.}
 
 \item{\code{probeset}}{data.frame or list containing probeset annotation.}
 

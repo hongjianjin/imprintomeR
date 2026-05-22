@@ -26,15 +26,29 @@ Write QC tables, beta values, and metadata to disk in various formats.
 }
 \details{
 \strong{xlsx output (recommended):}
-All QC tables are written into a \strong{single workbook} (\verb{\{prefix\}_qc_tables.xlsx})
-with one sheet per table: \code{QC_matrix}, \code{recall_rate}, \code{cutoffs},
-\code{ctrl_metrics}, \code{contamination}, \code{predUniqDonor_ID}. Sample metadata is
-written to a separate sheet \code{meta} in the same workbook. Beta values are
-excluded from xlsx (too large) and written as rds only.
+QC results are written into \strong{two separate workbooks} (\verb{\{prefix\}_qc_table_main.xlsx}
+and \verb{\{prefix\}_qc_table_extra.xlsx}) for organized reporting:
+
+\strong{{prefix}_qc_table_main.xlsx} (primary QC results):
+\itemize{
+\item \code{metadata} sheet: Sample metadata augmented with Platform and Final.QC columns.
+\item \code{QC_matrix} sheet: Per-sample QC metrics (intensity, detection p-val, coverage, sex, etc.).
+\item \code{Ctrl_matrix} sheet: ewastools control metric scores (if available).
+\item \code{statistics} sheet: Per-Sample_Group summary (Total, PASS, FAIL, and ratios).
+}
+
+\strong{{prefix}_qc_table_extra.xlsx} (supplementary/technical results):
+\itemize{
+\item \code{QC_metrics} sheet: Cutoff thresholds and decision rules (filtered to: criteria, cutoff, Final.QC).
+\item \code{contamination} sheet: SNP agreement matrix for sample swap detection (if available).
+\item \code{recall_rate} sheet: Per-probe detection statistics across cohort (if available).
+\item \code{predUniqDonor_ID} sheet: Predicted unique donors per Sample_Group (if available).
+}
+
+Beta values are excluded from xlsx (too large) and written as rds only.
 
 \strong{rds output:}
-Each object (\code{beta}, \code{meta}, individual QC tables) is saved as a separate
-\code{.rds} file for programmatic access.
+Entire MethQcSet object is saved as \verb{\{prefix\}_qcset.rds} for programmatic access.
 
 \strong{txt output:}
 Tab-delimited \code{.txt} files for beta, metadata, and each QC table separately.

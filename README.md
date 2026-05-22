@@ -80,7 +80,13 @@ Visualize & Export
 
 **If you have RAW data:**
 
-`meta.tsv` must be a tab-delimited file with at least `Sample_Name` and `Basename` columns. Additional columns (e.g., group, sex, diagnosis) are carried through and available for plotting.
+`meta.tsv` must be a tab-delimited file with at least `Sample_Name` and `Sample_Group` columns.
+
+**For QC workflow (Option A — raw IDAT files):** also include `Basename` column (full path prefix to IDAT files).
+
+**For direct analysis (Option B — QC already done externally):** `Basename` is not needed; just `Sample_Name` and `Sample_Group` suffice.
+
+Additional columns (e.g., sex, diagnosis) are carried through and available for plotting.
 
 ```
 Sample_Name    Basename                                   Sample_Group    SEX
@@ -130,8 +136,8 @@ p_dp   <- plot(qcset, type = "detection_pval",   pcutoff = 0.05,
                outFile = "qc_aveDetPval.pdf")                                    # avg detection p-val per sample
 p_cov  <- plot(qcset, type = "probe_coverage",   outFile = "qc_probe_coverage.pdf") # % probes detected per sample
 p_sex  <- plot(qcset, type = "predicted_sex",    outFile = "qc_predicted_sex.pdf")  # predicted sex distribution
-p_ctrl <- plot(qcset, type = "ctrl_metrics",         outFile = "qc_ctrl_metrics.pdf")   # ewastools scores (if available)
-plot(qcset, type = "ctrl_metrics_detail",            outFile = "qc_ctrl_detail")         # per-metric PDFs (Bisulfite/Specificity)
+p_ctrl <- plot(qcset, type = "ctrl_metrics",         outFile = "qc_ctrl_matrix_summary.pdf")   # ewastools scores (if available)
+plot(qcset, type = "ctrl_metrics_detail",            outFile = "qc_ctrl_matrix_detail")         # per-metric PDFs (Bisulfite/Specificity)
 
 # Export cleaned data
 # xlsx: single workbook — meta (+ Platform, Final.QC), QC_matrix,
@@ -148,7 +154,12 @@ Key MethQcSet features:
 - **Canonical `qc_tables` keys** (populated by `runMethQC()`):
   - `QC_matrix` — per-sample detection stats, intensity, predictedSex, `Final.QC`
   - `recall_rate` — per-probe % detected across all / PASS / FAIL samples
-  - `cutoffs` — QC threshold criteria and values
+  - `cutoffs` — QC threshold criteria with Pass/Fail expressions (22 core + control metrics)
+    - **Core metrics (3 rows):** log2MedianIntensity (>11), aveDetectionPval (<0.05), pctDetectedCpG_dP0.05 (>95)
+    - **SNP metrics (1 row):** snps_outliers_aveLogOdds (>-4)
+    - **Control metrics (18 rows, if ewastools available):** Restoration, Staining, Extension, Hybridization, Target_Removal, Bisulfite_Conversion, Specificity, Non-polymorphic
+    - **Columns:** criteria, cutoff, Pass, Fail, Final.QC, CtrlMetrics.QC
+    - **Conditional formatting:** Use `SaveTableStyle()` (from `openxlsx`) with `condFmt` parameter to highlight Pass/Fail expressions in Excel exports
   - `ctrl_metrics` — control probe metrics (if ewastools available)
   - `contamination` — SNP agreement / sample-swap check (if ewastools available)
   - `predUniqDonor_ID` — predicted unique donors per sample group (if ewastools available)
@@ -176,8 +187,9 @@ x <- as.ImprintomeSet(
 )
 
 # Option B: build directly from beta + meta (QC already done externally)
+# Note: Basename column is not needed since QC step is skipped
 probesets <- readRDS(system.file("extdata", "probesets_hg19.rds", package = "imprintomeR"))
-meta <- LoadMeta("meta.tsv")
+meta <- LoadMeta("meta.tsv")  # Only needs Sample_Name and Sample_Group
 beta <- LoadBeta("cleaned_beta.tsv")   # probes × samples matrix, already QC-filtered
 
 x <- ImprintomeSet(
@@ -241,37 +253,52 @@ qcset_450k <- runMethQC(meta_450k)
 # qcset <- runMethQC(meta, platform = "EPIC")
 
 # Export QC results
-# xlsx: single workbook (prefix_qc_tables.xlsx) with sheets:
-#   meta, QC_matrix, recall_rate, cutoffs, ctrl_metrics,
-#   contamination, predUniqDonor_ID
-# rds:  single complete MethQcSet object (prefix_qcset.rds) for downstream analysis
 exported_files <- export(
   qcset_epic,
   outdir = "qc_results",
   format = c("xlsx", "rds")
 )
+# Creates three files:
+# 1. qc_table_main.xlsx — Primary QC results (metadata, QC_matrix, Ctrl_matrix, statistics)
+# 2. qc_table_extra.xlsx — Supplementary technical data (QC_metrics, contamination, recall_rate, predUniqDonor_ID)
+# 3. qcset_epic.rds — Complete MethQcSet object for programmatic access
 ```
 
-The xlsx workbook contains one sheet per table:
-
-&nbsp;
+**File 1: qc_table_main.xlsx** (Primary QC Results)
 
 <table style="width:100%; border-collapse:collapse;">
 <thead>
 <tr>
-  <th style="width:18%; text-align:left; border-bottom:2px solid #ccc;">Sheet</th>
-  <th style="width:67%; text-align:left; border-bottom:2px solid #ccc;">Content</th>
-  <th style="width:15%; text-align:left; border-bottom:2px solid #ccc;">Source</th>
+  <th style="width:20%; text-align:left; border-bottom:2px solid #ccc;">Sheet</th>
+  <th style="width:60%; text-align:left; border-bottom:2px solid #ccc;">Content</th>
+  <th style="width:20%; text-align:left; border-bottom:2px solid #ccc;">Always Present?</th>
 </tr>
 </thead>
 <tbody>
-<tr><td><code>meta</code></td><td>Sample metadata</td><td>always</td></tr>
-<tr><td><code>QC_matrix</code></td><td>Per-sample detection stats, intensity (mMed/uMed/aveMed), predictedSex, <code>Final.QC</code></td><td>always</td></tr>
-<tr><td><code>recall_rate</code></td><td>Per-probe % detected across all / PASS / FAIL samples</td><td>always</td></tr>
-<tr><td><code>cutoffs</code></td><td>QC threshold criteria and values (log2 intensity, detection p-val, % CpG)</td><td>always</td></tr>
-<tr><td><code>ctrl_metrics</code></td><td>Control probe metrics + <code>CtrlMetrics.QC</code></td><td>if ewastools available</td></tr>
-<tr><td><code>contamination</code></td><td>SNP agreement check for sample swaps</td><td>if ewastools available</td></tr>
-<tr><td><code>predUniqDonor_ID</code></td><td>Predicted unique donor IDs per sample group</td><td>if ewastools available</td></tr>
+<tr><td><code>metadata</code></td><td>Sample metadata + Platform + Final.QC columns</td><td>Yes</td></tr>
+<tr><td><code>QC_matrix</code></td><td>Per-sample detection stats, intensity (mMed/uMed/aveMed), predictedSex, Final.QC</td><td>Yes</td></tr>
+<tr><td><code>Ctrl_matrix</code></td><td>Control probe metrics + CtrlMetrics.QC</td><td>If ewastools available</td></tr>
+<tr><td><code>statistics</code></td><td>Per-Sample_Group summary: GROUP, Total, PASS, FAIL, PASS.RATIO, FAIL.RATIO</td><td>If Sample_Group in metadata</td></tr>
+</tbody>
+</table>
+
+&nbsp;
+
+**File 2: qc_table_extra.xlsx** (Supplementary/Technical Results)
+
+<table style="width:100%; border-collapse:collapse;">
+<thead>
+<tr>
+  <th style="width:20%; text-align:left; border-bottom:2px solid #ccc;">Sheet</th>
+  <th style="width:60%; text-align:left; border-bottom:2px solid #ccc;">Content</th>
+  <th style="width:20%; text-align:left; border-bottom:2px solid #ccc;">Always Present?</th>
+</tr>
+</thead>
+<tbody>
+<tr><td><code>QC_metrics</code></td><td>QC threshold criteria (criteria, cutoff, Final.QC) — filtered cutoffs table</td><td>Yes</td></tr>
+<tr><td><code>contamination</code></td><td>SNP agreement matrix for sample swap detection</td><td>If ewastools available</td></tr>
+<tr><td><code>recall_rate</code></td><td>Per-probe % detected across all / PASS / FAIL samples</td><td>Yes</td></tr>
+<tr><td><code>predUniqDonor_ID</code></td><td>Predicted unique donor IDs per sample group</td><td>If ewastools available</td></tr>
 </tbody>
 </table>
 
@@ -280,9 +307,9 @@ The xlsx workbook contains one sheet per table:
 Beta values are excluded from xlsx (too large) and saved as `.rds` only.
 
 ```r
-# Inspect MethQcSet structure
+# Inspect MethQcSet structure (now includes @statistics slot)
 str(qcset_epic)
-# Formal class 'MethQcSet' [package "imprintomeR"] with 6 slots
+# Formal class 'MethQcSet' [package "imprintomeR"] with 8 slots
 #   @ beta              : num [1:866895, 1:4] 0.152 0.892 0.654 0.723 ...
 #   @ meta              :'data.frame': 4 obs. of 4 variables:
 #   @ detection_pval    : num [1:866895, 1:4] 0.001 0.001 0.001 0.001 ...
@@ -292,20 +319,32 @@ str(qcset_epic)
 #     $ cutoffs        : 'data.frame': 5 obs. of 2 variables (QC threshold criteria)
 #     $ ctrl_metrics   : 'data.frame' (if ewastools available)
 #     $ contamination  : 'data.frame' (if ewastools available)
+#   @ statistics        : 'data.frame' or NULL — Per-Sample_Group QC summary (populated on export)
+#     $ GROUP          : character (Sample_Group or "All")
+#     $ Total          : integer (number of samples)
+#     $ PASS           : integer (number passing)
+#     $ FAIL           : integer (number failing)
+#     $ PASS.RATIO     : numeric
+#     $ FAIL.RATIO     : numeric
 #   @ platform          : chr "EPIC"
-#   @ aggregation_status: logi FALSE
+#   @ aggregation_status: chr "none"
+#   @ qc_params         : list()
 
 # Inspect QC_matrix: includes intensity, predictedSex, Final.QC
 qc_matrix <- qc_tables(qcset_epic)[["QC_matrix"]]
 head(qc_matrix[, c("Sample_Name", "mMed.Intensity", "aveMed.Intensity",
                     "pctDetectedCpG_dP0.05", "predictedSex", "Final.QC")])
 
+# Access computed statistics (after export or manual computation)
+stats_tbl <- statistics(qcset_epic)
+# Returns data.frame: GROUP, Total, PASS, FAIL, PASS.RATIO, FAIL.RATIO
+
 # Per-probe recall
 recall <- qc_tables(qcset_epic)[["recall_rate"]]
 head(recall[order(recall$pct_detected_all), ])
 
-# QC cutoffs
-qc_tables(qcset_epic)[["cutoffs"]]
+# QC cutoffs (filtered version exported as QC_metrics sheet)
+cutoffs_all <- qc_tables(qcset_epic)[["cutoffs"]]
 ```
 
 Merge multiple QC-clean single-platform datasets:
@@ -393,7 +432,8 @@ s$plots
 - `beeswarm_origin` - origin-split beeswarm (maternal/paternal probes)
 - `beeswarm_chr` - chromosome-faceted beeswarm (single sample)
 - `violin` - methylation distribution by sample (violin plots)
-- `heatmap` - annotated heatmap (probes × samples)
+- `heatmap_by_probe` - Heatmap_by_probe (probes × samples with Illumina probe IDs)
+- `heatmap_by_gene` - gene-level aggregated heatmap (genes aggregated by Closest_TSS_gene_name)
 - `circular_heatmap` - circular heatmap with grouped sections (probes × samples arranged in circle by sample groups)
 - `cor_heatmap` - sample-to-sample correlation heatmap
 - `rainfall` - chromosomal rainfall plot (single sample)
@@ -462,15 +502,24 @@ p_violin <- plot(
   outFile = "plot_violin.pdf"
 )
 
-# 8) Heatmap (probes × samples with annotations)
+# 8) Heatmap_by_probe (probes × samples)
 p_heatmap <- plot(
   x,
-  plot_type = "heatmap",
+  plot_type = "heatmap_by_probe",
   probeset = "selected",
   outFile = "plot_heatmap.pdf"
 )
 
-# 9) Circular heatmap (grouped by sample group)
+# 9) Heatmap_by_gene (genes × samples, aggregated by median)
+p_heatmap_gene <- plot(
+  x,
+  plot_type = "heatmap_by_gene",
+  probeset = "selected",
+  annoColumn = "Sample_Group",
+  outFile = "plot_heatmap_by_gene.pdf"
+)
+
+# 10) Circular heatmap (grouped by sample group)
 p_circle <- plot(
   x,
   plot_type = "circular_heatmap",
@@ -479,7 +528,7 @@ p_circle <- plot(
   outFile = "plot_circular_heatmap.pdf"
 )
 
-# 10) Correlation heatmap (sample-to-sample)
+# 11) Correlation heatmap (sample-to-sample)
 cor_mat <- plot(
   x,
   plot_type = "cor_heatmap",
@@ -488,7 +537,7 @@ cor_mat <- plot(
   prefix = "plot"
 )
 
-# 11) Rainfall plot (chromosomal distribution, single sample)
+# 12) Rainfall plot (chromosomal distribution, single sample)
 p_rainfall <- plot(
   x,
   plot_type = "rainfall",
@@ -497,7 +546,7 @@ p_rainfall <- plot(
   outFile = paste0("plot_rainfall_", sample_id1, ".pdf")
 )
 
-# 12) Radar plot (imprinting metrics, single sample)
+# 13) Radar plot (imprinting metrics, single sample)
 p_radar <- plot(
   x,
   plot_type = "radar",
@@ -507,7 +556,73 @@ p_radar <- plot(
 )
 ```
 
-## Export Results
+## Export QC Results
+
+The `export()` method writes QC preprocessing results to **two organized Excel workbooks** for better separation of primary and supplementary data:
+
+```r
+export(
+  qcset,
+  outdir = "qc_output",
+  format = c("xlsx", "rds", "txt")  # xlsx (default) | rds | txt | any combination
+)
+```
+
+**Output files:**
+
+**{prefix}_qc_table_main.xlsx** (primary QC results for review):
+- `metadata` — Sample information with Platform and Final.QC columns
+- `QC_matrix` — Per-sample QC metrics (intensity, detection p-values, probe coverage, predicted sex)
+- `Ctrl_matrix` — Control probe metrics (if ewastools available)
+- `statistics` — Per-Sample_Group summary table (Total, PASS, FAIL, pass/fail ratios)
+
+**{prefix}_qc_table_extra.xlsx** (supplementary technical results):
+- `QC_metrics` — QC decision thresholds (criteria, cutoff values, Final.QC status)
+- `contamination` — SNP agreement matrix for sample swap detection (if available)
+- `recall_rate` — Per-probe detection statistics across cohort (if available)
+- `predUniqDonor_ID` — Predicted unique donors per sample group (if available)
+
+**Additional output:**
+- `{prefix}_qcset.rds` — Full MethQcSet object (if format includes "rds")
+- `{prefix}_beta.txt` — Beta values, tab-delimited (if format includes "txt")
+- `{prefix}_meta.txt` — Metadata, tab-delimited (if format includes "txt")
+- `{prefix}_qc_matrix.txt` — QC metrics table, tab-delimited (primary txt file)
+- `{prefix}_qc_statistics.txt` — Statistics summary, tab-delimited (primary txt file)
+- `{prefix}_qc_*.txt` — Individual QC tables, tab-delimited (supplementary files)
+- `{prefix}_summary.txt` — Summary report with optional Notes section
+
+**Statistics Sheet (automatic computation on export):**
+
+The statistics sheet computes per-Sample_Group summaries from the QC_matrix:
+- Groups samples by `Sample_Group` column in metadata
+- Counts PASS/FAIL outcomes
+- Calculates pass/fail ratios
+- Automatically stored in `qcset@statistics` slot for later retrieval
+
+**Notes Section in summary.txt:**
+
+The `summary.txt` file always includes a "Notes" section that documents any optional sheets that were mentioned in the export format documentation but were NOT actually created (due to missing underlying data). For example:
+
+```
+Notes
+=====
+
+The following sheets were not included in the exported workbook(s):
+- Ctrl_matrix
+- contamination
+- predUniqDonor_ID
+```
+
+If all documented optional sheets exist in the data, the Notes section will instead state:
+
+```
+Notes
+=====
+
+All documented sheets were successfully created.
+```
+
+This provides transparency about what data was available during export.
 
 ```r
 manifest <- export(

@@ -49,8 +49,45 @@ Populated by `runMethQC()`, accessed via `qc_tables(qcset)`:
   - probe_id, pct_detected_all, pct_detected_pass, pct_detected_fail
   - Used to identify poorly-detected probes across cohort
 
-- **cutoffs**: Applied QC thresholds
-  - Intensity thresholds (icutoff), detection p-val cutoff (pcutoff), coverage cutoff (cov_cutoff)
+- **cutoffs**: Applied QC thresholds (22 core metrics + control metrics)
+  - **Core metrics (3 rows):** log2MedianIntensity (>11), aveDetectionPval (<0.05), pctDetectedCpG_dP0.05 (>95)
+  - **SNP metrics (1 row):** snps_outliers_aveLogOdds (>-4)
+  - **Control metrics (18 rows, if ewastools available):** Restoration, Staining, Extension, Hybridization, Target_Removal, Bisulfite_Conversion, Specificity, Non-polymorphic
+  - **Columns:** criteria, cutoff, Pass, Fail, Final.QC, CtrlMetrics.QC
+  - **Pass/Fail expressions:** Conditions for highlighting in spreadsheets (e.g., ">11", "<=95")
+  - **Meta columns:** Final.QC (required/NA), CtrlMetrics.QC (required/NA) mark which metrics drive final QC decision
+
+### Excel Export & Conditional Formatting (SaveTableStyle)
+**Status**: SaveTableStyle, SaveTable, and CheckSheetName now implemented in package (R/module_io.R).
+Conditional formatting definitions (QC_final_Cutoffs, ctrlMatCutoffs) in R/module_utilities.R.
+
+**Function signature**: `SaveTableStyle(dat, sheetName, file, condFmt, append, ...)`
+
+**condFmt parameter structure**: A data.frame with columns:
+- `Control`: Column names to format in dat (e.g., "pctDetectedCpG_dP0.05")
+- `Threshold`: Threshold value (for warning/yellow highlighting on "Final.QC" / "QC" fields)
+- `Pass`: Expression for pass condition (e.g., ">95")
+- `Fail`: Expression for fail condition (e.g., "<=95")
+
+**Usage for QC_matrix**:
+```r
+library(imprintomeR)
+SaveTableStyle(qc_matrix, "QC_matrix", file="output.xlsx", condFmt=QC_final_Cutoffs)
+```
+
+**Usage for ctrl_metrics**:
+```r
+SaveTableStyle(ctrl_metrics, "ctrl_metrics", file="output.xlsx", condFmt=ctrlMatCutoffs)
+```
+
+**Styling applied**: white background=PASS, red background=FAIL, yellow background=WARN/Threshold
+
+**Package exports**:
+- `SaveTableStyle()` - Apply conditional formatting to Excel sheets
+- `SaveTable()` - Write plain table to Excel (no formatting)
+- `CheckSheetName()` - Verify sheet exists in workbook
+- `QC_final_Cutoffs` - Predefined format for QC_matrix highlighting
+- `ctrlMatCutoffs` - Predefined format for ctrl_metrics highlighting
 
 - **ctrl_metrics** (optional, if ewastools available):
   - Bisulfite conversion efficiency, specificity, non-polymorphic controls

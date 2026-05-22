@@ -43,7 +43,9 @@ Your `ImprintomeSet` object `x` should come from **either**:
 **Option A: QC-preprocessed data via MethQcSet**
 
 ```{r, eval = FALSE}
-# Load metadata (requires Basename column with IDAT path prefixes)
+# Load metadata: tab-delimited with at least Sample_Name and Sample_Group.
+# For QC workflow (raw IDAT files): also include Basename column (IDAT path prefixes).
+# For direct analysis (QC already done): Basename is not needed.
 meta <- LoadMeta("meta.tsv")
 
 # Option A1: platform unknown — detect first
@@ -55,9 +57,10 @@ qcset <- runMethQC(meta_epic)  # platform auto-resolved from meta$Platform
 # qcset <- runMethQC(meta, platform = "EPIC")
 
 export(qcset, outdir = "qc_output", format = c("xlsx", "rds"))
-# xlsx: single workbook with sheets — meta (+ Platform, Final.QC),
-#   QC_matrix, recall_rate, cutoffs, ctrl_metrics, contamination,
-#   predUniqDonor_ID. Beta saved as .rds only.
+# xlsx: two workbooks for organized reporting:
+#   1. qc_table_main.xlsx — metadata (+ Platform, Final.QC), QC_matrix, Ctrl_matrix, statistics
+#   2. qc_table_extra.xlsx — QC_metrics (thresholds), contamination, recall_rate, predUniqDonor_ID
+# rds: Full MethQcSet object for programmatic access
 
 # QC visualizations
 p_bar  <- plot(qcset, type = "qc_bar")                          # PASS/FAIL bar
@@ -67,7 +70,7 @@ p_cov  <- plot(qcset, type = "probe_coverage")                  # % probes detec
 p_sex  <- plot(qcset, type = "predicted_sex")                   # predicted sex
 p_ctrl <- plot(qcset, type = "ctrl_metrics")                    # ewastools (if present)
 plot(qcset, type = "ctrl_metrics_detail",                       # per-metric detail PDFs
-     outFile = "qc_ctrl_metrics_detail")
+     outFile = "qc_ctrl_matrix_detail")
 
 # EPICv2 only: aggregate replicate probes before conversion (required step)
 # as.ImprintomeSet() will error if this is skipped for EPICv2 data.
@@ -88,7 +91,8 @@ x <- as.ImprintomeSet(
 
 ```{r, eval = FALSE}
 # If you already have QC-cleaned data, skip MethQcSet
-meta <- LoadMeta("meta.tsv")
+# Note: Basename column is not needed since QC step is skipped.
+meta <- LoadMeta("meta.tsv")  # Only needs Sample_Name and Sample_Group
 beta <- LoadBeta("cleaned_beta.tsv")
 
 x <- ImprintomeSet(
@@ -195,7 +199,7 @@ p_bee_chr <- plot(x, plot_type = "beeswarm_chr", probeset = "selected",
 p_vln <- plot(x, plot_type = "violin", SAMPLEID = "SAMPLE_NAME",
         probeset = "selected",
               outFile = "demo_violin.pdf")
-p_heatmap <- plot(x, plot_type = "heatmap", SAMPLEID = "SAMPLE_NAME",
+p_heatmap <- plot(x, plot_type = "heatmap_by_probe", SAMPLEID = "SAMPLE_NAME",
           probeset = "selected",
                   outFile = "demo_heatmap.pdf")
 p_circular <- plot(x, plot_type = "circular_heatmap", SAMPLEID = "SAMPLE_NAME",
@@ -344,12 +348,14 @@ cor_mat <- plot(
 )
 ```
 
-### 5.2 Annotated Heatmap
+### 5.2 Heatmap_by_probe (Probe-Level Heatmap)
+
+Displays individual Illumina probe IDs (e.g., cg00000029) as rows and samples as columns with their methylation values color-coded.
 
 ```{r, eval = FALSE}
 plot(
   x,
-  plot_type = "heatmap",
+  plot_type = "heatmap_by_probe",
   probeset = "selected",
   SAMPLEID = "SAMPLE_NAME",
   outFile = "beta_heatmap.pdf"
@@ -395,6 +401,57 @@ plot(
   sectionColumn = "SAMPLE_NAME",
   probeset = "selected",
   outFile = "beta_circular_heatmap_by_sample.pdf"
+)
+```
+
+### 5.4 Heatmap Aggregated by Gene Symbol
+
+This visualization aggregates probe-level beta values to gene-level summaries 
+by grouping probes with the same `Closest_TSS_gene_name` from the selected probeset. 
+Within each gene, probes are aggregated per sample using the **median** function.
+
+**Features:**
+
+- Shows gene symbols as rows and samples as columns
+- Robust aggregation: reduces ~865k probes (EPICv2) → ~50-200 unique genes per probeset
+- Clustered by default: genes clustered via Euclidean distance (Ward linkage)
+- Top annotation: sample groups with automatic color assignment
+- Color scale: blue (unmethylated) → white (hemimethylated) → red (methylated)
+
+**Parameters:**
+
+- `probeset`: probeset name (default `"selected"`)
+- `SAMPLEID`: metadata column for sample labels
+- `annoColumn`: annotation column for top heatmap header (default `"Sample_Group"`)
+- `clusterRows`: hierarchical cluster genes? (default `TRUE`)
+- `clusterColumns`: hierarchical cluster samples? (default `TRUE`)
+- `outFile`: output PDF file path
+
+```{r, eval = FALSE}
+plot(
+  x,
+  plot_type = "heatmap_by_gene",
+  probeset = "selected",
+  SAMPLEID = "SAMPLE_NAME",
+  annoColumn = "SAMPLE_GROUP",
+  clusterRows = TRUE,
+  clusterColumns = TRUE,
+  outFile = "beta_heatmap_by_gene.pdf"
+)
+```
+
+Alternatively, using the backend function directly:
+
+```{r, eval = FALSE}
+hm <- BetaHeatmapByGene(
+  beta = beta(x),
+  meta = meta(x),
+  probeset = "selected",
+  SAMPLEID = "SAMPLE_NAME",
+  annoColumn = "SAMPLE_GROUP",
+  clusterRows = TRUE,
+  clusterColumns = TRUE,
+  outFile = "beta_heatmap_by_gene_direct.pdf"
 )
 ```
 
@@ -504,8 +561,18 @@ manifest <- export(
 head(manifest)
 ```
 
-`export()` currently writes result tables and stored plot objects. QC tables
-remain available through `qc(x)` and `summarize(x)$qc`.
+`export()` writes result tables and stored plot objects. QC tables remain available through `qc(x)` and `summarize(x)$qc`.
+
+**For MethQcSet export**, the output includes a `summary.txt` file with an automatically-generated "Notes" section:
+
+```{r, eval = FALSE}
+export(qcset, outdir = "qc_output", format = c("xlsx", "rds"))
+
+# Inspect the summary.txt file to see which sheets were created:
+readLines("qc_output/methqcset_summary.txt")
+```
+
+The Notes section documents any optional sheets that were not created due to missing underlying data (e.g., missing `ctrl_metrics`, `contamination`, etc.). This provides transparency about data availability during export.
 
 ## 9. Notes
 

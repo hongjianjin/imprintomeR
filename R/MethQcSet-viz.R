@@ -70,6 +70,135 @@ qc_summarize <- function(x, ...) {
 }
 
 # ============================================================================
+# .compute_statistics() - Per-group QC statistics helper
+# ============================================================================
+
+#' Compute Per-Group QC Statistics (Internal)
+#'
+#' Internal helper to compute sample counts and PASS/FAIL ratios per Sample_Group.
+#'
+#' @param qc_matrix data.frame with columns: Sample_Name (or SAMPLE_NAME), Final.QC.
+#' @param meta data.frame with columns: Sample_Name, and optionally Sample_Group.
+#'
+#' @return data.frame with columns: GROUP, Total, PASS, FAIL, PASS.RATIO, FAIL.RATIO.
+#'   Returns NULL if Final.QC column missing or all-NA.
+#'
+#' @keywords internal
+.compute_statistics <- function(qc_matrix, meta) {
+  if (!is.data.frame(qc_matrix) || nrow(qc_matrix) == 0L) {
+    return(NULL)
+  }
+  if (!("Final.QC" %in% colnames(qc_matrix))) {
+    return(NULL)
+  }
+
+  # Identify sample name column in qc_matrix
+  qc_sample_col <- intersect(c("SAMPLE_NAME", "Sample_Name"), colnames(qc_matrix))[1]
+  if (is.na(qc_sample_col)) {
+    return(NULL)
+  }
+
+  # Identify Sample_Group column (optional) and sample name column in meta
+  meta_sample_col <- intersect(c("Sample_Name", "SAMPLE_NAME"), colnames(meta))[1]
+  meta_group_col <- if ("Sample_Group" %in% colnames(meta)) "Sample_Group" else NULL
+
+  # Merge QC_matrix with group info from meta
+  qc_merged <- data.frame(
+    Sample_Name = qc_matrix[[qc_sample_col]],
+    Final.QC = qc_matrix[["Final.QC"]],
+    stringsAsFactors = FALSE
+  )
+
+  if (!is.null(meta_sample_col) && !is.na(meta_sample_col)) {
+    meta_subset <- data.frame(
+      Sample_Name = meta[[meta_sample_col]],
+      stringsAsFactors = FALSE
+    )
+    if (!is.null(meta_group_col)) {
+      meta_subset$Sample_Group <- meta[[meta_group_col]]
+    }
+
+    qc_merged <- merge(qc_merged, meta_subset, by = "Sample_Name", all.x = TRUE)
+  }
+
+  # If no Sample_Group column, create one with all "All"
+  if (!"Sample_Group" %in% colnames(qc_merged)) {
+    qc_merged$Sample_Group <- "All"
+  }
+
+  # Compute statistics per group
+  groups <- unique(qc_merged$Sample_Group[!is.na(qc_merged$Sample_Group)])
+  if (length(groups) == 0L) {
+    groups <- "All"
+  }
+
+  df_stats <- NULL
+  for (group in groups) {
+    if (is.na(group)) {
+      group_data <- qc_merged[is.na(qc_merged$Sample_Group), ]
+    } else {
+      group_data <- qc_merged[qc_merged$Sample_Group == group, ]
+    }
+
+    if (nrow(group_data) == 0L) next
+
+    n_total <- nrow(group_data)
+    n_pass <- sum(group_data$Final.QC == "PASS", na.rm = TRUE)
+    n_fail <- sum(group_data$Final.QC == "FAIL", na.rm = TRUE)
+    ratio_pass <- n_pass / n_total
+    ratio_fail <- n_fail / n_total
+
+    df_row <- data.frame(
+      GROUP = group,
+      Total = n_total,
+      PASS = n_pass,
+      FAIL = n_fail,
+      PASS.RATIO = ratio_pass,
+      FAIL.RATIO = ratio_fail,
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+
+    if (is.null(df_stats)) {
+      df_stats <- df_row
+    } else {
+      df_stats <- rbind(df_stats, df_row)
+    }
+  }
+
+  df_stats
+}
+
+# ============================================================================
+# .prepare_cutoffs_for_export() - Filter cutoffs table helper
+# ============================================================================
+
+#' Prepare Cutoffs Table for Export (Internal)
+#'
+#' Internal helper to remove specific columns from cutoffs table for QC_metrics sheet.
+#'
+#' @param cutoffs data.frame with columns: criteria, cutoff, Pass, Fail, Final.QC, CtrlMetrics.QC.
+#'
+#' @return Filtered data.frame with columns: criteria, cutoff, Final.QC only.
+#'   Returns NULL if input is NULL or not a data.frame.
+#'
+#' @keywords internal
+.prepare_cutoffs_for_export <- function(cutoffs) {
+  if (is.null(cutoffs) || !is.data.frame(cutoffs)) {
+    return(NULL)
+  }
+
+  # Select only criteria, cutoff, Final.QC columns (if they exist)
+  cols_to_keep <- intersect(c("criteria", "cutoff", "Final.QC"), colnames(cutoffs))
+
+  if (length(cols_to_keep) == 0L) {
+    return(NULL)
+  }
+
+  cutoffs[, cols_to_keep, drop = FALSE]
+}
+
+# ============================================================================
 # export() - Write QC tables and beta files
 # ============================================================================
 
@@ -88,15 +217,25 @@ qc_summarize <- function(x, ...) {
 #'
 #' @details
 #' **xlsx output (recommended):**
-#' All QC tables are written into a **single workbook** (`{prefix}_qc_tables.xlsx`)
-#' with one sheet per table: `QC_matrix`, `recall_rate`, `cutoffs`,
-#' `ctrl_metrics`, `contamination`, `predUniqDonor_ID`. Sample metadata is
-#' written to a separate sheet `meta` in the same workbook. Beta values are
-#' excluded from xlsx (too large) and written as rds only.
+#' QC results are written into **two separate workbooks** (`{prefix}_qc_table_main.xlsx`
+#' and `{prefix}_qc_table_extra.xlsx`) for organized reporting:
+#'
+#' **{prefix}_qc_table_main.xlsx** (primary QC results):
+#'   - `metadata` sheet: Sample metadata augmented with Platform and Final.QC columns.
+#'   - `QC_matrix` sheet: Per-sample QC metrics (intensity, detection p-val, coverage, sex, etc.).
+#'   - `Ctrl_matrix` sheet: ewastools control metric scores (if available).
+#'   - `statistics` sheet: Per-Sample_Group summary (Total, PASS, FAIL, and ratios).
+#'
+#' **{prefix}_qc_table_extra.xlsx** (supplementary/technical results):
+#'   - `QC_metrics` sheet: Cutoff thresholds and decision rules (filtered to: criteria, cutoff, Final.QC).
+#'   - `contamination` sheet: SNP agreement matrix for sample swap detection (if available).
+#'   - `recall_rate` sheet: Per-probe detection statistics across cohort (if available).
+#'   - `predUniqDonor_ID` sheet: Predicted unique donors per Sample_Group (if available).
+#'
+#' Beta values are excluded from xlsx (too large) and written as rds only.
 #'
 #' **rds output:**
-#' Each object (`beta`, `meta`, individual QC tables) is saved as a separate
-#' `.rds` file for programmatic access.
+#' Entire MethQcSet object is saved as `{prefix}_qcset.rds` for programmatic access.
 #'
 #' **txt output:**
 #' Tab-delimited `.txt` files for beta, metadata, and each QC table separately.
@@ -124,67 +263,204 @@ methods::setMethod("export", "MethQcSet", function(x, outdir, format = c("xlsx",
   }
 
   # =========================================================================
-  # xlsx: single workbook — meta + all qc_tables as separate sheets
+  # xlsx: two workbooks — main (metadata, QC_matrix, Ctrl_matrix, statistics)
+  #                      + extra (QC_metrics, contamination, recall_rate, etc.)
   # =========================================================================
-  if ("xlsx" %in% format) {
-    if (!requireNamespace("openxlsx", quietly = TRUE)) {
-      warning("openxlsx not installed. Skipping xlsx export.")
-    } else {
-      wb <- openxlsx::createWorkbook()
+if ("xlsx" %in% format) {
 
-      # Sheet 1: metadata — augmented with Platform and Final.QC from QC_matrix
-      meta_out <- x@meta
-      meta_out[["Platform"]] <- x@platform
-      qcm <- x@qc_tables[["QC_matrix"]]
-      
-      # Match Final.QC from QC_matrix to metadata (handle case-sensitive column names)
-      if (!is.null(qcm) && "Final.QC" %in% colnames(qcm)) {
-        # Find the sample name column in QC_matrix (could be "SAMPLE_NAME" or "Sample_Name")
-        qc_sample_col <- intersect(c("SAMPLE_NAME", "Sample_Name"), colnames(qcm))[1]
-        # Find the sample name column in metadata (could be "Sample_Name" or "SAMPLE_NAME")
-        meta_sample_col <- intersect(c("Sample_Name", "SAMPLE_NAME"), colnames(meta_out))[1]
-        
-        if (!is.na(qc_sample_col) && !is.na(meta_sample_col)) {
-          idx <- match(as.character(meta_out[[meta_sample_col]]),
-                       as.character(qcm[[qc_sample_col]]))
-          if (!all(is.na(idx))) {
-            meta_out[["Final.QC"]] <- qcm[["Final.QC"]][idx]
-          }
+  if (!requireNamespace("openxlsx", quietly = TRUE)) {
+    warning("openxlsx not installed. Skipping xlsx export.")
+  } else {
+
+    # ===================================================================
+    # Prepare data and compute statistics (once, for both files)
+    # ===================================================================
+    qcm <- x@qc_tables[["QC_matrix"]]
+
+    # Compute/store statistics for main workbook
+    statistics_tbl <- if (!is.null(qcm)) .compute_statistics(qcm, x@meta) else NULL
+    if (!is.null(statistics_tbl)) {
+      x@statistics <- statistics_tbl
+    }
+
+    # Prepare metadata with Platform and Final.QC
+    meta_out <- x@meta
+    meta_out[["Platform"]] <- x@platform
+
+    if (!is.null(qcm) && "Final.QC" %in% colnames(qcm)) {
+      qc_sample_col <- intersect(
+        c("SAMPLE_NAME", "Sample_Name"),
+        colnames(qcm)
+      )[1]
+
+      meta_sample_col <- intersect(
+        c("Sample_Name", "SAMPLE_NAME"),
+        colnames(meta_out)
+      )[1]
+
+      if (!is.na(qc_sample_col) && !is.na(meta_sample_col)) {
+        idx <- match(
+          as.character(meta_out[[meta_sample_col]]),
+          as.character(qcm[[qc_sample_col]])
+        )
+
+        if (!all(is.na(idx))) {
+          meta_out[["Final.QC"]] <- qcm[["Final.QC"]][idx]
         }
       }
-      openxlsx::addWorksheet(wb, "meta")
-      openxlsx::writeData(wb, "meta", meta_out, rowNames = FALSE)
+    }
 
-      # One sheet per QC table (canonical order)
-      canonical_order <- c("QC_matrix", "recall_rate", "cutoffs",
-                           "ctrl_metrics", "contamination", "predUniqDonor_ID")
-      sheet_names <- c(canonical_order,
-                       setdiff(names(x@qc_tables), canonical_order))
+    # Prepare cutoffs for QC_metrics sheet
+    cutoffs_filtered <- if ("cutoffs" %in% names(x@qc_tables)) {
+      .prepare_cutoffs_for_export(x@qc_tables[["cutoffs"]])
+    } else {
+      NULL
+    }
 
-      for (tbl_name in sheet_names) {
-        tbl <- x@qc_tables[[tbl_name]]
-        if (is.null(tbl) || !is.data.frame(tbl)) next
-        # Sheet names max 31 chars
-        safe_name <- substr(tbl_name, 1, 31)
-        openxlsx::addWorksheet(wb, safe_name)
-        openxlsx::writeData(wb, safe_name, tbl, rowNames = FALSE)
+    # ===================================================================
+    # FILE 1: qc_table_main.xlsx
+    # Sheets: metadata, QC_matrix, Ctrl_matrix (opt), statistics
+    # ===================================================================
+    outfile_main <- file.path(outdir, paste0(prefix, "_qc_table_main.xlsx"))
+
+    if (file.exists(outfile_main)) {
+      file.remove(outfile_main)
+    }
+
+    # Sheet 1: metadata
+    SaveTableStyle(
+      dat = meta_out,
+      sheetName = "metadata",
+      file = outfile_main,
+      append = FALSE,
+      colNames = TRUE,
+      rowNames = FALSE,
+      condFmt = NULL,
+      autoColWidth = TRUE
+    )
+
+    # Sheet 2: QC_matrix
+    if (!is.null(qcm) && nrow(qcm) > 0 && ncol(qcm) > 0) {
+      condFmt_use <- if (exists("QC_final_Cutoffs")) QC_final_Cutoffs else NULL
+      SaveTableStyle(
+        dat = qcm,
+        sheetName = "QC_matrix",
+        file = outfile_main,
+        append = TRUE,
+        colNames = TRUE,
+        rowNames = FALSE,
+        condFmt = condFmt_use,
+        autoColWidth = TRUE
+      )
+    }
+
+    # Sheet 3: Ctrl_matrix (if available)
+    if ("ctrl_metrics" %in% names(x@qc_tables)) {
+      ctrl <- x@qc_tables[["ctrl_metrics"]]
+      if (!is.null(ctrl) && nrow(ctrl) > 0 && ncol(ctrl) > 0) {
+        condFmt_use <- if (exists("ctrlMatCutoffs")) ctrlMatCutoffs else NULL
+        SaveTableStyle(
+          dat = ctrl,
+          sheetName = "Ctrl_matrix",
+          file = outfile_main,
+          append = TRUE,
+          colNames = TRUE,
+          rowNames = FALSE,
+          condFmt = condFmt_use,
+          autoColWidth = TRUE
+        )
       }
+    }
 
-      outfile <- file.path(outdir, paste0(prefix, "_qc_tables.xlsx"))
-      tryCatch({
-        openxlsx::saveWorkbook(wb, outfile, overwrite = TRUE)
-        written_files <- c(written_files, outfile)
-        message("xlsx: wrote ", length(openxlsx::sheets(wb)), " sheets to ", basename(outfile))
-      }, error = function(e) {
-        warning("Could not write xlsx workbook: ", conditionMessage(e))
-      })
+    # Sheet 4: statistics (if computed)
+    if (!is.null(statistics_tbl) && nrow(statistics_tbl) > 0) {
+      SaveTableStyle(
+        dat = statistics_tbl,
+        sheetName = "statistics",
+        file = outfile_main,
+        append = TRUE,
+        colNames = TRUE,
+        rowNames = FALSE,
+        condFmt = NULL,
+        autoColWidth = TRUE
+      )
+    }
+
+    written_files <- c(written_files, outfile_main)
+    message("xlsx: wrote main qc tables to ", basename(outfile_main))
+
+    # ===================================================================
+    # FILE 2: qc_table_extra.xlsx
+    # Sheets: QC_metrics (filtered cutoffs), contamination, recall_rate, predUniqDonor_ID
+    # ===================================================================
+    outfile_extra <- file.path(outdir, paste0(prefix, "_qc_table_extra.xlsx"))
+
+    if (file.exists(outfile_extra)) {
+      file.remove(outfile_extra)
+    }
+
+    sheets_written <- 0L
+
+    # Sheet 1: QC_metrics (filtered cutoffs)
+    if (!is.null(cutoffs_filtered) && nrow(cutoffs_filtered) > 0 && ncol(cutoffs_filtered) > 0) {
+      SaveTableStyle(
+        dat = cutoffs_filtered,
+        sheetName = "QC_metrics",
+        file = outfile_extra,
+        append = FALSE,
+        colNames = TRUE,
+        rowNames = FALSE,
+        condFmt = NULL,
+        autoColWidth = TRUE
+      )
+      sheets_written <- sheets_written + 1L
+    }
+
+    # Remaining sheets: contamination, recall_rate, predUniqDonor_ID
+    extra_sheet_order <- c("contamination", "recall_rate", "predUniqDonor_ID")
+
+    for (tbl_name in extra_sheet_order) {
+      if (tbl_name %in% names(x@qc_tables)) {
+        tbl <- x@qc_tables[[tbl_name]]
+
+        if (!is.null(tbl) && is.data.frame(tbl) && nrow(tbl) > 0 && ncol(tbl) > 0) {
+          SaveTableStyle(
+            dat = tbl,
+            sheetName = tbl_name,
+            file = outfile_extra,
+            append = (sheets_written > 0L),
+            colNames = TRUE,
+            rowNames = FALSE,
+            condFmt = NULL,
+            autoColWidth = TRUE
+          )
+          sheets_written <- sheets_written + 1L
+        }
+      }
+    }
+
+    # Only add extra file to written_files if it has sheets
+    if (sheets_written > 0L) {
+      written_files <- c(written_files, outfile_extra)
+      message("xlsx: wrote extra qc tables to ", basename(outfile_extra))
     }
   }
+}
+
 
   # =========================================================================
   # txt: individual files for meta + beta + each QC table
   # =========================================================================
   if ("txt" %in% format) {
+    # Compute statistics once if needed (for both txt and xlsx)
+    qcm <- x@qc_tables[["QC_matrix"]]
+    if (is.null(x@statistics) && !is.null(qcm)) {
+      statistics_tbl <- .compute_statistics(qcm, x@meta)
+      if (!is.null(statistics_tbl)) {
+        x@statistics <- statistics_tbl
+      }
+    }
+
     # Beta matrix
     beta_df <- as.data.frame(x@beta)
     beta_df <- cbind(TargetID = rownames(x@beta), beta_df)
@@ -197,8 +473,23 @@ methods::setMethod("export", "MethQcSet", function(x, outdir, format = c("xlsx",
     write.table(x@meta, outfile, sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
     written_files <- c(written_files, outfile)
 
-    # Individual QC tables
+    # Explicitly export QC_matrix as qc_matrix.txt (primary file)
+    if (!is.null(qcm) && nrow(qcm) > 0) {
+      outfile <- file.path(outdir, paste0(prefix, "_qc_matrix.txt"))
+      write.table(qcm, outfile, sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+      written_files <- c(written_files, outfile)
+    }
+
+    # Explicitly export statistics as qc_statistics.txt (primary file)
+    if (!is.null(x@statistics) && nrow(x@statistics) > 0) {
+      outfile <- file.path(outdir, paste0(prefix, "_qc_statistics.txt"))
+      write.table(x@statistics, outfile, sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+      written_files <- c(written_files, outfile)
+    }
+
+    # Individual QC tables (skip QC_matrix to avoid duplication — already exported as qc_matrix.txt)
     for (qc_name in names(x@qc_tables)) {
+      if (qc_name == "QC_matrix") next  # Skip — already explicitly exported as qc_matrix.txt
       qc_table <- x@qc_tables[[qc_name]]
       if (!is.data.frame(qc_table)) next
       outfile <- file.path(outdir, paste0(prefix, "_qc_", qc_name, ".txt"))
@@ -234,8 +525,95 @@ methods::setMethod("export", "MethQcSet", function(x, outdir, format = c("xlsx",
     }
   }
 
-  summary_txt <- paste0(summary_txt, "\nQC Tables (sheets in xlsx): ",
-                        paste(summary_result$qc_tables, collapse = ", "), "\n")
+  # Format-aware export summary
+  summary_txt <- paste0(summary_txt, "\nExport Formats & Files\n")
+  summary_txt <- paste0(summary_txt, "======================\n")
+
+  if ("xlsx" %in% format) {
+    summary_txt <- paste0(summary_txt, "\n{prefix}_qc_table_main.xlsx (Primary QC Results):\n")
+    main_sheets <- c("metadata", "QC_matrix")
+    if ("ctrl_metrics" %in% names(x@qc_tables)) {
+      main_sheets <- c(main_sheets, "Ctrl_matrix")
+    }
+    if (!is.null(x@statistics) && nrow(x@statistics) > 0) {
+      main_sheets <- c(main_sheets, "statistics")
+    }
+    summary_txt <- paste0(summary_txt, "  Sheets: ", paste(main_sheets, collapse = ", "), "\n")
+
+    summary_txt <- paste0(summary_txt, "\n{prefix}_qc_table_extra.xlsx (Supplementary Results):\n")
+    extra_sheets <- character()
+    if ("cutoffs" %in% names(x@qc_tables)) {
+      extra_sheets <- c(extra_sheets, "QC_metrics")
+    }
+    if ("contamination" %in% names(x@qc_tables)) {
+      extra_sheets <- c(extra_sheets, "contamination")
+    }
+    if ("recall_rate" %in% names(x@qc_tables)) {
+      extra_sheets <- c(extra_sheets, "recall_rate")
+    }
+    if ("predUniqDonor_ID" %in% names(x@qc_tables)) {
+      extra_sheets <- c(extra_sheets, "predUniqDonor_ID")
+    }
+    if (length(extra_sheets) > 0) {
+      summary_txt <- paste0(summary_txt, "  Sheets: ", paste(extra_sheets, collapse = ", "), "\n")
+    } else {
+      summary_txt <- paste0(summary_txt, "  Sheets: (none)\n")
+    }
+  }
+
+  if ("txt" %in% format) {
+    summary_txt <- paste0(summary_txt, "\nTab-delimited Text Files:\n")
+    summary_txt <- paste0(summary_txt, "  Primary: {prefix}_qc_matrix.txt, {prefix}_qc_statistics.txt\n")
+    summary_txt <- paste0(summary_txt, "  Standard: {prefix}_beta.txt, {prefix}_meta.txt\n")
+    summary_txt <- paste0(summary_txt, "  Supplementary: {prefix}_qc_*.txt for each QC table\n")
+  }
+
+  if ("rds" %in% format) {
+    summary_txt <- paste0(summary_txt, "\nBinary RDS Archive:\n")
+    summary_txt <- paste0(summary_txt, "  {prefix}_qcset.rds (complete MethQcSet object)\n")
+  }
+
+  # Build Note section for missing sheets (sheets mentioned in export docs but not in object)
+  if ("xlsx" %in% format) {
+    # Track documented optional sheets (what we say we might create)
+    documented_optional <- c("Ctrl_matrix", "statistics", "QC_metrics", "contamination", "recall_rate", "predUniqDonor_ID")
+    
+    # Track which optional sheets actually exist in the object
+    actual_optional <- character()
+    if ("ctrl_metrics" %in% names(x@qc_tables)) {
+      actual_optional <- c(actual_optional, "Ctrl_matrix")
+    }
+    if (!is.null(x@statistics) && nrow(x@statistics) > 0) {
+      actual_optional <- c(actual_optional, "statistics")
+    }
+    if ("cutoffs" %in% names(x@qc_tables)) {
+      actual_optional <- c(actual_optional, "QC_metrics")
+    }
+    if ("contamination" %in% names(x@qc_tables)) {
+      actual_optional <- c(actual_optional, "contamination")
+    }
+    if ("recall_rate" %in% names(x@qc_tables)) {
+      actual_optional <- c(actual_optional, "recall_rate")
+    }
+    if ("predUniqDonor_ID" %in% names(x@qc_tables)) {
+      actual_optional <- c(actual_optional, "predUniqDonor_ID")
+    }
+    
+    # Compute missing sheets
+    missing_sheets <- setdiff(documented_optional, actual_optional)
+    
+    # Add Note section
+    summary_txt <- paste0(summary_txt, "\nNotes\n")
+    summary_txt <- paste0(summary_txt, "=====\n\n")
+    if (length(missing_sheets) > 0) {
+      summary_txt <- paste0(summary_txt, "The following sheets were not included in the exported workbook(s):\n")
+      for (sheet in missing_sheets) {
+        summary_txt <- paste0(summary_txt, "- ", sheet, "\n")
+      }
+    } else {
+      summary_txt <- paste0(summary_txt, "All documented sheets were successfully created.\n")
+    }
+  }
 
   summary_file <- file.path(outdir, paste0(prefix, "_summary.txt"))
   writeLines(summary_txt, summary_file)
@@ -278,13 +656,13 @@ if (!methods::isGeneric("plot")) {
 #'   \item{`detection_pval`}{Per-sample average detection p-value dot plot, colored by
 #'     `Final.QC`, with a horizontal reference line at `pcutoff`.}
 #'   \item{`probe_coverage`}{Per-sample percent of probes detected (dP < 0.05), colored by
-#'     `Final.QC`, with a reference line at 95\%.}
+#'     `Final.QC`, with a reference line at 95%.}
 #'   \item{`predicted_sex`}{Bar chart of predicted sex counts from `QC_matrix$predictedSex`.}
 #'   \item{`ctrl_metrics`}{Per-sample dot chart of ewastools `CtrlMetrics.QC` from `ctrl_metrics`.
 #'     Returns `NULL` silently if `ctrl_metrics` is absent.}
 #'   \item{`ctrl_metrics_detail`}{One jitter-dot plot per ewastools control metric
 #'     (Bisulfite Conversion, Specificity, Non-polymorphic). `outFile` is used as a
-#'     path prefix; individual files are saved as `{prefix}_CtrlMetrics_{Metric}.pdf`.
+#'     path prefix; individual files are saved as `{prefix}_ctrl_matrix_detail_{Metric}.pdf`.
 #'     Returns a named list of ggplot objects.}
 #' }
 #' All types return `NULL` with a message if the required data are not yet present.
@@ -562,7 +940,7 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
                     ggplot2::aes(label = SAMPLE_NAME), size = 2, color = "black")
 
       if (!is.null(out_prefix)) {
-        metric_file <- paste0(out_prefix, "_CtrlMetrics_",
+        metric_file <- paste0(out_prefix, "_ctrl_matrix_detail_",
                               gsub(" ", "_", metric), ".pdf")
         tryCatch({
           # Auto-adjust width based on number of samples (min 5 inches, ~0.15 per sample)

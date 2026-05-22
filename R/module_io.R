@@ -1,4 +1,4 @@
-﻿# Auto-refactored from utilities2.R
+# Auto-refactored from utilities2.R
 # Module: io
 
 .resolve_extdata_file <- function(filename) {
@@ -25,6 +25,7 @@
 #' @return Logical; `TRUE` if the sheet exists, otherwise `FALSE`.
 #' @export
 CheckSheetName <-function(xlsxFile, sheetName){
+    library("openxlsx")
     # check if a sheetName does exist in xlsxFile
     if (! file.exists(xlsxFile)) {
         cat(paste0("\nFile not found. [",basename(xlsxFile),"]\n"))
@@ -57,6 +58,7 @@ CheckSheetName <-function(xlsxFile, sheetName){
 #' @return Invisible side-effect function; writes workbook to disk.
 #' @export
 SaveTable <- function(dat, sheetName = NULL, file = NULL, append = FALSE, colNames = T, rowNames = T, autoColWidth = TRUE) {
+    library("openxlsx")
   if (any(length(dat)==0)){
      cat("\n\tError: Empty input for [SaveTable].")
      return(1)
@@ -115,6 +117,110 @@ SaveTable <- function(dat, sheetName = NULL, file = NULL, append = FALSE, colNam
 
 #-----------------------------------------------------
 
+#' Save a Table to Excel with Conditional Formatting
+#'
+#' Writes a data frame to an `.xlsx` sheet and applies conditional formatting
+#' based on pass/fail rules defined in a format specification data frame.
+#'
+#' @param dat Data frame or matrix to write.
+#' @param sheetName Optional worksheet name. Defaults to `"sheet1"`.
+#' @param file Output workbook path.
+#' @param append Logical; append/update existing workbook when `TRUE`.
+#' @param colNames Logical; write column names.
+#' @param rowNames Logical; write row names.
+#' @param condFmt Optional data frame with conditional formatting rules. Must contain columns:
+#'   - `Control`: column name in `dat`
+#'   - `Threshold`: threshold value (used for "Final.QC" / "QC" fields)
+#'   - `Pass`: expression or substring matching for pass condition (e.g., `">95"`)
+#'   - `Fail`: expression or substring matching for fail condition (e.g., `"<=95"`)
+#' @param autoColWidth Logical; auto-fit column widths.
+#'
+#' @return Invisible side-effect function; writes workbook to disk.
+#' @export
+SaveTableStyle <- function(dat, sheetName = NULL, file = NULL, append = FALSE, colNames = T, rowNames = T, condFmt = NULL, autoColWidth = TRUE) {
+  library("openxlsx")
+
+  if (any(length(dat)==0)){
+     cat("\n\tError: Empty input for [SaveTableStyle].")
+     return(1)
+  }
+  if (!append) {
+    wb1 <- createWorkbook()
+    if (file.exists(file)) {
+      unlink(file, force = TRUE)
+      cat("\n\t[deleted existing workbook]")
+    }
+  } else {
+    if (file.exists(file)) {
+      wb1 <- loadWorkbook(file = file)
+      cat("\n\t[loaded existing workbook]")
+    } else {
+      wb1 <- createWorkbook()
+    }
+  }
+  options("openxlsx.borderColour" = "#4F80BD")
+  options("openxlsx.borderStyle" = "thin")
+  sheetName <- ifelse(is.null(sheetName), "sheet1", strtrim(sheetName, 30))
+  if (file.exists(file)) {
+    if (CheckSheetName(file, sheetName) == TRUE) {
+      removeWorksheet(wb1, sheet = sheetName)
+      cat("[overwritten existing sheet]")
+    }
+  }
+  cat("\n")
+  addWorksheet(wb1, sheetName = sheetName, gridLines = FALSE)
+  writeDataTable(wb1, sheetName,
+    x = as.data.frame(dat),
+    colNames = colNames, rowNames = rowNames,
+    tableStyle = "TableStyleLight9"
+  )
+  if (!is.null(condFmt)) {
+    if (all(c("Pass", "Fail") %in% colnames(condFmt))) {
+      condFmtItems <- gsub("[_ -/]", ".", condFmt$Control)
+      datColNames <- gsub("[_ -/]", ".", colnames(dat))
+      commItems <- intersect(condFmtItems, datColNames)
+      maxRow <- nrow(dat) + 1
+      passStyle <- openxlsx::createStyle(fontColour = "#292b2c", bgFill = "#FFFFFF") # darkGray /white
+      failStyle <- openxlsx::createStyle(fontColour = "#f9f9f9", bgFill = "#d9534f") # bootstrap white /red
+      warnStyle <- createStyle(fontColour = "#363636", bgFill = "#ffe63b") # bootstrap black/yellow
+      for (cI in commItems) {
+        indRow_condFmt <- grep(cI, condFmtItems)
+        indCol_dat <- grep(cI, datColNames)
+        if (grepl("Final", datColNames[indCol_dat], ignore.case = T) | grepl("QC", datColNames[indCol_dat], ignore.case = T)) {
+          expType <- "contains"
+          openxlsx::conditionalFormatting(wb1, sheetName,
+            #cols = indCol_dat,
+            cols = if (rowNames) indCol_dat + 1 else indCol_dat,
+            rows = 2:maxRow, rule = condFmt$Threshold[indRow_condFmt], style = warnStyle, type = expType
+          )
+        } else {
+          expType <- "expression"
+        }
+        openxlsx::conditionalFormatting(wb1, sheetName,
+          cols = if (rowNames) indCol_dat + 1 else indCol_dat,
+          rows = 2:maxRow, rule = condFmt$Fail[indRow_condFmt], style = failStyle, type = expType
+        )
+        openxlsx::conditionalFormatting(wb1, sheetName,
+          cols = if (rowNames) indCol_dat + 1 else indCol_dat,
+          rows = 2:maxRow, rule = condFmt$Pass[indRow_condFmt], style = passStyle, type = expType
+        )
+      }
+    }
+  }
+  if (autoColWidth) {
+    if (rowNames) {
+      maxNcol <- ncol(dat) + 1
+    } else {
+      maxNcol <- ncol(dat)
+    }
+    setColWidths(wb1, sheetName, cols = 1:maxNcol, widths = "auto")
+  }
+  modifyBaseFont(wb1, fontSize = 10, fontName = "Arial Narrow")
+  saveWorkbook(wb1, file, overwrite = TRUE)
+}
+
+#-----------------------------------------------------
+
 #' Load a Table from XLSX or Tab-Delimited Text
 #'
 #' @param xlsxFile Input file path (`.xlsx` or text table).
@@ -131,11 +237,15 @@ LoadTable<-function(xlsxFile = xlsxFile, sheet=1, skipEmptyRows = FALSE, colName
         cat("\nYour input is not xlsx format.\n")
         df <- read.table(xlsxFile, sep="\t",header=colNames,fill=TRUE,stringsAsFactors = FALSE, quote="",row.names=NULL ,check.names=F)
     }else{
-        suppressMessages(library("openxlsx"))
+        library("openxlsx")
         df <- read.xlsx(xlsxFile, sheet = sheet, skipEmptyRows = skipEmptyRows, colNames = colNames, rowNames=rowNames,startRow = startRow)
     }
     return(df)
 }
+
+
+
+
 
 ######################################################
 
@@ -163,6 +273,7 @@ CheckSentrixID <- function(ids) {
   }
   res
 }
+
 
 ##################################################################
 

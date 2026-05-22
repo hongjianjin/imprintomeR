@@ -39,8 +39,8 @@ rownames(beta_mat) <- paste0("cg", sprintf("\%08d", seq_len(20)))
 colnames(beta_mat) <- c("S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10")
 
 meta_df <- data.frame(
-  SAMPLE_NAME = colnames(beta_mat),
-  SAMPLE_GROUP = rep(c("A", "B"), each = 5),
+  Sample_Name = colnames(beta_mat),
+  Sample_Group = rep(c("A", "B"), each = 5),
   stringsAsFactors = FALSE
 )
 
