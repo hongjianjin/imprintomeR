@@ -1903,8 +1903,8 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
   
   # Define our 8 mechanism anchors
   mechanism_labels <- c(
-    "Pat-Gain", "Global-Hyper", "Mat-Gain", "Mat-Gain/Pat-Loss", 
-    "Pat-Loss", "Global-Hypo", "Mat-Loss", "Pat-Gain/Mat-Loss"
+    "Pat-Gain", "Global-Hyper", "Mat-Gain", "Mat-Gain+Pat-Loss", 
+    "Pat-Loss", "Global-Hypo", "Mat-Loss", "Pat-Gain+Mat-Loss"
   )
   
   # Calculate break points in radians (0 to 2pi)
@@ -1944,7 +1944,7 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
                alpha = 0.6) +       
     geom_hline(yintercept = 0.2, color = "grey60", linewidth = 0.7, linetype = "solid")+
     geom_point(aes(fill = .data[[colorColumn]]),color= "grey30",shape=21,size=dotSize, alpha = alpha) +
-    coord_polar(theta = "x", start =0,clip = "off") +  # move 0 degree to 
+    coord_polar(theta = "x", start = -pi/2,clip = "off") +  # move 0 degree to 
     scale_x_continuous(
       limits = c(0, 360),
       breaks = degree_breaks,

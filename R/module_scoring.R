@@ -79,8 +79,8 @@ compute_angle <- function(paternal_median, maternal_median) {
 #' @export
 classify_mechanism <- function(angle_degrees, ids = NULL, roi_cutoff = 0.2) {
   mechanism_labels <- c(
-    "Pat-Gain", "Global-Hyper", "Mat-Gain", "Mat-Gain/Pat-Loss",
-    "Pat-Loss", "Global-Hypo", "Mat-Loss", "Pat-Gain/Mat-Loss"
+    "Pat-Gain", "Global-Hyper", "Mat-Gain", "Mat-Gain+Pat-Loss",
+    "Pat-Loss", "Global-Hypo", "Mat-Loss", "Pat-Gain+Mat-Loss"
   )
 
   shifted_degrees <- (angle_degrees + 22.5) %% 360

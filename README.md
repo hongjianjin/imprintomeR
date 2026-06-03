@@ -673,10 +673,22 @@ export(x, outdir = "your_analysis_output", save_plots = TRUE)
 ```
 
 ## Core Formulas
-
-- **IDS**: √((paternal_median - 0.5)² + (maternal_median - 0.5)²)
-- **Angle**: Direction from (0.5, 0.5) to (paternal, maternal)
 - **IDI**: (beta - 0.5) × 2
+- **IDS**: √((paternal_median - 0.5)² + (maternal_median - 0.5)²)
+- **Angle**: Directional angle in degrees measured counterclockwise from the positive x-axis representing the paternal allele (0°). The angle increases counterclockwise to indicate the methylation deviation direction
+
+### Angle Direction Mapping
+
+| Angle (°) | Biological Interpretation       |
+|-----------|--------------------------------|
+| 0°        | Mat-Gain                      |
+| 45°       | Global-Hyper                  |
+| 90°       | Pat-Gain                     |
+| 135°      | Pat-Gain + Mat-Loss          |
+| 180°      | Mat-Loss                     |
+| 225°      | Global-Hypo                  |
+| 270°      | Pat-Loss                     |
+| 315°      | Mat-Gain + Pat-Loss          |
 
 ## Vignettes
 
