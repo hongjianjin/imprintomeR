@@ -378,6 +378,7 @@ methods::setMethod(
     plot_name <- .imprint_get_arg_chr(args, "plot_name", NULL)
     result_name <- .imprint_get_arg_chr(args, "result_name", NULL)
     colorColumn <- .imprint_get_arg_chr(args, "colorColumn", "Sample_Group")
+    probeset_name <- .imprint_get_arg_chr(args, "probeset", "selected")
     # Determine plot-type-specific default title
     default_title <- switch(plot_type,
       "polar" = "ImprintomeR:Polar",
@@ -400,7 +401,7 @@ methods::setMethod(
     width <- if (!is.null(args$width)) as.numeric(args$width)[1] else 10
     height <- if (!is.null(args$height)) as.numeric(args$height)[1] else 10
     SAMPLEID <- .imprint_get_arg_chr(args, "SAMPLEID", "Sample_Name")
-    probeset_name <- .imprint_get_arg_chr(args, "probeset", "selected")
+    
     sample_id <- .imprint_get_arg_chr(args, "sample_id", NULL)
     chr_focus <- .imprint_get_arg_chr(args, "chr", NULL)
     prefix <- .imprint_get_arg_chr(args, "prefix", NULL)
@@ -505,6 +506,7 @@ methods::setMethod(
           outFile = outFile,
           colorColumn = colorColumn,
           title = title,
+          subtitle = paste0("Probeset: ", probeset_name),
           palette = palette,
           alpha = alpha
         )

@@ -1893,7 +1893,7 @@ VennDiagram <- function(vennList,setNames=NULL, style="venn", prefix=NULL){
 #' @param alpha Point alpha.
 #'
 #' @return A ggplot object.
-PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="ImprintomeR:Polar",palette="default", alpha=0.5) {
+PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="ImprintomeR:Polar", subtitle=NULL, palette="default", alpha=0.8) {
   library(ggplot2)
   options(bitmapType = "cairo")
 
@@ -1903,8 +1903,8 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
   
   # Define our 8 mechanism anchors
   mechanism_labels <- c(
-    "Pat-Gain", "Global-Hyper", "Mat-Gain", "Mat-Gain+Pat-Loss", 
-    "Pat-Loss", "Global-Hypo", "Mat-Loss", "Pat-Gain+Mat-Loss"
+    "Pat-Gain\n(0°)", "Global-Hyper\n(45°)", "Mat-Gain\n(90°)", "Mat-Gain+Pat-Loss\n(135°)", 
+    "Pat-Loss\n(180°)", "Global-Hypo\n(225°)", "Mat-Loss\n(270°)", "Pat-Gain+Mat-Loss\n(315°)"
   )
   
   # Calculate break points in radians (0 to 2pi)
@@ -1944,14 +1944,14 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
                alpha = 0.6) +       
     geom_hline(yintercept = 0.2, color = "grey60", linewidth = 0.7, linetype = "solid")+
     geom_point(aes(fill = .data[[colorColumn]]),color= "grey30",shape=21,size=dotSize, alpha = alpha) +
-    coord_polar(theta = "x", start = -pi/2,clip = "off") +  # move 0 degree to 
+    coord_polar(theta = "x", start = -pi/2,clip = "off", direction =-1) +  # move 0 degree to 3 o'clock like standard mathematics, counter-clock-wise
     scale_x_continuous(
       limits = c(0, 360),
       breaks = degree_breaks,
       labels = mechanism_labels,
       expand = c(0, 0)
     ) +
-     annotate("text", x = 90, y = y_ticks, label = y_labels, 
+     annotate("text", x = 0, y = y_ticks, label = y_labels, 
              size = 3.5, color = "darkred", fontface = "bold", vjust = -0.5) + 
     theme_minimal() +
     scale_y_continuous(
@@ -1976,12 +1976,13 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
     ) + 
       labs(
       title = title,
+      subtitle = subtitle,
       x = NULL, y = NULL
     )
 
     if(!is.null(outFile)){
-      plotWidth <- 10
-      plotHeight <- 10
+      plotWidth <- 8
+      plotHeight <- 8
       .imprint_save_plot(pg, outFile = outFile, width = plotWidth, height = plotHeight, units = "in", limitsize = TRUE)
     }
     return(pg)
