@@ -699,18 +699,8 @@ export(x, outdir = "your_analysis_output", save_plots = TRUE)
 
 ## Vignettes
 
-Detailed workflows and visualization tutorials are available in the package vignettes:
+Detailed workflows and visualization tutorials are available in the package vignettes in R after installation using:
 
-- [Quick Start](inst/doc/imprintomeset-quickstart.html) — Basic usage and preprocessing
-- [End-to-End Workflow](inst/doc/imprintomeR-workflow.html) — Comprehensive analysis process
-- [Visualization and Export](inst/doc/imprintomeset-results-export.html) — Detailed guide for visualization and exporting results
-
-- [Example with GSE52576 dataset](https://github.com/hongjianjin/imprintomeR/blob/master/vignettes/GSE52576.Rmd) — Real dataset example
-
-You can also view these vignettes in R after installation using:
-
-```r
-vignette("imprintomeset-quickstart")
-vignette("imprintomeR-workflow")
-vignette("imprintomeset-results-export")
-```
+- `vignette("imprintomeset-quickstart")` - Quick start
+- `vignette("imprintomeR-workflow")` - End-to-end workflow
+- `vignette("imprintomeset-results-export")` - Visualization and export
