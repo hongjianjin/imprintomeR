@@ -1,0 +1,87 @@
+---
+title: "imprintomeR Basic Workflow (Non-S4)"
+author: "imprintomeR Team"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{imprintomeR Basic Workflow (Non-S4)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Overview
+
+This vignette demonstrates a complete `imprintomeR` workflow using core functions without relying on S4 objects such as `ImprintomeSet`.
+
+### 1. Load Data
+
+```{r, eval=FALSE}
+library(imprintomeR)
+
+meta <- LoadMeta("meta.tsv")
+beta <- LoadBeta("cleaned_beta.tsv")
+```
+
+### 2. Run Analysis
+
+```{r, eval=FALSE}
+res <- AnalyzeImprintStatus(betaFile = beta, metaFile = meta, probeset = "selected", ids_cutoff = 0.2)
+head(res)
+```
+
+### 3. Visualization
+
+#### Polar Plot
+
+```{r, eval=FALSE}
+p_polar <- PlotPolar(
+  data = res,
+  colorColumn = "Sample_Group",
+  title = "imprintomeR Polar Plot",
+  outFile = "polar.pdf"
+)
+```
+
+#### Beeswarm Plot
+
+```{r, eval=FALSE}
+p_beeswarm <- BetaBeePlot(
+  beta = beta,
+  meta = meta,
+  SAMPLEID = "Sample_Name",
+  probeset = "selected",
+  outFile = "beeswarm.pdf"
+)
+```
+
+
+#### Heatmap by Gene
+
+You can generate gene-level aggregated methylation heatmaps directly using the `BetaHeatmapByGene()` function:
+
+```r
+hm <- BetaHeatmapByGene(
+  beta = beta,
+  meta = meta,
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  annoColumn = "Sample_Group",
+  clusterRows = TRUE,
+  clusterColumns = TRUE,
+  outFile = "heatmap_by_gene.pdf"
+)
+```
+
+This function aggregates probe-level beta values by gene using the median within each gene and produces a hierarchical clustered heatmap useful for identifying imprinting patterns across the sample cohort.
+
+## Session Info
+
+```{r, eval=FALSE}
+sessionInfo()
+```

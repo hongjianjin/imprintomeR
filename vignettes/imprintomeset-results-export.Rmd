@@ -199,9 +199,15 @@ p_bee_chr <- plot(x, plot_type = "beeswarm_chr", probeset = "selected",
 p_vln <- plot(x, plot_type = "violin", SAMPLEID = "SAMPLE_NAME",
         probeset = "selected",
               outFile = "demo_violin.pdf")
-p_heatmap <- plot(x, plot_type = "heatmap_by_probe", SAMPLEID = "SAMPLE_NAME",
+p_heatmap_by_probe <- plot(x, plot_type = "heatmap_by_probe", SAMPLEID = "SAMPLE_NAME",
           probeset = "selected",
-                  outFile = "demo_heatmap.pdf")
+                  outFile = "demo_heatmap_by_probe.pdf")
+
+p_heatmap_by_gene <- plot(  x,  plot_type = "heatmap_by_gene",  probeset = "selected",
+        SAMPLEID = "SAMPLE_NAME",  annoColumn = "SAMPLE_GROUP",
+        clusterRows = TRUE,  clusterColumns = TRUE,
+        outFile = "demo_heatmap_by_gene.pdf")
+
 p_circular <- plot(x, plot_type = "circular_heatmap", SAMPLEID = "SAMPLE_NAME",
                    sectionColumn = "SAMPLE_GROUP", probeset = "selected",
                    outFile = "demo_circular_heatmap.pdf")
@@ -393,15 +399,6 @@ plot(
   outFile = "beta_circular_heatmap.pdf"
 )
 
-# Alternatively, group by individual sample (one section per sample)
-plot(
-  x,
-  plot_type = "circular_heatmap",
-  SAMPLEID = "SAMPLE_NAME",
-  sectionColumn = "SAMPLE_NAME",
-  probeset = "selected",
-  outFile = "beta_circular_heatmap_by_sample.pdf"
-)
 ```
 
 ### 5.4 Heatmap Aggregated by Gene Symbol
@@ -437,21 +434,6 @@ plot(
   clusterRows = TRUE,
   clusterColumns = TRUE,
   outFile = "beta_heatmap_by_gene.pdf"
-)
-```
-
-Alternatively, using the backend function directly:
-
-```{r, eval = FALSE}
-hm <- BetaHeatmapByGene(
-  beta = beta(x),
-  meta = meta(x),
-  probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
-  annoColumn = "SAMPLE_GROUP",
-  clusterRows = TRUE,
-  clusterColumns = TRUE,
-  outFile = "beta_heatmap_by_gene_direct.pdf"
 )
 ```
 

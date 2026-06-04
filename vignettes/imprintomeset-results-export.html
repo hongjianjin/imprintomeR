@@ -158,9 +158,10 @@ qcset &lt;-<span class="st"> </span><span class="kw">runMethQC</span>(meta_epic)
 <span class="co"># qcset &lt;- runMethQC(meta, platform = &quot;EPIC&quot;)</span>
 
 <span class="kw">export</span>(qcset, <span class="dt">outdir =</span> <span class="st">&quot;qc_output&quot;</span>, <span class="dt">format =</span> <span class="kw">c</span>(<span class="st">&quot;xlsx&quot;</span>, <span class="st">&quot;rds&quot;</span>))
-<span class="co"># xlsx: single workbook with sheets — meta (+ Platform, Final.QC),</span>
-<span class="co">#   QC_matrix, recall_rate, cutoffs, ctrl_metrics, contamination,</span>
-<span class="co">#   predUniqDonor_ID. Beta saved as .rds only.</span>
+<span class="co"># xlsx: two workbooks for organized reporting:</span>
+<span class="co">#   1. qc_table_main.xlsx — metadata (+ Platform, Final.QC), QC_matrix, Ctrl_matrix, statistics</span>
+<span class="co">#   2. qc_table_extra.xlsx — QC_metrics (thresholds), contamination, recall_rate, predUniqDonor_ID</span>
+<span class="co"># rds: Full MethQcSet object for programmatic access</span>
 
 <span class="co"># QC visualizations</span>
 p_bar  &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;qc_bar&quot;</span>)                          <span class="co"># PASS/FAIL bar</span>
@@ -170,7 +171,7 @@ p_cov  &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span c
 p_sex  &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;predicted_sex&quot;</span>)                   <span class="co"># predicted sex</span>
 p_ctrl &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;ctrl_metrics&quot;</span>)                    <span class="co"># ewastools (if present)</span>
 <span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;ctrl_metrics_detail&quot;</span>,                       <span class="co"># per-metric detail PDFs</span>
-     <span class="dt">outFile =</span> <span class="st">&quot;qc_ctrl_metrics_detail&quot;</span>)
+     <span class="dt">outFile =</span> <span class="st">&quot;qc_ctrl_matrix_detail&quot;</span>)
 
 <span class="co"># EPICv2 only: aggregate replicate probes before conversion (required step)</span>
 <span class="co"># as.ImprintomeSet() will error if this is skipped for EPICv2 data.</span>
@@ -278,9 +279,15 @@ p_bee_chr &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span cl
 p_vln &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;violin&quot;</span>, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
         <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
               <span class="dt">outFile =</span> <span class="st">&quot;demo_violin.pdf&quot;</span>)
-p_heatmap &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;heatmap_by_probe&quot;</span>, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+p_heatmap_by_probe &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;heatmap_by_probe&quot;</span>, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
           <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-                  <span class="dt">outFile =</span> <span class="st">&quot;demo_heatmap.pdf&quot;</span>)
+                  <span class="dt">outFile =</span> <span class="st">&quot;demo_heatmap_by_probe.pdf&quot;</span>)
+
+p_heatmap_by_gene &lt;-<span class="st"> </span><span class="kw">plot</span>(  x,  <span class="dt">plot_type =</span> <span class="st">&quot;heatmap_by_gene&quot;</span>,  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
+        <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,  <span class="dt">annoColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
+        <span class="dt">clusterRows =</span> <span class="ot">TRUE</span>,  <span class="dt">clusterColumns =</span> <span class="ot">TRUE</span>,
+        <span class="dt">outFile =</span> <span class="st">&quot;demo_heatmap_by_gene.pdf&quot;</span>)
+
 p_circular &lt;-<span class="st"> </span><span class="kw">plot</span>(x, <span class="dt">plot_type =</span> <span class="st">&quot;circular_heatmap&quot;</span>, <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
                    <span class="dt">sectionColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>, <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
                    <span class="dt">outFile =</span> <span class="st">&quot;demo_circular_heatmap.pdf&quot;</span>)
@@ -441,16 +448,6 @@ p_bee_chr &lt;-<span class="st"> </span><span class="kw">plot</span>(
   <span class="dt">sectionColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;beta_circular_heatmap.pdf&quot;</span>
-)
-
-<span class="co"># Alternatively, group by individual sample (one section per sample)</span>
-<span class="kw">plot</span>(
-  x,
-  <span class="dt">plot_type =</span> <span class="st">&quot;circular_heatmap&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
-  <span class="dt">sectionColumn =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
-  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">outFile =</span> <span class="st">&quot;beta_circular_heatmap_by_sample.pdf&quot;</span>
 )</code></pre></div>
 </div>
 <div id="heatmap-aggregated-by-gene-symbol" class="section level3">
@@ -482,17 +479,6 @@ p_bee_chr &lt;-<span class="st"> </span><span class="kw">plot</span>(
   <span class="dt">clusterRows =</span> <span class="ot">TRUE</span>,
   <span class="dt">clusterColumns =</span> <span class="ot">TRUE</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;beta_heatmap_by_gene.pdf&quot;</span>
-)</code></pre></div>
-<p>Alternatively, using the backend function directly:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">hm &lt;-<span class="st"> </span><span class="kw">BetaHeatmapByGene</span>(
-  <span class="dt">beta =</span> <span class="kw">beta</span>(x),
-  <span class="dt">meta =</span> <span class="kw">meta</span>(x),
-  <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
-  <span class="dt">annoColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
-  <span class="dt">clusterRows =</span> <span class="ot">TRUE</span>,
-  <span class="dt">clusterColumns =</span> <span class="ot">TRUE</span>,
-  <span class="dt">outFile =</span> <span class="st">&quot;beta_heatmap_by_gene_direct.pdf&quot;</span>
 )</code></pre></div>
 </div>
 </div>
@@ -590,7 +576,13 @@ manifest &lt;-<span class="st"> </span><span class="kw">export</span>(
 )
 
 <span class="kw">head</span>(manifest)</code></pre></div>
-<p><code>export()</code> currently writes result tables and stored plot objects. QC tables remain available through <code>qc(x)</code> and <code>summarize(x)$qc</code>.</p>
+<p><code>export()</code> writes result tables and stored plot objects. QC tables remain available through <code>qc(x)</code> and <code>summarize(x)$qc</code>.</p>
+<p><strong>For MethQcSet export</strong>, the output includes a <code>summary.txt</code> file with an automatically-generated &quot;Notes&quot; section:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">export</span>(qcset, <span class="dt">outdir =</span> <span class="st">&quot;qc_output&quot;</span>, <span class="dt">format =</span> <span class="kw">c</span>(<span class="st">&quot;xlsx&quot;</span>, <span class="st">&quot;rds&quot;</span>))
+
+<span class="co"># Inspect the summary.txt file to see which sheets were created:</span>
+<span class="kw">readLines</span>(<span class="st">&quot;qc_output/methqcset_summary.txt&quot;</span>)</code></pre></div>
+<p>The Notes section documents any optional sheets that were not created due to missing underlying data (e.g., missing <code>ctrl_metrics</code>, <code>contamination</code>, etc.). This provides transparency about data availability during export.</p>
 </div>
 <div id="notes" class="section level2">
 <h2>9. Notes</h2>

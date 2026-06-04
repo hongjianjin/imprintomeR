@@ -196,7 +196,7 @@ p_ctrl &lt;-<span class="st"> </span><span class="kw">plot</span>(qcset, <span c
 <span class="co"># Per-metric detail plots (Bisulfite Conversion, Specificity, Non-polymorphic)</span>
 <span class="co"># outFile is used as a path prefix; one PDF is saved per control metric</span>
 <span class="kw">plot</span>(qcset, <span class="dt">type =</span> <span class="st">&quot;ctrl_metrics_detail&quot;</span>,
-     <span class="dt">outFile =</span> <span class="st">&quot;qc_ctrl_metrics_detail&quot;</span>)</code></pre></div>
+     <span class="dt">outFile =</span> <span class="st">&quot;qc_ctrl_matrix_detail&quot;</span>)</code></pre></div>
 <p>Export cleaned data:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">dir.create</span>(<span class="st">&quot;qc_output&quot;</span>, <span class="dt">showWarnings =</span> <span class="ot">FALSE</span>)
 
@@ -205,9 +205,12 @@ exported_files &lt;-<span class="st"> </span><span class="kw">export</span>(
   <span class="dt">outdir =</span> <span class="st">&quot;qc_output&quot;</span>,
   <span class="dt">format =</span> <span class="kw">c</span>(<span class="st">&quot;xlsx&quot;</span>, <span class="st">&quot;rds&quot;</span>)
 )
-<span class="co"># xlsx: single workbook (prefix_qc_tables.xlsx) with sheets:</span>
-<span class="co">#   meta (+ Platform, Final.QC columns), QC_matrix, recall_rate,</span>
-<span class="co">#   cutoffs, ctrl_metrics, contamination, predUniqDonor_ID</span></code></pre></div>
+<span class="co"># Creates two Excel workbooks:</span>
+<span class="co">#   qc_table_main.xlsx: metadata, QC_matrix, Ctrl_matrix (if available), statistics</span>
+<span class="co">#   qc_table_extra.xlsx: QC_metrics (thresholds), recall_rate (if available), </span>
+<span class="co">#                         contamination (if available), predUniqDonor_ID (if available)</span>
+<span class="co"># Plus: qcset.rds (full MethQcSet object)</span>
+<span class="co"># Plus: qcset_summary.txt (summary report with Notes section documenting missing sheets)</span></code></pre></div>
 <p>**If you already have QC-cleaned <a href="data:**" class="uri">data:**</a></p>
 <p>Skip MethQcSet and load pre-cleaned beta values. Note: <code>Basename</code> column is not needed since QC is already done.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">meta &lt;-<span class="st"> </span><span class="kw">LoadMeta</span>(<span class="st">&quot;meta.tsv&quot;</span>)  <span class="co"># Only needs Sample_Name and Sample_Group</span>
@@ -517,6 +520,9 @@ p_chr_from_object</code></pre></div>
 
 <span class="kw">head</span>(manifest)</code></pre></div>
 <p><code>export()</code> writes <code>results(x)</code> and optionally <code>plots(x)</code>.</p>
+<p><strong>For QC preprocessing (MethQcSet)</strong>, the export includes <code>summary.txt</code> with a &quot;Notes&quot; section documenting any optional sheets not created due to missing underlying data. Check it to understand data availability:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># View what sheets were and were not created</span>
+<span class="kw">readLines</span>(<span class="st">&quot;qc_output/methqcset_summary.txt&quot;</span>)</code></pre></div>
 </div>
 <div id="reproducibility-notes" class="section level2">
 <h2>9. Reproducibility Notes</h2>
