@@ -1932,7 +1932,7 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
   # sort chr1, chr2...
   data[,colorColumn] <- factor( data[,colorColumn], levels=stringr::str_sort( unique(data[,colorColumn]), numeric = TRUE) )
   
-  dotSize <-   4/log10(nrow(data)+10)
+  dotSize <-  max(3, 8/log10(nrow(data)+10)) # 4/log10(nrow(data)+10)
   imgSize <-  ifelse(nrow(data) >1000, 12, 8)
 
   pg <- ggplot(data, aes(x = Angle, y = IDS)) +
@@ -1943,7 +1943,7 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
                linewidth = 0.8, 
                alpha = 0.6) +       
     geom_hline(yintercept = 0.2, color = "grey60", linewidth = 0.7, linetype = "solid")+
-    geom_point(aes(fill = .data[[colorColumn]]),color= "grey30",shape=21,size=dotSize, alpha = alpha) +
+    geom_point(aes(fill = .data[[colorColumn]]),color= "grey30",shape=21,size=dotSize, alpha = alpha, stroke=0.5) +
     coord_polar(theta = "x", start = -pi/2,clip = "off", direction =-1) +  # move 0 degree to 3 o'clock like standard mathematics, counter-clock-wise
     scale_x_continuous(
       limits = c(0, 360),
@@ -1951,7 +1951,7 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
       labels = mechanism_labels,
       expand = c(0, 0)
     ) +
-     annotate("text", x = 0, y = y_ticks, label = y_labels, 
+     annotate("text", x = 45, y = y_ticks, label = y_labels, 
              size = 3.5, color = "darkred", fontface = "bold", vjust = -0.5) + 
     theme_minimal() +
     scale_y_continuous(
@@ -1972,13 +1972,15 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
       
       # Ensure labels don't get cut off
       plot.margin = margin(20, 20, 20, 20),
-      axis.text.x = element_text(size = 9, face = "bold")
+      axis.text.x = element_text(size = 10, face = "bold")
     ) + 
       labs(
       title = title,
       subtitle = subtitle,
       x = NULL, y = NULL
-    )
+    )+ 
+    theme( legend.position = "bottom"  ) +
+    guides( fill = guide_legend(nrow = 2))
 
     if(!is.null(outFile)){
       plotWidth <- 8
