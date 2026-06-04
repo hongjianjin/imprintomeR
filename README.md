@@ -39,7 +39,7 @@ For more details on data file management, see `data-raw/README.md`.
   - [Step 1: QC Preprocessing (MethQcSet)](#step-1-qc-preprocessing-methqcset--optional-if-data-already-cleaned)
   - [Step 2: Create Analysis Container (ImprintomeSet)](#step-2-create-analysis-container-imprintomeset)
   - [Step 3: Run Imprinting Analysis](#step-3-run-imprinting-analysis)
-  - [Step 4–7: Summarize, Visualize, Export](#step-4-7-summarize-visualize-export)
+  - [Step 4: Summarize, Visualize, Export](#step-4-7-summarize-visualize-export)
 - [Detailed Examples](#detailed-examples)
   - [MethQcSet: Platform-Specific Preprocessing](#methqcset-platform-specific-preprocessing)
   - [ImprintomeSet: Analysis Container](#imprintomeset-analysis-container)
@@ -702,5 +702,6 @@ export(x, outdir = "your_analysis_output", save_plots = TRUE)
 Detailed workflows and visualization tutorials are available in the package vignettes in R after installation using:
 
 - `vignette("imprintomeset-quickstart")` - Quick start
-- `vignette("imprintomeR-workflow")` - End-to-end workflow
 - `vignette("imprintomeset-results-export")` - Visualization and export
+- `vignette("imprintomeR-workflow-basic")` - End-to-end workflow using core functions without relying on S4 objects
+
