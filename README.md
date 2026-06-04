@@ -34,6 +34,7 @@ For more details on data file management, see `data-raw/README.md`.
 
 - [Installation](#installation)
 - [Architecture: Preprocessing-First Workflow](#architecture-preprocessing-first-workflow)
+- [Core Formulas](#core-formulas)
 - [Recommended Workflow](#recommended-workflow)
   - [Step 1: QC Preprocessing (MethQcSet)](#step-1-qc-preprocessing-methqcset--optional-if-data-already-cleaned)
   - [Step 2: Create Analysis Container (ImprintomeSet)](#step-2-create-analysis-container-imprintomeset)
@@ -49,7 +50,6 @@ For more details on data file management, see `data-raw/README.md`.
   - [Example Plots](#example-plots)
 - [Export Results](#export-results)
 - [Testing](#testing)
-- [Core Formulas](#core-formulas)
 - [Vignettes](#vignettes)
 
 ## Architecture: Preprocessing-First Workflow
@@ -73,6 +73,30 @@ Per-platform QC-clean MethQcSet
     ↓
 Visualize & Export
 ```
+
+## Core Formulas
+- Imprint Deviation Index(**IDI**): (beta - 0.5) × 2
+- Imprint Deviation Score(**IDS**): √((paternal_median - 0.5)² + (maternal_median - 0.5)²)
+- **Deviation Angle**: atan2(maternal_median - 0.5, paternal_median - 0.5) \
+
+The core formulas quantify imprinting deviations using multiple complementary metrics. The Imprint Deviation Score (IDS) computes the Euclidean distance from the balanced methylation state (0.5, 0.5) based on paternal and maternal median methylation values, capturing overall deviation magnitude. The Angle represents the direction of deviation in polar coordinates, indicating the relative contribution of paternal versus maternal methylation changes. The Imprint Deviation Index (IDI), calculated as ((\beta - 0.5) \times 2), quantifies per-probe deviation scaled between (-1) and (1), reflecting the magnitude and direction of methylation shift from the balanced state. Together, IDS, Angle, and IDI provide a comprehensive numeric framework for analyzing allele-specific methylation patterns.
+
+
+### Angle Direction Mapping
+The Angle Direction Mapping associates segments of the polar coordinate circle with specific biologically relevant methylation patterns. Each 45-degree sector corresponds to distinct imprinting mechanisms, such as paternal gain or maternal loss of methylation, or global hypo- or hypermethylation. This mapping facilitates intuitive interpretation of the polar plot by linking angular positions to parental allele-specific methylation changes.
+
+| Angle (°) | Mechanism Label                  |
+|-----------|--------------------------------|
+| 0°        | Pat-Gain                       |
+| 45°       | Global-Hyper                   |
+| 90°       | Mat-Gain                      |
+| 135°      | Mat-Gain + Pat-Loss            |
+| 180°      | Pat-Loss                      |
+| 225°      | Global-Hypo                   |
+| 270°      | Mat-Loss                      |
+| 315°      | Pat-Gain + Mat-Loss            |
+
+
 
 ## Recommended workflow
 
@@ -672,31 +696,21 @@ plot(x, plot_type = "polar", outFile = "polar.pdf")
 export(x, outdir = "your_analysis_output", save_plots = TRUE)
 ```
 
-## Core Formulas
-- **IDI**: (beta - 0.5) × 2
-- **IDS**: √((paternal_median - 0.5)² + (maternal_median - 0.5)²)
-- **Angle**: Directional angle in degrees measured counterclockwise from the positive x-axis representing the paternal allele (0°). The angle increases counterclockwise to indicate the methylation deviation direction
-
-
-### Angle Direction Mapping
-
-| Angle (°) | Mechanism Label                  |
-|-----------|--------------------------------|
-| 0°        | Pat-Gain                       |
-| 45°       | Global-Hyper                   |
-| 90°       | Mat-Gain                      |
-| 135°      | Mat-Gain + Pat-Loss            |
-| 180°      | Pat-Loss                      |
-| 225°      | Global-Hypo                   |
-| 270°      | Mat-Loss                      |
-| 315°      | Pat-Gain + Mat-Loss            |
-
-This mapping is used in the PlotPolar visualization and related analyses to represent specific biological methylation changes in maternal and paternal alleles.
 
 ## Vignettes
 
-For detailed workflows, see:
+Detailed workflows and visualization tutorials are available in the package vignettes:
 
-- `vignette("imprintomeset-quickstart")` - Quick start
-- `vignette("imprintomeR-workflow")` - End-to-end workflow
-- `vignette("imprintomeset-results-export")` - Visualization and export
+- [Quick Start](inst/doc/imprintomeset-quickstart.html) — Basic usage and preprocessing
+- [End-to-End Workflow](inst/doc/imprintomeR-workflow.html) — Comprehensive analysis process
+- [Visualization and Export](inst/doc/imprintomeset-results-export.html) — Detailed guide for visualization and exporting results
+
+- [Example with GSE52576 dataset](https://github.com/hongjianjin/imprintomeR/blob/master/vignettes/GSE52576.Rmd) — Real dataset example
+
+You can also view these vignettes in R after installation using:
+
+```r
+vignette("imprintomeset-quickstart")
+vignette("imprintomeR-workflow")
+vignette("imprintomeset-results-export")
+```
