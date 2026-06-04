@@ -1,3 +1,7 @@
+<p align="left">
+  <img src="images/logo_small.png" alt="imprintomeR Logo" width="120" />
+</p>
+
 # imprintomeR
 
 imprintomeR provides allele-aware analysis and visualization of genomic imprinting from methylation array data. The package enforces a **preprocessing-first workflow** using formal S4 containers:
