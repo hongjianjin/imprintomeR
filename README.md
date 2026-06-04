@@ -1,6 +1,6 @@
 <h1><img src="images/logo_small.png" alt="imprintomeR Logo" width="200" style="vertical-align: middle; margin-right: 10px;" />imprintomeR</h1>
 
-imprintomeR provides allele-aware analysis and visualization of genomic imprinting from methylation array data. The package enforces a **preprocessing-first workflow** using formal S4 containers:
+imprintomeR delivers comprehensive analysis and visualization of genomic imprinting from methylation array data. It enforces a robust S4 preprocessing-first workflow that integrates technical quality control (QC), computation of Imprinting Deviation Scores (IDS), and publication-quality visualizations. The package provides two formal S4 containers:
 
 - **MethQcSet**: Single-platform QC and preprocessing  
 - **ImprintomeSet**: Analysis-ready container for imprinting studies
