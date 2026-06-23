@@ -704,4 +704,5 @@ Detailed workflows and visualization tutorials are available in the package vign
 - `vignette("imprintomeset-quickstart")` - Quick start
 - `vignette("imprintomeset-results-export")` - Visualization and export
 - `vignette("imprintomeR-workflow-basic")` - End-to-end workflow using core functions without relying on S4 objects
+- [GSE52567.ipynb](vignettes/GSE52567.ipynb) - GitHub-renderable notebook for a public GEO workflow
 
