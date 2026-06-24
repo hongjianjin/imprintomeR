@@ -4,7 +4,7 @@
 \alias{runMethQC}
 \title{Load IDAT Files, Run Quality Control, and Create a MethQcSet}
 \usage{
-runMethQC(meta, platform = NA, pcutoff = 0.05, icutoff = 11, ...)
+runMethQC(meta, platform = NA, pcutoff = 0.05, ...)
 }
 \arguments{
 \item{meta}{A \code{data.frame} with columns:
@@ -32,7 +32,6 @@ run \code{check_platform(meta)} first.}
 
 \item{pcutoff}{Numeric. Maximum mean detection p-value to pass QC (default: 0.05).}
 
-\item{icutoff}{Numeric. Minimum median intensity to pass QC (default: 11).}
 
 \item{...}{Additional arguments passed to \code{minfi::read.metharray.exp()}.}
 }

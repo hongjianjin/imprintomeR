@@ -302,7 +302,7 @@ if (!methods::isGeneric("plot")) {
   used$Chromosome <- factor(used$Chromosome, levels = stringr::str_sort(unique(used$Chromosome), numeric = TRUE))
   used$ID <- as.character(used$Chromosome)
   num_groups <- length(unique(used$CATEGORY))
-  dot_size <- max(0.35, 1 - log10(nrow(used) + 1) / 6)
+  dot_size <- max(2, 2 - log10(nrow(used) + 1) / 6)
 
   pg <- ggplot2::ggplot(used, ggplot2::aes(x = interaction(ID, CATEGORY), y = value, color = CATEGORY)) +
     ggbeeswarm::geom_quasirandom(size = dot_size, alpha = alpha, pch = 20) +

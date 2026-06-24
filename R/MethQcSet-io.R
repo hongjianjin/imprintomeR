@@ -128,16 +128,15 @@ NULL
 check_platform <- function(meta, max_retries = 5) {
   if (!is.data.frame(meta)) stop("meta must be a data.frame.")
 
-  # Normalise BASENAME → Basename (minfi convention). Keep SAMPLE_NAME uppercase.
+  # Normalize legacy column names to package conventions.
   if ("BASENAME" %in% colnames(meta) && !"Basename" %in% colnames(meta))
     colnames(meta)[colnames(meta) == "BASENAME"] <- "Basename"
+  meta <- .normalize_methqc_sample_name(meta)
 
   if (!"Basename" %in% colnames(meta))
     stop("meta must contain a 'Basename' column with IDAT file path prefixes.")
 
   sample_names <- if ("Sample_Name" %in% colnames(meta)) {
-    meta$Sample_Name
-  } else if ("Sample_Name" %in% colnames(meta)) {
     meta$Sample_Name
   } else {
     as.character(seq_len(nrow(meta)))
@@ -205,7 +204,6 @@ check_platform <- function(meta, max_retries = 5) {
 #'       `Platform` column in meta is ignored.}
 #'   }
 #' @param pcutoff Numeric. Maximum mean detection p-value to pass QC (default: 0.05).
-#' @param icutoff Numeric. Minimum median intensity to pass QC (default: 11).
 #' @param ... Additional arguments passed to `minfi::read.metharray.exp()`.
 #'
 #' @return A `MethQcSet` object with:
@@ -237,16 +235,15 @@ check_platform <- function(meta, max_retries = 5) {
 #'   this function; [MethQcSet-class] for the returned object.
 #'
 #' @export
-runMethQC <- function(meta, platform = NA, pcutoff = 0.05, icutoff = 11, ...) {
+runMethQC <- function(meta, platform = NA, pcutoff = 0.05, ...) {
   if (!is.data.frame(meta)) stop("meta must be a data.frame.")
 
   # ------------------------------------------------------------------
-  # Step 0: Normalise BASENAME → Basename so minfi can find it.
-  #         SAMPLE_NAME is intentionally kept uppercase — MethQcSet
-  #         validity requires it in that form.
+  # Step 0: Normalize legacy column names to package conventions.
   # ------------------------------------------------------------------
   if ("BASENAME" %in% colnames(meta) && !"Basename" %in% colnames(meta))
     colnames(meta)[colnames(meta) == "BASENAME"] <- "Basename"
+  meta <- .normalize_methqc_sample_name(meta)
 
   # ------------------------------------------------------------------
   # Step 1: Resolve platform
@@ -283,8 +280,8 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05, icutoff = 11, ...) {
   det_pval <- minfi::detectionP(rgSet)
 
   # Align beta column names to sample identifier.
-  # Accept both LoadMeta() convention (SAMPLE_NAME) and minfi convention (Sample_Name).
-  sample_id_col <- intersect(c("Sample_Name", "Sample_Name"), colnames(meta))[1]
+  # Prefer Sample_Name; accept legacy SAMPLE_NAME for older metadata.
+  sample_id_col <- intersect(c("Sample_Name", "SAMPLE_NAME"), colnames(meta))[1]
   if (!is.na(sample_id_col)) {
     colnames(beta)     <- meta[[sample_id_col]]
     colnames(det_pval) <- meta[[sample_id_col]]
@@ -301,7 +298,7 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05, icutoff = 11, ...) {
   )
 
   message("Computing QC metrics...")
-  qcset <- computeQC(qcset, pcutoff = pcutoff, icutoff = icutoff)
+  qcset <- computeQC(qcset, pcutoff = pcutoff)
 
   # ------------------------------------------------------------------
   # Step 6: Compute intensity and merge into QC_matrix
@@ -311,19 +308,18 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05, icutoff = 11, ...) {
     uMed  <- log2(matrixStats::colMedians(minfi::getUnmeth(mSet), na.rm = TRUE))
     aveMed <- round((mMed + uMed) / 2, 2)
     intensity_df <- data.frame(
-      SAMPLE_NAME      = colnames(beta),
+      Sample_Name      = colnames(beta),
       mMed.Intensity   = round(mMed,  2),
       uMed.Intensity   = round(uMed,  2),
       aveMed.Intensity = aveMed,
       stringsAsFactors = FALSE
     )
     qm  <- qcset@qc_tables[["QC_matrix"]]
-    idx <- match(qm$SAMPLE_NAME, intensity_df$SAMPLE_NAME)
+    idx <- match(qm$Sample_Name, intensity_df$Sample_Name)
     qm$mMed.Intensity   <- intensity_df$mMed.Intensity[idx]
     qm$uMed.Intensity   <- intensity_df$uMed.Intensity[idx]
     qm$aveMed.Intensity <- intensity_df$aveMed.Intensity[idx]
-    # Downgrade to FAIL any sample below intensity cutoff
-    qm$Final.QC[!is.na(qm$aveMed.Intensity) & qm$aveMed.Intensity < icutoff] <- "FAIL"
+    # Intensity metrics are reported for review but do not determine Final.QC.
     qcset@qc_tables[["QC_matrix"]] <- qm
   }, error = function(e) {
     warning("Intensity computation skipped: ", conditionMessage(e))
@@ -336,7 +332,7 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05, icutoff = 11, ...) {
     gMset  <- minfi::mapToGenome(mSet)
     estSex <- minfi::getSex(gMset)
     qm     <- qcset@qc_tables[["QC_matrix"]]
-    qm$predictedSex <- estSex$predictedSex[match(qm$SAMPLE_NAME, rownames(estSex))]
+    qm$predictedSex <- estSex$predictedSex[match(qm$Sample_Name, rownames(estSex))]
     qcset@qc_tables[["QC_matrix"]] <- qm
   }, error = function(e) {
     message("predictedSex not computed: ", conditionMessage(e))
@@ -356,7 +352,7 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05, icutoff = 11, ...) {
       ctrl_df <- as.data.frame(do.call(cbind, lapply(ctrls, as.numeric)))
       colnames(ctrl_df) <- names(ctrls)
       ctrl_df <- cbind(
-        data.frame(SAMPLE_NAME = colnames(beta), stringsAsFactors = FALSE),
+        data.frame(Sample_Name = colnames(beta), stringsAsFactors = FALSE),
         round(ctrl_df, 2)
       )
       ctrl_df$CtrlMetrics.QC <- ifelse(ewastools::sample_failure(ctrls), "FAIL", "PASS")
@@ -364,7 +360,7 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05, icutoff = 11, ...) {
 
       # Update Final.QC to also require ctrl_metrics PASS
       qm  <- qcset@qc_tables[["QC_matrix"]]
-      idx <- match(qm$SAMPLE_NAME, ctrl_df$SAMPLE_NAME)
+      idx <- match(qm$Sample_Name, ctrl_df$Sample_Name)
       ctrl_qc <- ctrl_df$CtrlMetrics.QC[idx]
       qm$Final.QC[!is.na(ctrl_qc) & ctrl_qc == "FAIL"] <- "FAIL"
       qcset@qc_tables[["QC_matrix"]] <- qm
@@ -393,8 +389,8 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05, icutoff = 11, ...) {
           predictedDonorID = d,
           PASS_COUNT = sum(pass),
           FAIL_COUNT = sum(!pass),
-          PASS_IDs   = paste(qm$SAMPLE_NAME[idx][pass],  collapse = ","),
-          FAIL_IDs   = paste(qm$SAMPLE_NAME[idx][!pass], collapse = ","),
+          PASS_IDs   = paste(qm$Sample_Name[idx][pass],  collapse = ","),
+          FAIL_IDs   = paste(qm$Sample_Name[idx][!pass], collapse = ","),
           TOTAL      = sum(idx),
           stringsAsFactors = FALSE
         )

@@ -23,13 +23,21 @@ library(testthat)
 test_that("computeQC computes QC metrics", {
   obj <- .create_test_methqcset(n_samples = 3, n_probes = 100)
 
-  obj_qc <- computeQC(obj, pcutoff = 0.05, icutoff = 10)
+  obj_qc <- computeQC(obj, pcutoff = 0.05)
 
   expect_true("QC_matrix" %in% names(qc_tables(obj_qc)))
 
   qc_matrix <- qc_tables(obj_qc)[["QC_matrix"]]
   expect_equal(nrow(qc_matrix), 3)
+  expect_true("Sample_Name" %in% colnames(qc_matrix))
+  expect_false("SAMPLE_NAME" %in% colnames(qc_matrix))
   expect_true("Final.QC" %in% colnames(qc_matrix))
+
+  cutoffs <- qc_tables(obj_qc)[["cutoffs"]]
+  intensity_row <- cutoffs[cutoffs$criteria == "log2MedianIntensity", ]
+  expect_equal(intensity_row$cutoff, "reported")
+  expect_true(is.na(intensity_row$Final.QC))
+  expect_false("icutoff" %in% names(qc_params(obj_qc)))
 })
 
 # Test aggregate_probes

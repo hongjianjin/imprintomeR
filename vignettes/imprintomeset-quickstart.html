@@ -353,7 +353,7 @@ p_auto &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;auto&quot;</span>,
   <span class="dt">result_name =</span> <span class="st">&quot;AnalyzeImprintStatus.selected&quot;</span>,
-  <span class="dt">colorColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
+  <span class="dt">colorColumn =</span> <span class="st">&quot;Sample_Group&quot;</span>,
   <span class="dt">title =</span> <span class="st">&quot;ImprintomeSet Auto&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_auto.pdf&quot;</span>
 )
@@ -363,7 +363,7 @@ p_polar &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;polar&quot;</span>,
   <span class="dt">result_name =</span> <span class="st">&quot;AnalyzeImprintStatus.selected&quot;</span>,
-  <span class="dt">colorColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
+  <span class="dt">colorColumn =</span> <span class="st">&quot;Sample_Group&quot;</span>,
   <span class="dt">title =</span> <span class="st">&quot;ImprintomeSet Polar&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_polar.pdf&quot;</span>
 )
@@ -373,7 +373,7 @@ p_mirror &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;mirror_density&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_mirror.pdf&quot;</span>
 )
 
@@ -382,7 +382,7 @@ p_bee &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_beeswarm.pdf&quot;</span>
 )
 
@@ -391,7 +391,7 @@ p_bee_origin &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;beeswarm_origin&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
   <span class="dt">title =</span> <span class="st">&quot;Beeswarm Origin (Cohort)&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_beeswarm_origin.pdf&quot;</span>
 )
@@ -412,7 +412,7 @@ p_violin &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;violin&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_violin.pdf&quot;</span>
 )
 
@@ -421,7 +421,7 @@ p_heatmap &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;heatmap_by_probe&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_heatmap.pdf&quot;</span>
 )
 
@@ -430,8 +430,8 @@ p_heatmap_by_gene &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;heatmap_by_gene&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
-  <span class="dt">annoColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
+  <span class="dt">annoColumn =</span> <span class="st">&quot;Sample_Group&quot;</span>,
   <span class="dt">clusterRows =</span> <span class="ot">TRUE</span>,
   <span class="dt">clusterColumns =</span> <span class="ot">TRUE</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_heatmap_by_gene.pdf&quot;</span>
@@ -441,8 +441,8 @@ p_heatmap_by_gene &lt;-<span class="st"> </span><span class="kw">plot</span>(
 p_circular &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;circular_heatmap&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
-  <span class="dt">sectionColumn =</span> <span class="st">&quot;SAMPLE_GROUP&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
+  <span class="dt">sectionColumn =</span> <span class="st">&quot;Sample_Group&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
   <span class="dt">outFile =</span> <span class="st">&quot;imprintomeset_quickstart_circular_heatmap.pdf&quot;</span>
 )
@@ -452,7 +452,7 @@ cor_mat &lt;-<span class="st"> </span><span class="kw">plot</span>(
   x,
   <span class="dt">plot_type =</span> <span class="st">&quot;cor_heatmap&quot;</span>,
   <span class="dt">probeset =</span> <span class="st">&quot;selected&quot;</span>,
-  <span class="dt">SAMPLEID =</span> <span class="st">&quot;SAMPLE_NAME&quot;</span>,
+  <span class="dt">SAMPLEID =</span> <span class="st">&quot;Sample_Name&quot;</span>,
   <span class="dt">prefix =</span> <span class="st">&quot;imprintomeset_quickstart&quot;</span>
 )
 
@@ -527,7 +527,7 @@ p_chr_from_object</code></pre></div>
 <div id="reproducibility-notes" class="section level2">
 <h2>9. Reproducibility Notes</h2>
 <ul>
-<li>Keep beta columns aligned with <code>meta$SAMPLE_NAME</code>.</li>
+<li>Keep beta columns aligned with <code>meta$Sample_Name</code>.</li>
 <li>Preserve maternal/paternal origin labels in probeset annotations.</li>
 <li>Keep metric definitions unchanged unless method contracts are explicitly updated.</li>
 <li>For reproducible QC workflows, save MethQcSet summaries with <code>qc_summarize()</code>.</li>

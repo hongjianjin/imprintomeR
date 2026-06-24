@@ -307,7 +307,7 @@ p_auto <- plot(
   x,
   plot_type = "auto",
   result_name = "AnalyzeImprintStatus.selected",
-  colorColumn = "SAMPLE_GROUP",
+  colorColumn = "Sample_Group",
   title = "ImprintomeSet Auto",
   outFile = "imprintomeset_quickstart_auto.pdf"
 )
@@ -317,7 +317,7 @@ p_polar <- plot(
   x,
   plot_type = "polar",
   result_name = "AnalyzeImprintStatus.selected",
-  colorColumn = "SAMPLE_GROUP",
+  colorColumn = "Sample_Group",
   title = "ImprintomeSet Polar",
   outFile = "imprintomeset_quickstart_polar.pdf"
 )
@@ -327,7 +327,7 @@ p_mirror <- plot(
   x,
   plot_type = "mirror_density",
   probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
+  SAMPLEID = "Sample_Name",
   outFile = "imprintomeset_quickstart_mirror.pdf"
 )
 
@@ -336,7 +336,7 @@ p_bee <- plot(
   x,
   plot_type = "beeswarm",
   probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
+  SAMPLEID = "Sample_Name",
   outFile = "imprintomeset_quickstart_beeswarm.pdf"
 )
 
@@ -345,7 +345,7 @@ p_bee_origin <- plot(
   x,
   plot_type = "beeswarm_origin",
   probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
+  SAMPLEID = "Sample_Name",
   title = "Beeswarm Origin (Cohort)",
   outFile = "imprintomeset_quickstart_beeswarm_origin.pdf"
 )
@@ -366,7 +366,7 @@ p_violin <- plot(
   x,
   plot_type = "violin",
   probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
+  SAMPLEID = "Sample_Name",
   outFile = "imprintomeset_quickstart_violin.pdf"
 )
 
@@ -375,7 +375,7 @@ p_heatmap <- plot(
   x,
   plot_type = "heatmap_by_probe",
   probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
+  SAMPLEID = "Sample_Name",
   outFile = "imprintomeset_quickstart_heatmap.pdf"
 )
 
@@ -384,8 +384,8 @@ p_heatmap_by_gene <- plot(
   x,
   plot_type = "heatmap_by_gene",
   probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
-  annoColumn = "SAMPLE_GROUP",
+  SAMPLEID = "Sample_Name",
+  annoColumn = "Sample_Group",
   clusterRows = TRUE,
   clusterColumns = TRUE,
   outFile = "imprintomeset_quickstart_heatmap_by_gene.pdf"
@@ -395,8 +395,8 @@ p_heatmap_by_gene <- plot(
 p_circular <- plot(
   x,
   plot_type = "circular_heatmap",
-  SAMPLEID = "SAMPLE_NAME",
-  sectionColumn = "SAMPLE_GROUP",
+  SAMPLEID = "Sample_Name",
+  sectionColumn = "Sample_Group",
   probeset = "selected",
   outFile = "imprintomeset_quickstart_circular_heatmap.pdf"
 )
@@ -406,7 +406,7 @@ cor_mat <- plot(
   x,
   plot_type = "cor_heatmap",
   probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
+  SAMPLEID = "Sample_Name",
   prefix = "imprintomeset_quickstart"
 )
 
@@ -491,7 +491,7 @@ readLines("qc_output/methqcset_summary.txt")
 
 ## 9. Reproducibility Notes
 
-- Keep beta columns aligned with `meta$SAMPLE_NAME`.
+- Keep beta columns aligned with `meta$Sample_Name`.
 - Preserve maternal/paternal origin labels in probeset annotations.
 - Keep metric definitions unchanged unless method contracts are explicitly updated.
 - For reproducible QC workflows, save MethQcSet summaries with `qc_summarize()`.

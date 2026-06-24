@@ -15,7 +15,7 @@ MethQcSet(
 )
 }
 \arguments{
-\item{meta}{data.frame containing sample metadata with \code{SAMPLE_NAME} column.}
+\item{meta}{data.frame containing sample metadata with \code{Sample_Name} column.}
 
 \item{platform}{Character scalar for platform identifier ("450K", "EPIC", "EPICv2", "mouse").}
 

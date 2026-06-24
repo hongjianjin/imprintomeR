@@ -4,7 +4,7 @@
 \alias{computeQC,MethQcSet-method}
 \title{Compute QC Metrics on a MethQcSet}
 \usage{
-\S4method{computeQC}{MethQcSet}(x, detection_pval = NULL, pcutoff = 0.05, icutoff = 11, ...)
+\S4method{computeQC}{MethQcSet}(x, detection_pval = NULL, pcutoff = 0.05, ...)
 }
 \arguments{
 \item{x}{A \code{MethQcSet} object.}
@@ -13,7 +13,6 @@
 
 \item{pcutoff}{Numeric, maximum mean detection p-value cutoff (default: 0.05).}
 
-\item{icutoff}{Numeric, minimum median intensity cutoff (default: 11).}
 
 \item{...}{Additional arguments (reserved for future use).}
 }

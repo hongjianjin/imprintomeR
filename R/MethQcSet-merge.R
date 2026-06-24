@@ -25,7 +25,7 @@ if (!methods::isGeneric("merge")) {
 #'
 #' @return A single `MethQcSet` object with:
 #'   \itemize{
-#'     \item Metadata deduplicated by `SAMPLE_NAME` and merged
+#'     \item Metadata deduplicated by `Sample_Name` and merged
 #'     \item Beta matrices joined by probe `TargetID` (rownames)
 #'     \item Metadata reordered to match final beta sample order
 #'     \item Detection p-values aligned if present in all inputs
@@ -35,7 +35,7 @@ if (!methods::isGeneric("merge")) {
 #' @details
 #' **Merge Contract (Synchronized Operation):**
 #' 1. Validates all inputs are same platform
-#' 2. Merges metadata: stack by rows, deduplicate by SAMPLE_NAME (keeping first occurrence)
+#' 2. Merges metadata: stack by rows, deduplicate by Sample_Name (keeping first occurrence)
 #' 3. Merges beta matrices: join by TargetID (rownames), concat by sample columns
 #' 4. Merges detection p-values: same method as beta (if present)
 #' 5. Reorders metadata to match final beta column order
@@ -189,9 +189,17 @@ methods::setMethod("merge", "MethQcSet", function(x, y, how = "inner", ...) {
       qc_table <- do.call(rbind, qc_list)
       rownames(qc_table) <- NULL
 
-      # Filter to final samples if Sample_Name column exists
-      if ("Sample_Name" %in% colnames(qc_table)) {
-        qc_table <- qc_table[qc_table$Sample_Name %in% final_samples, ]
+      # Filter to final samples if a sample-name column exists.
+      qc_sample_col <- intersect(c("Sample_Name", "SAMPLE_NAME"), colnames(qc_table))[1]
+      if (!is.na(qc_sample_col)) {
+        qc_table <- qc_table[qc_table[[qc_sample_col]] %in% final_samples, , drop = FALSE]
+        if (qc_sample_col != "Sample_Name") {
+          if ("Sample_Name" %in% colnames(qc_table)) {
+            qc_table[[qc_sample_col]] <- NULL
+          } else {
+            colnames(qc_table)[colnames(qc_table) == qc_sample_col] <- "Sample_Name"
+          }
+        }
       }
 
       qc_tables_merged[[qc_name]] <- qc_table

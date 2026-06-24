@@ -15,7 +15,7 @@ in the analysis workflow and serves as the preprocessing/QC container.
 \section{Slots}{
 
 \describe{
-\item{\code{meta}}{data.frame of sample metadata. Must include \code{SAMPLE_NAME} column. Row order must match beta column order.}
+\item{\code{meta}}{data.frame of sample metadata. Must include \code{Sample_Name} column. Row order must match beta column order.}
 
 \item{\code{platform}}{Character scalar indicating platform ("450K", "EPIC", "EPICv2", "mouse").}
 
@@ -28,7 +28,7 @@ in the analysis workflow and serves as the preprocessing/QC container.
 
 \item{\code{aggregation_status}}{Character scalar: "none", "epicv2_aggregated", or other flag.}
 
-\item{\code{qc_params}}{Named list of QC parameters used (pcutoff, icutoff, method, etc.).}
+\item{\code{qc_params}}{Named list of QC parameters used (pcutoff, method, etc.).}
 
 \item{\code{statistics}}{data.frame or NULL. Per-group QC statistics (GROUP, Total, PASS, FAIL, PASS.RATIO, FAIL.RATIO).
 Populated on export when Sample_Group is present in metadata.}

@@ -93,7 +93,7 @@ qc_summarize <- function(x, ...) {
   }
 
   # Identify sample name column in qc_matrix
-  qc_sample_col <- intersect(c("SAMPLE_NAME", "Sample_Name"), colnames(qc_matrix))[1]
+  qc_sample_col <- intersect(c("Sample_Name", "SAMPLE_NAME"), colnames(qc_matrix))[1]
   if (is.na(qc_sample_col)) {
     return(NULL)
   }
@@ -167,6 +167,25 @@ qc_summarize <- function(x, ...) {
   }
 
   df_stats
+}
+
+.methqc_sample_col <- function(df) {
+  sample_col <- intersect(c("Sample_Name", "SAMPLE_NAME"), colnames(df))[1]
+  if (is.na(sample_col)) NULL else sample_col
+}
+
+.canonicalize_methqc_sample_col <- function(df) {
+  if (!is.data.frame(df)) return(df)
+  sample_col <- .methqc_sample_col(df)
+  if (is.null(sample_col)) return(df)
+  if (sample_col != "Sample_Name") {
+    if ("Sample_Name" %in% colnames(df)) {
+      df[[sample_col]] <- NULL
+    } else {
+      colnames(df)[colnames(df) == sample_col] <- "Sample_Name"
+    }
+  }
+  df
 }
 
 # ============================================================================
@@ -275,7 +294,7 @@ if ("xlsx" %in% format) {
     # ===================================================================
     # Prepare data and compute statistics (once, for both files)
     # ===================================================================
-    qcm <- x@qc_tables[["QC_matrix"]]
+    qcm <- .canonicalize_methqc_sample_col(x@qc_tables[["QC_matrix"]])
 
     # Compute/store statistics for main workbook
     statistics_tbl <- if (!is.null(qcm)) .compute_statistics(qcm, x@meta) else NULL
@@ -284,12 +303,12 @@ if ("xlsx" %in% format) {
     }
 
     # Prepare metadata with Platform and Final.QC
-    meta_out <- x@meta
+    meta_out <- .normalize_methqc_sample_name(x@meta)
     meta_out[["Platform"]] <- x@platform
 
     if (!is.null(qcm) && "Final.QC" %in% colnames(qcm)) {
       qc_sample_col <- intersect(
-        c("SAMPLE_NAME", "Sample_Name"),
+        c("Sample_Name", "SAMPLE_NAME"),
         colnames(qcm)
       )[1]
 
@@ -356,7 +375,7 @@ if ("xlsx" %in% format) {
 
     # Sheet 3: Ctrl_matrix (if available)
     if ("ctrl_metrics" %in% names(x@qc_tables)) {
-      ctrl <- x@qc_tables[["ctrl_metrics"]]
+      ctrl <- .canonicalize_methqc_sample_col(x@qc_tables[["ctrl_metrics"]])
       if (!is.null(ctrl) && nrow(ctrl) > 0 && ncol(ctrl) > 0) {
         condFmt_use <- if (exists("ctrlMatCutoffs")) ctrlMatCutoffs else NULL
         SaveTableStyle(
@@ -421,7 +440,7 @@ if ("xlsx" %in% format) {
 
     for (tbl_name in extra_sheet_order) {
       if (tbl_name %in% names(x@qc_tables)) {
-        tbl <- x@qc_tables[[tbl_name]]
+        tbl <- .canonicalize_methqc_sample_col(x@qc_tables[[tbl_name]])
 
         if (!is.null(tbl) && is.data.frame(tbl) && nrow(tbl) > 0 && ncol(tbl) > 0) {
           SaveTableStyle(
@@ -453,7 +472,7 @@ if ("xlsx" %in% format) {
   # =========================================================================
   if ("txt" %in% format) {
     # Compute statistics once if needed (for both txt and xlsx)
-    qcm <- x@qc_tables[["QC_matrix"]]
+    qcm <- .canonicalize_methqc_sample_col(x@qc_tables[["QC_matrix"]])
     if (is.null(x@statistics) && !is.null(qcm)) {
       statistics_tbl <- .compute_statistics(qcm, x@meta)
       if (!is.null(statistics_tbl)) {
@@ -470,7 +489,7 @@ if ("xlsx" %in% format) {
 
     # Metadata
     outfile <- file.path(outdir, paste0(prefix, "_meta.txt"))
-    write.table(x@meta, outfile, sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+    write.table(.normalize_methqc_sample_name(x@meta), outfile, sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
     written_files <- c(written_files, outfile)
 
     # Explicitly export QC_matrix as qc_matrix.txt (primary file)
@@ -490,7 +509,7 @@ if ("xlsx" %in% format) {
     # Individual QC tables (skip QC_matrix to avoid duplication — already exported as qc_matrix.txt)
     for (qc_name in names(x@qc_tables)) {
       if (qc_name == "QC_matrix") next  # Skip — already explicitly exported as qc_matrix.txt
-      qc_table <- x@qc_tables[[qc_name]]
+      qc_table <- .canonicalize_methqc_sample_col(x@qc_tables[[qc_name]])
       if (!is.data.frame(qc_table)) next
       outfile <- file.path(outdir, paste0(prefix, "_qc_", qc_name, ".txt"))
       write.table(qc_table, outfile, sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
@@ -679,7 +698,7 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
   qc_colors <- c("PASS" = "#1B9E77", "FAIL" = "#D95F02")
 
   .get_qcm <- function(x) {
-    qcm <- x@qc_tables[["QC_matrix"]]
+    qcm <- .canonicalize_methqc_sample_col(x@qc_tables[["QC_matrix"]])
     if (is.null(qcm)) {
       message("QC_matrix not found in qc_tables. Run runMethQC() first.")
       return(NULL)
@@ -717,7 +736,7 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
   } else if (type == "intensity") {
     qcm <- .get_qcm(x)
     if (is.null(qcm)) return(NULL)
-    need <- c("mMed.Intensity", "uMed.Intensity", "SAMPLE_NAME")
+    need <- c("mMed.Intensity", "uMed.Intensity", "Sample_Name")
     missing_cols <- setdiff(need, colnames(qcm))
     if (length(missing_cols)) {
       message("Missing columns for intensity plot: ", paste(missing_cols, collapse = ", "))
@@ -736,7 +755,7 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
     
     plot_obj <- ggplot2::ggplot(qcm,
         ggplot2::aes(x = mMed.Intensity, y = uMed.Intensity,
-                     color = QC, label = SAMPLE_NAME)) +
+                     color = QC, label = Sample_Name)) +
       ggplot2::geom_point(size = 2, alpha = 0.8) +
       ggplot2::geom_hline(yintercept = icutoff, linetype = "dashed",
                           color = "grey40", linewidth = 0.7) +
@@ -759,20 +778,20 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
   } else if (type == "detection_pval") {
     qcm <- .get_qcm(x)
     if (is.null(qcm)) return(NULL)
-    if (!all(c("SAMPLE_NAME", "aveDetectionPval") %in% colnames(qcm))) {
-      message("SAMPLE_NAME or aveDetectionPval not found in QC_matrix.")
+    if (!all(c("Sample_Name", "aveDetectionPval") %in% colnames(qcm))) {
+      message("Sample_Name or aveDetectionPval not found in QC_matrix.")
       return(NULL)
     }
     qcm$QC <- if ("Final.QC" %in% colnames(qcm)) qcm$Final.QC else "unknown"
     qcm$log_pval <- -log10(qcm$aveDetectionPval)
     qcm <- qcm[order(qcm$log_pval), ]
-    qcm$SAMPLE_NAME <- factor(qcm$SAMPLE_NAME, levels = qcm$SAMPLE_NAME)
+    qcm$Sample_Name <- factor(qcm$Sample_Name, levels = qcm$Sample_Name)
     
     # Reference line at -log10(pcutoff)
     ref_pval_threshold <- -log10(pcutoff)
     
     plot_obj <- ggplot2::ggplot(qcm,
-        ggplot2::aes(x = SAMPLE_NAME, y = log_pval, color = QC)) +
+        ggplot2::aes(x = Sample_Name, y = log_pval, color = QC)) +
       ggplot2::geom_point(size = 2) +
       ggplot2::geom_hline(yintercept = ref_pval_threshold, linetype = "dashed",
                           color = "purple", linewidth = 0.7) +
@@ -793,15 +812,15 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
   } else if (type == "probe_coverage") {
     qcm <- .get_qcm(x)
     if (is.null(qcm)) return(NULL)
-    if (!all(c("SAMPLE_NAME", "pctDetectedCpG_dP0.05") %in% colnames(qcm))) {
-      message("SAMPLE_NAME or pctDetectedCpG_dP0.05 not found in QC_matrix.")
+    if (!all(c("Sample_Name", "pctDetectedCpG_dP0.05") %in% colnames(qcm))) {
+      message("Sample_Name or pctDetectedCpG_dP0.05 not found in QC_matrix.")
       return(NULL)
     }
     qcm$QC <- if ("Final.QC" %in% colnames(qcm)) qcm$Final.QC else "unknown"
     qcm <- qcm[order(qcm$pctDetectedCpG_dP0.05), ]
-    qcm$SAMPLE_NAME <- factor(qcm$SAMPLE_NAME, levels = qcm$SAMPLE_NAME)
+    qcm$Sample_Name <- factor(qcm$Sample_Name, levels = qcm$Sample_Name)
     plot_obj <- ggplot2::ggplot(qcm,
-        ggplot2::aes(x = SAMPLE_NAME, y = pctDetectedCpG_dP0.05, fill = QC)) +
+        ggplot2::aes(x = Sample_Name, y = pctDetectedCpG_dP0.05, fill = QC)) +
       ggplot2::geom_col() +
       ggplot2::geom_hline(yintercept = 95, linetype = "dashed",
                           color = "grey40", linewidth = 0.7) +
@@ -843,13 +862,13 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
   # ctrl_metrics: per-sample ewastools control metric QC
   # =========================================================================
   } else if (type == "ctrl_metrics") {
-    ctrl <- x@qc_tables[["ctrl_metrics"]]
+    ctrl <- .canonicalize_methqc_sample_col(x@qc_tables[["ctrl_metrics"]])
     if (is.null(ctrl)) {
       message("ctrl_metrics not found. Skipping (ewastools data absent).")
       return(NULL)
     }
-    if (!all(c("SAMPLE_NAME", "CtrlMetrics.QC") %in% colnames(ctrl))) {
-      message("SAMPLE_NAME or CtrlMetrics.QC not found in ctrl_metrics.")
+    if (!all(c("Sample_Name", "CtrlMetrics.QC") %in% colnames(ctrl))) {
+      message("Sample_Name or CtrlMetrics.QC not found in ctrl_metrics.")
       return(NULL)
     }
     # Create bar chart with PASS/FAIL counts
@@ -872,13 +891,13 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
   # ctrl_metrics_detail: one jitter-dot plot per control metric column
   # =========================================================================
   } else if (type == "ctrl_metrics_detail") {
-    ctrl <- x@qc_tables[["ctrl_metrics"]]
+    ctrl <- .canonicalize_methqc_sample_col(x@qc_tables[["ctrl_metrics"]])
     if (is.null(ctrl)) {
       message("ctrl_metrics not found. Skipping (ewastools data absent).")
       return(invisible(NULL))
     }
-    if (!"SAMPLE_NAME" %in% colnames(ctrl)) {
-      message("SAMPLE_NAME not found in ctrl_metrics.")
+    if (!"Sample_Name" %in% colnames(ctrl)) {
+      message("Sample_Name not found in ctrl_metrics.")
       return(invisible(NULL))
     }
 
@@ -905,16 +924,16 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
     plots_out <- lapply(available, function(metric) {
       cutoff <- metric_cutoffs[[metric]]
       df <- data.frame(
-        SAMPLE_NAME = ctrl$SAMPLE_NAME,
+        Sample_Name = ctrl$Sample_Name,
         y           = ctrl[[metric]],
         QC          = ifelse(ctrl[[metric]] > cutoff, "PASS", "WARN"),
         stringsAsFactors = FALSE
       )
       # Sort by metric value (ascending, like detection_pval)
       df <- df[order(df$y), ]
-      df$SAMPLE_NAME <- factor(df$SAMPLE_NAME, levels = df$SAMPLE_NAME)
+      df$Sample_Name <- factor(df$Sample_Name, levels = df$Sample_Name)
       
-      p <- ggplot2::ggplot(df, ggplot2::aes(x = SAMPLE_NAME, y = y, color = QC)) +
+      p <- ggplot2::ggplot(df, ggplot2::aes(x = Sample_Name, y = y, color = QC)) +
         ggplot2::geom_point(size = 2) +
         ggplot2::geom_hline(yintercept = cutoff, linetype = "dashed",
                             color = "grey40", linewidth = 0.7) +
@@ -937,7 +956,7 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
       warn_df <- df[df$QC == "WARN", ]
       if (nrow(warn_df) > 0 && nrow(warn_df) <= 20)
         p <- p + ggrepel::geom_text_repel(data = warn_df,
-                    ggplot2::aes(label = SAMPLE_NAME), size = 2, color = "black")
+                    ggplot2::aes(label = Sample_Name), size = 2, color = "black")
 
       if (!is.null(out_prefix)) {
         metric_file <- paste0(out_prefix, "_ctrl_matrix_detail_",

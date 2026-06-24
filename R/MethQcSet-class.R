@@ -15,14 +15,14 @@ methods::setGeneric("export", function(x, ...) standardGeneric("export"))
 #' QC results tables, and platform/aggregation state information. This object precedes ImprintomeSet
 #' in the analysis workflow and serves as the preprocessing/QC container.
 #'
-#' @slot meta data.frame of sample metadata. Must include `SAMPLE_NAME` column. Row order must match beta column order.
+#' @slot meta data.frame of sample metadata. Must include `Sample_Name` column. Row order must match beta column order.
 #' @slot platform Character scalar indicating platform ("450K", "EPIC", "EPICv2", "mouse").
 #' @slot beta Matrix of beta values (rows = probes, columns = samples).
 #' @slot detection_pval Matrix or NULL. Detection p-values, same dims/order as beta.
 #' @slot qc_tables Named list of QC result data.frames. Canonical keys (populated by `runMethQC()`):
 #'   `QC_matrix`, `ctrl_metrics`, `recall_rate`, `contamination`, `predUniqDonor_ID`, `cutoffs`.
 #' @slot aggregation_status Character scalar: "none", "epicv2_aggregated", or other flag.
-#' @slot qc_params Named list of QC parameters used (pcutoff, icutoff, method, etc.).
+#' @slot qc_params Named list of QC parameters used (pcutoff, method, etc.).
 #' @slot statistics data.frame or NULL. Per-group QC statistics (GROUP, Total, PASS, FAIL, PASS.RATIO, FAIL.RATIO).
 #'   Populated on export when Sample_Group is present in metadata.
 #'
@@ -32,6 +32,15 @@ NULL
 
 setClassUnion("MatrixOrNull", c("matrix", "NULL"))
 setClassUnion("data.frameOrNULL", c("data.frame", "NULL"))
+
+.normalize_methqc_sample_name <- function(meta) {
+  if (is.data.frame(meta) &&
+      "SAMPLE_NAME" %in% colnames(meta) &&
+      !("Sample_Name" %in% colnames(meta))) {
+    colnames(meta)[colnames(meta) == "SAMPLE_NAME"] <- "Sample_Name"
+  }
+  meta
+}
 
 .validate_MethQcSet <- function(object) {
   errors <- character()
@@ -177,7 +186,7 @@ setClass(
 #'
 #' Create a preprocessing/QC container for a single-platform methylation array cohort.
 #'
-#' @param meta data.frame containing sample metadata with `SAMPLE_NAME` column.
+#' @param meta data.frame containing sample metadata with `Sample_Name` column.
 #' @param platform Character scalar for platform identifier ("450K", "EPIC", "EPICv2", "mouse").
 #' @param beta Matrix of beta values (rows = probes, columns = samples).
 #' @param detection_pval Optional matrix of detection p-values, same dims as beta.
@@ -194,6 +203,7 @@ MethQcSet <- function(meta,
                       qc_tables = list(),
                       aggregation_status = "none",
                       qc_params = list()) {
+  meta <- .normalize_methqc_sample_name(meta)
   methods::new(
     "MethQcSet",
     meta = meta,

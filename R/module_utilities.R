@@ -1,4 +1,4 @@
-﻿# Auto-refactored from utilities2.R
+# Auto-refactored from utilities2.R
 # Module: utilities
 
 ##################################################################
@@ -305,7 +305,7 @@ Between <-function(values, low_cutoff=0.3,high_cutoff=0.7){
   }
 
   intensity_qc <- data.frame(
-    SAMPLE_NAME = names(mMed),
+    Sample_Name = names(mMed),
     mMed = as.numeric(mMed),
     uMed = as.numeric(uMed),
     aveMedIntensity = as.numeric((mMed + uMed) / 2),
@@ -395,11 +395,13 @@ Meth_QC <- function(betaFile,
   }
 
   metadata_qc <- data.frame(
-    SAMPLE_NAME = sample_ids,
+    Sample_Name = sample_ids,
     stringsAsFactors = FALSE
   )
-  if ("SAMPLE_GROUP" %in% colnames(meta)) {
-    metadata_qc$SAMPLE_GROUP <- as.character(meta$SAMPLE_GROUP)
+  if ("Sample_Group" %in% colnames(meta)) {
+    metadata_qc$Sample_Group <- as.character(meta$Sample_Group)
+  } else if ("SAMPLE_GROUP" %in% colnames(meta)) {
+    metadata_qc$Sample_Group <- as.character(meta$SAMPLE_GROUP)
   }
   if (!is.null(assay_value)) {
     metadata_qc$assay <- assay_value
@@ -413,7 +415,7 @@ Meth_QC <- function(betaFile,
   )
 
   beta_qc <- data.frame(
-    SAMPLE_NAME = sample_ids,
+    Sample_Name = sample_ids,
     beta_median = apply(beta, 2, median, na.rm = TRUE),
     beta_missing_n = colSums(is.na(beta)),
     beta_missing_pct = round(colMeans(is.na(beta)) * 100, 2),
@@ -432,7 +434,7 @@ Meth_QC <- function(betaFile,
     pct_detected_col <- paste0("pctDetectedCpG_dP", format(p_cutoff, trim = TRUE, scientific = FALSE))
 
     detection_qc <- data.frame(
-      SAMPLE_NAME = colnames(detection_mat),
+      Sample_Name = colnames(detection_mat),
       aveDetectionPval = colMeans(detection_mat, na.rm = TRUE),
       pct_detected = round(colMeans(detection_mat < p_cutoff, na.rm = TRUE) * 100, 1),
       stringsAsFactors = FALSE
@@ -450,17 +452,17 @@ Meth_QC <- function(betaFile,
 
   intensity_qc <- .qc_extract_minfi_intensity(minfi_object, intensity_cutoff = intensity_cutoff)
   if (!is.null(intensity_qc)) {
-    intensity_qc <- intensity_qc[intensity_qc$SAMPLE_NAME %in% sample_ids, , drop = FALSE]
-    intensity_qc <- intensity_qc[match(sample_ids, intensity_qc$SAMPLE_NAME), , drop = FALSE]
+    intensity_qc <- intensity_qc[intensity_qc$Sample_Name %in% sample_ids, , drop = FALSE]
+    intensity_qc <- intensity_qc[match(sample_ids, intensity_qc$Sample_Name), , drop = FALSE]
     out$intensity_qc <- intensity_qc
   }
 
   sample_level_tables <- Filter(function(z) {
-    is.data.frame(z) && "SAMPLE_NAME" %in% colnames(z)
+    is.data.frame(z) && "Sample_Name" %in% colnames(z)
   }, out)
 
   sample_qc <- Reduce(function(left, right) {
-    merge(left, right, by = "SAMPLE_NAME", all = TRUE, sort = FALSE)
+    merge(left, right, by = "Sample_Name", all = TRUE, sort = FALSE)
   }, sample_level_tables)
 
   status_cols <- intersect(
@@ -468,7 +470,7 @@ Meth_QC <- function(betaFile,
     colnames(sample_qc)
   )
   sample_qc$final_qc_status <- .qc_reduce_status(sample_qc, status_cols)
-  out$sample_qc <- sample_qc[match(sample_ids, sample_qc$SAMPLE_NAME), , drop = FALSE]
+  out$sample_qc <- sample_qc[match(sample_ids, sample_qc$Sample_Name), , drop = FALSE]
 
   out
 }
@@ -483,7 +485,10 @@ IsValidColors <- function(x) {
 }
 
 #' @export
-Check_Meta_Color <- function(meta, groupColumn = "SAMPLE_GROUP") {
+Check_Meta_Color <- function(meta, groupColumn = "Sample_Group") {
+  if (!(groupColumn %in% colnames(meta)) && groupColumn == "Sample_Group" && "SAMPLE_GROUP" %in% colnames(meta)) {
+    groupColumn <- "SAMPLE_GROUP"
+  }
   if (!"COLOR" %in% colnames(meta)) {
     meta$COLOR <- standardColors()[as.integer(as.factor(meta[, groupColumn]))]
   } else {
@@ -691,7 +696,7 @@ Calculate_impvar <- function(betaFile, metaFile = NULL,  icr.bed=NULL, probeset=
       # Calculate column-wise variance (per sample)
       # We use Var to capture the 'spread' of methylation across the ICR
       data.frame(
-        SAMPLE_NAME = colnames(beta_matrix),
+        Sample_Name = colnames(beta_matrix),
         Median_Beta = medians,
         ImpVar_Score = scores,
         CpG_Count = nrow(sub_beta)
@@ -701,9 +706,9 @@ Calculate_impvar <- function(betaFile, metaFile = NULL,  icr.bed=NULL, probeset=
     # Join metadata to the report
   
   final_report <- report %>%
-    left_join(meta, by = "SAMPLE_NAME") %>%
-    select(SAMPLE_NAME, any_of(c("SAMPLE_GROUP", "ID2")), icr_name,ImpVar_Score,Median_Beta, CpG_Count) %>%
-    arrange(SAMPLE_GROUP,SAMPLE_NAME)
+    left_join(meta, by = "Sample_Name") %>%
+    select(Sample_Name, any_of(c("Sample_Group", "ID2")), icr_name, ImpVar_Score, Median_Beta, CpG_Count) %>%
+    arrange(Sample_Name)
 
   if(!is.null(outFile)){
     # outFile <- paste0(prefix,"_Stochastic_Drift.txt")

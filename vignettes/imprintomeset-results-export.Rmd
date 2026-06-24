@@ -156,7 +156,7 @@ p_auto <- plot(
   x,
   plot_type = "auto",
   result_name = "AnalyzeImprintStatus.selected",
-  colorColumn = "SAMPLE_GROUP",
+  colorColumn = "Sample_Group",
   outFile = "auto_dispatch.pdf"
 )
 ```
@@ -168,7 +168,7 @@ p_polar_s4 <- plot(
   x,
   plot_type = "polar",
   result_name = "AnalyzeImprintStatus.selected",
-  colorColumn = "SAMPLE_GROUP",
+  colorColumn = "Sample_Group",
   title = "Selected Probeset Polar",
   palette = "default",
   alpha = 0.5,
@@ -182,36 +182,36 @@ p_polar_s4 <- plot(
 sample_id1 <- colnames(beta(x))[2]
 
 p_auto <- plot(x, plot_type = "auto", result_name = "AnalyzeImprintStatus.selected",
-               colorColumn = "SAMPLE_GROUP", outFile = "demo_auto.pdf")
+               colorColumn = "Sample_Group", outFile = "demo_auto.pdf")
 p_polar <- plot(x, plot_type = "polar", result_name = "AnalyzeImprintStatus.selected",
-                colorColumn = "SAMPLE_GROUP", outFile = "demo_polar.pdf")
+                colorColumn = "Sample_Group", outFile = "demo_polar.pdf")
 p_mirror <- plot(x, plot_type = "mirror_density", probeset = "selected",
-                 SAMPLEID = "SAMPLE_NAME", outFile = "demo_mirror_density.pdf")
-p_bee <- plot(x, plot_type = "beeswarm", SAMPLEID = "SAMPLE_NAME",
+                 SAMPLEID = "Sample_Name", outFile = "demo_mirror_density.pdf")
+p_bee <- plot(x, plot_type = "beeswarm", SAMPLEID = "Sample_Name",
         probeset = "selected",
               outFile = "demo_beeswarm.pdf")
-p_bee_origin <- plot(x, plot_type = "beeswarm_origin", SAMPLEID = "SAMPLE_NAME",
+p_bee_origin <- plot(x, plot_type = "beeswarm_origin", SAMPLEID = "Sample_Name",
          probeset = "selected", title = "Beeswarm Origin (Cohort)",
          outFile = "demo_beeswarm_origin.pdf")
 p_bee_chr <- plot(x, plot_type = "beeswarm_chr", probeset = "selected",
       sample_id = sample_id1, chr = "chr11",
       title = "Beeswarm by Chromosome", outFile = "demo_beeswarm_chr.pdf")
-p_vln <- plot(x, plot_type = "violin", SAMPLEID = "SAMPLE_NAME",
+p_vln <- plot(x, plot_type = "violin", SAMPLEID = "Sample_Name",
         probeset = "selected",
               outFile = "demo_violin.pdf")
-p_heatmap_by_probe <- plot(x, plot_type = "heatmap_by_probe", SAMPLEID = "SAMPLE_NAME",
+p_heatmap_by_probe <- plot(x, plot_type = "heatmap_by_probe", SAMPLEID = "Sample_Name",
           probeset = "selected",
                   outFile = "demo_heatmap_by_probe.pdf")
 
 p_heatmap_by_gene <- plot(  x,  plot_type = "heatmap_by_gene",  probeset = "selected",
-        SAMPLEID = "SAMPLE_NAME",  annoColumn = "SAMPLE_GROUP",
+        SAMPLEID = "Sample_Name",  annoColumn = "Sample_Group",
         clusterRows = TRUE,  clusterColumns = TRUE,
         outFile = "demo_heatmap_by_gene.pdf")
 
-p_circular <- plot(x, plot_type = "circular_heatmap", SAMPLEID = "SAMPLE_NAME",
-                   sectionColumn = "SAMPLE_GROUP", probeset = "selected",
+p_circular <- plot(x, plot_type = "circular_heatmap", SAMPLEID = "Sample_Name",
+                   sectionColumn = "Sample_Group", probeset = "selected",
                    outFile = "demo_circular_heatmap.pdf")
-cor_mat <- plot(x, plot_type = "cor_heatmap", SAMPLEID = "SAMPLE_NAME",
+cor_mat <- plot(x, plot_type = "cor_heatmap", SAMPLEID = "Sample_Name",
                 probeset = "selected",
                 prefix = "demo")
 outFile <- paste0("imprintomeset_quickstart_rainfall_", sample_id1, ".pdf")
@@ -231,7 +231,7 @@ p_polar <- plot(
   x,
   plot_type = "polar",
   result_name = "AnalyzeImprintStatus.selected",
-  colorColumn = "SAMPLE_GROUP",
+  colorColumn = "Sample_Group",
   title = "ImprintomeSet Polar",
   palette = "default",
   alpha = 0.5,
@@ -246,7 +246,7 @@ p_mirror <- plot(
   x,
   plot_type = "mirror_density",
   probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
+  SAMPLEID = "Sample_Name",
   outFile = "mirror_density.pdf"
 )
 ```
@@ -275,7 +275,7 @@ p_vln <- plot(
   x,
   plot_type = "violin",
   probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
+  SAMPLEID = "Sample_Name",
   outFile = "beta_violin.pdf"
 )
 ```
@@ -287,7 +287,7 @@ p_bee <- plot(
   x,
   plot_type = "beeswarm",
   probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
+  SAMPLEID = "Sample_Name",
   outFile = "beta_beeswarm.pdf"
 )
 ```
@@ -298,7 +298,7 @@ p_bee <- plot(
 p_bee_chr11 <- imprintomeR:::BetaBeePlot_single_chr(
   beta = beta_x,
   meta = meta_x,
-  SAMPLEID = "SAMPLE_NAME",
+  SAMPLEID = "Sample_Name",
   chr = "chr11",
   probeset = "chr11p15",
   outFile = "beeswarm_chr11.pdf"
@@ -315,7 +315,7 @@ p_bee_origin <- plot(
   x,
   plot_type = "beeswarm_origin",
   probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
+  SAMPLEID = "Sample_Name",
   title = "Beeswarm Origin (Cohort)",
   outFile = "beeswarm_origin_dispatch.pdf"
 )
@@ -349,7 +349,7 @@ cor_mat <- plot(
   x,
   plot_type = "cor_heatmap",
   probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
+  SAMPLEID = "Sample_Name",
   prefix = "cohort"
 )
 ```
@@ -363,7 +363,7 @@ plot(
   x,
   plot_type = "heatmap_by_probe",
   probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
+  SAMPLEID = "Sample_Name",
   outFile = "beta_heatmap.pdf"
 )
 ```
@@ -393,13 +393,14 @@ allowing visual comparison of methylation patterns across grouped samples and ch
 plot(
   x,
   plot_type = "circular_heatmap",
-  SAMPLEID = "SAMPLE_NAME",
-  sectionColumn = "SAMPLE_GROUP",
+  SAMPLEID = "Sample_Name",
+  sectionColumn = "Sample_Group",
   probeset = "selected",
   outFile = "beta_circular_heatmap.pdf"
 )
-
 ```
+
+
 
 ### 5.4 Heatmap Aggregated by Gene Symbol
 
@@ -429,13 +430,14 @@ plot(
   x,
   plot_type = "heatmap_by_gene",
   probeset = "selected",
-  SAMPLEID = "SAMPLE_NAME",
-  annoColumn = "SAMPLE_GROUP",
+  SAMPLEID = "Sample_Name",
+  annoColumn = "Sample_Group",
   clusterRows = TRUE,
   clusterColumns = TRUE,
   outFile = "beta_heatmap_by_gene.pdf"
 )
 ```
+
 
 ## 6. Chromosome and Genome Visualizations
 
@@ -560,7 +562,7 @@ The Notes section documents any optional sheets that were not created due to mis
 
 - Several plotting functions write side-effect files and also return plot objects.
 - For large cohorts, disable per-sample side folders where optional (`pdfFolder = NULL`).
-- Keep `SAMPLE_NAME` alignment between `beta(x)` and `meta(x)`.
+- Keep `Sample_Name` alignment between `beta(x)` and `meta(x)`.
 - Advanced, non-dispatch plots can still be called directly when needed.
 
 ## Session Info

@@ -142,7 +142,7 @@ ComputePCA  <- function(df, meta, scale=T, topn = 3000,varMethod="mad",groupColu
   #validate input 
   colnames(meta) <- toupper(colnames(meta))
   if (!all(c("Sample_Name","Sample_Group","COLOR") %in% colnames(meta))) {
-    cat("\n[ComputePCA] INFO: Invalid meta file. SAMPLE_NAME, SAMPLE_GROUP or COLOR column(s) not found.\n")
+    cat("\n[ComputePCA] INFO: Invalid meta file. Sample_Name, Sample_Group or COLOR column(s) not found.\n")
     stop("exit.")
   }
   
@@ -469,7 +469,7 @@ Meth_TSNE_Adv <- function(dat,meta=NULL, ShapeColumn=NULL,IdColumn='Sample_Name'
 #' Violin Plot of Methylation Distributions by Sample
 #'
 #' @param beta Numeric beta matrix with probes as rows and samples as columns.
-#' @param meta Sample metadata containing `SAMPLE_NAME` and grouping columns.
+#' @param meta Sample metadata containing `Sample_Name` and grouping columns.
 #' @param SAMPLEID Metadata column used as x-axis sample label.
 #' @param outFile Optional output file path.
 #' @param alpha Violin alpha.
@@ -551,7 +551,7 @@ BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
 #' Beeswarm Plot of Methylation by Sample
 #'
 #' @param beta Numeric beta matrix with probes as rows and samples as columns.
-#' @param meta Sample metadata containing `SAMPLE_NAME` and grouping columns.
+#' @param meta Sample metadata containing `Sample_Name` and grouping columns.
 #' @param SAMPLEID Metadata column used as x-axis sample label.
 #' @param outFile Optional output file path.
 #' @param alpha Point alpha.
@@ -735,7 +735,7 @@ BetaBeePlot_SNP <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL
 #' Beeswarm Plot for a Single Chromosome by Origin
 #'
 #' @param beta Numeric beta matrix with probes as rows and samples as columns.
-#' @param meta Sample metadata containing `SAMPLE_NAME` and grouping columns.
+#' @param meta Sample metadata containing `Sample_Name` and grouping columns.
 #' @param SAMPLEID Metadata column used as x-axis sample label.
 #' @param outFile Optional output file path.
 #' @param alpha Point alpha.
@@ -872,7 +872,7 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
 #' Beeswarm Plot Split by Probe Category/Origin
 #'
 #' @param beta Numeric beta matrix with probes as rows and samples as columns.
-#' @param meta Sample metadata containing `SAMPLE_NAME` and grouping columns.
+#' @param meta Sample metadata containing `Sample_Name` and grouping columns.
 #' @param SAMPLEID Metadata column used as x-axis sample label.
 #' @param outFile Optional output file path.
 #' @param alpha Point alpha.
@@ -1377,6 +1377,7 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
     garbage <- dev.off()
     cat("\n\t", basename(outFile), "[saved]")
   }
+  return(hm) 
 }
 
 ##################################################################
@@ -2764,7 +2765,7 @@ plot_imp_consistency <- function(df) {
 #' Multi-Panel Beeswarm Plot by Category/Origin
 #'
 #' @param beta Numeric beta matrix with probes as rows and samples as columns.
-#' @param meta Sample metadata containing `SAMPLE_NAME` and grouping columns.
+#' @param meta Sample metadata containing `Sample_Name` and grouping columns.
 #' @param SAMPLEID Metadata column used as panel/sample label.
 #' @param outFile Optional output file path.
 #' @param alpha Point alpha.
@@ -2899,7 +2900,7 @@ pg  <- wrap_plots(plot_list) +
 #' groups (target chromosome and others), colored by category/origin.
 #'
 #' @param dat Data frame/matrix with sample columns plus grouping columns.
-#' @param meta Metadata data frame containing `SAMPLE_NAME` and optional `ID2`.
+#' @param meta Metadata data frame containing `Sample_Name` and optional `ID2`.
 #' @param group.by Column in `dat` used for faceting (default: `"chr"`).
 #' @param color.by Column in `dat` used for point color (default: `"CATEGORY"`).
 #' @param outFile Output PDF path.

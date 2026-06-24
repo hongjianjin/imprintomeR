@@ -8,7 +8,7 @@
 #'
 #' @param dat Numeric matrix/data frame with probes/features in rows and samples
 #'   in columns.
-#' @param meta Metadata data frame containing at least `SAMPLE_NAME` and
+#' @param meta Metadata data frame containing at least `Sample_Name` and
 #'   `SAMPLE_GROUP`.
 #'
 #' @return Data frame of row-wise group means, one column per group.

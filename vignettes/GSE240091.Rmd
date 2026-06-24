@@ -1,0 +1,813 @@
+---
+title: "Real-World QC and Imprinting Analysis: GSE240091 Dataset"
+subtitle: "Run methylation-array QC and imprintomeR analysis on a public EPIC growing teratoma cohort"
+author: "imprintomeR contributors"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    fig_width: 10
+    fig_height: 6
+vignette: >
+  %\VignetteIndexEntry{GSE240091 QC and Imprinting Workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "GSE240091_",
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Overview
+
+This vignette demonstrates a complete imprintomeR workflow on **GSE240091**, a public DNA methylation dataset of growing teratoma tissues. Samples are subgrouped by reported growth speed: slow, medium, and rapid. You will:
+
+1. **Download** GEO metadata and processed beta values
+2. **Prepare** raw IDAT metadata for the MethQcSet QC workflow
+3. **Run** methylation-array QC when IDAT files are available
+4. **Create** an ImprintomeSet object from QC-clean or processed data
+5. **Analyze** imprinting status and visualize results
+6. **Export** QC and imprintomeR outputs
+
+GSE240091 uses the Illumina Infinium HumanMethylationEPIC BeadChip (850K/GPL23976). The GEO record includes 12 samples and a raw IDAT archive. The processed-beta route is attempted first when GEO provides matrix values; the raw-IDAT route shows the full QC workflow and is intended for local execution after downloading the supplementary tar file.
+
+---
+
+## Phase 1: Setup & GEO Download
+
+### Load libraries
+
+```{r load-libraries, message = FALSE, warning = FALSE}
+library(imprintomeR)
+
+if (!requireNamespace("GEOquery", quietly = TRUE)) {
+  stop("GEOquery is required for GEO downloads. Install it with: BiocManager::install(\"GEOquery\")", call. = FALSE)
+}
+library(GEOquery)
+library(tidyverse)
+library(ComplexHeatmap)
+library(ggplot2)
+library(knitr)
+
+set.seed(2026)
+```
+
+### Download GSE240091 metadata and processed values
+
+```{r download-gse240091, eval = TRUE, cache = TRUE}
+geo_gse <- "GSE240091"
+message("Downloading ", geo_gse, " from GEO...")
+
+tryCatch({
+  gse <- GEOquery::getGEO(geo_gse, GSEMatrix = TRUE, AnnotGPL = FALSE, getGPL = FALSE)
+  eset <- gse[[1]]
+
+  message("Download successful")
+  message("  Samples: ", ncol(eset))
+  message("  Features: ", nrow(eset))
+}, error = function(e) {
+  stop("Failed to download ", geo_gse, ":\n", conditionMessage(e),
+       "\nCheck internet connection and GEO availability.")
+})
+```
+
+### Extract metadata
+
+```{r extract-metadata}
+pdata <- pData(eset)
+
+message("Available metadata columns:")
+print(colnames(pdata))
+
+message("\nSample overview:")
+display_cols <- intersect(
+  c("geo_accession", "title", "source_name_ch1", "characteristics_ch1"),
+  colnames(pdata)
+)
+head(pdata[, display_cols, drop = FALSE], n = 6)
+```
+
+### Build sample metadata
+
+```{r build-meta}
+sample_title <- if ("title" %in% colnames(pdata)) pdata$title else pdata$geo_accession
+
+# Keep GEO columns that are often useful during interpretation.
+optional_cols <- intersect(
+  c("source_name_ch1", "characteristics_ch1", "characteristics_ch1.1",
+    "characteristics_ch1.2", "characteristics_ch1.3"),
+  colnames(pdata)
+)
+
+metadata_text <- apply(
+  pdata[, intersect(c("title", optional_cols), colnames(pdata)), drop = FALSE],
+  1,
+  function(z) paste(z, collapse = " ")
+)
+
+meta <- data.frame(
+  Sample_Name = pdata$geo_accession,
+  GEO_Accession = pdata$geo_accession,
+  Sample_Title = sample_title,
+  Sample_Group = dplyr::case_when(
+    grepl("slow", metadata_text, ignore.case = TRUE) ~ "GTSslow",
+    grepl("medium|mediu[mn]", metadata_text, ignore.case = TRUE) ~ "GTSmedium",
+    grepl("rapid", metadata_text, ignore.case = TRUE) ~ "GTSrapid",
+    TRUE ~ "Other"
+  ),
+  Platform = "EPIC",
+  stringsAsFactors = FALSE
+)
+
+meta <- cbind(meta, pdata[, optional_cols, drop = FALSE])
+
+message("Metadata created:")
+message("  Samples: ", nrow(meta))
+print(table(meta$Sample_Group))
+head(meta, n = 6)
+```
+
+---
+
+## Phase 2: Raw IDAT QC Workflow
+
+The raw IDAT archive for GSE240091 is large, so this section is set to `eval = FALSE`. Run it locally when you want full preprocessing and QC from raw array files.
+
+### Download and unpack supplementary IDAT files
+
+```{r download-raw-idat, eval = FALSE}
+raw_dir <- file.path("GSE240091_raw")
+dir.create(raw_dir, showWarnings = FALSE, recursive = TRUE)
+
+# Downloads GSE240091_RAW.tar from GEO.
+supp <- GEOquery::getGEOSuppFiles(geo_gse, makeDirectory = TRUE, baseDir = raw_dir)
+print(supp)
+
+tar_file <- rownames(supp)[grepl("RAW\\.tar$", rownames(supp))]
+untar(tar_file, exdir = file.path(raw_dir, geo_gse))
+
+# GEO IDAT archives are commonly gzipped inside the tar.
+gz_idats <- list.files(
+  file.path(raw_dir, geo_gse),
+  pattern = "\\.idat\\.gz$",
+  recursive = TRUE,
+  full.names = TRUE
+)
+if (length(gz_idats) > 0 && requireNamespace("R.utils", quietly = TRUE)) {
+  lapply(gz_idats, R.utils::gunzip, overwrite = TRUE, remove = TRUE)
+}
+
+# minfi expects channel suffixes named _Red.idat and _Grn.idat.
+# GSE240091 raw files may unpack as lowercase _red.idat and _green.idat.
+lowercase_idats <- list.files(
+  file.path(raw_dir, geo_gse),
+  pattern = "_(red|green)\\.idat$",
+  recursive = TRUE,
+  full.names = TRUE
+)
+
+for (old_file in lowercase_idats) {
+  new_file <- sub("_red\\.idat$", "_Red.idat", old_file)
+  new_file <- sub("_green\\.idat$", "_Grn.idat", new_file)
+  if (!identical(old_file, new_file)) {
+    file.rename(old_file, new_file)
+  }
+}
+```
+
+### Create QC-ready metadata with Basename paths
+
+`runMethQC()` expects a `Basename` column containing the IDAT path prefix without `_Red.idat` or `_Grn.idat`.
+
+```{r make-idat-meta, eval = FALSE}
+idat_files <- list.files(
+  file.path(raw_dir, geo_gse),
+  pattern = "_(Red|Grn)\\.idat$",
+  recursive = TRUE,
+  full.names = TRUE
+)
+
+# idat_prefixes <- unique(sub("_(red|green)\\.idat(\\.gz)?$", "", idat_files))
+idat_prefixes <- unique(sub("_(Red|Grn)\\.idat$", "", idat_files))
+idat_base <- basename(idat_prefixes)
+idat_map <- data.frame(
+  Basename = idat_prefixes,
+  GEO_Accession = sub("_.*$", "", idat_base),
+  IDAT_Sample_Title = sub("^GSM[0-9]+_?", "", idat_base),
+  stringsAsFactors = FALSE
+)
+
+# GEO raw files usually start with GSM accessions. Join by GSM first and keep
+# the title-derived name as a readable sample label for QC reports.
+meta_qc <- meta %>%
+  left_join(idat_map, by = "GEO_Accession") %>%
+  mutate(
+    Sample_Name = paste(GEO_Accession, "_", IDAT_Sample_Title),
+    Sample_Group = Sample_Group,
+    Platform = "EPIC"
+  )
+
+meta_qc <- meta_qc[, c("Sample_Name", "Sample_Group", "Platform", "Basename")]
+head(meta_qc)
+
+```
+
+### Install Bioconductor dependencies if needed
+
+This chunk is disabled by default because it can modify your R library. Enable it when running the raw-IDAT QC workflow in a fresh R or HPC environment. It also refreshes the `minfi`/`matrixStats` stack to avoid the `useNames = NA is defunct` error from incompatible package versions.
+
+```{r install-bioc-dependencies, eval = FALSE}
+required_bioc <- c(
+  "minfi",
+  "GEOquery",
+  "annotate",
+  "matrixStats",
+  "MatrixGenerics",
+  "DelayedMatrixStats",
+  "IlluminaHumanMethylationEPICmanifest"
+)
+
+missing_bioc <- required_bioc[!vapply(required_bioc, requireNamespace, logical(1), quietly = TRUE)]
+
+if (!requireNamespace("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
+
+if (length(missing_bioc) > 0) {
+  BiocManager::install(missing_bioc, ask = FALSE, update = FALSE)
+}
+
+# Refresh the packages involved in minfi::detectionP(). This fixes environments
+# where an older minfi stack calls matrixStats with the now-defunct useNames = NA.
+BiocManager::install(
+  c("minfi", "matrixStats", "MatrixGenerics", "DelayedMatrixStats"),
+  ask = FALSE,
+  update = TRUE
+)
+```
+
+### Run MethQcSet QC
+
+```{r run-meth-qc, eval = FALSE, cache = TRUE}
+library(imprintomeR)
+library(minfi)
+
+qcset <- runMethQC(
+  meta_qc,
+  platform = "EPIC",
+  pcutoff = 0.05
+)
+
+qc_summary <- qc_summarize(qcset)
+str(qc_summary)
+
+qc_matrix <- qc_tables(qcset)[["QC_matrix"]]
+message("QC status:")
+print(table(qc_matrix$Final.QC))
+
+head(qc_matrix)
+```
+
+### QC visualizations
+
+```{r qc-plots, eval = FALSE, fig.width = 10, fig.height = 5}
+p_qc_bar <- plot(qcset, type = "qc_bar", outFile = NULL)
+print(p_qc_bar)
+
+p_qc_intensity <- plot(qcset, type = "intensity", icutoff = 11, outFile = NULL)
+print(p_qc_intensity)
+
+p_qc_detection <- plot(qcset, type = "detection_pval", pcutoff = 0.05, outFile = NULL)
+print(p_qc_detection)
+
+p_qc_coverage <- plot(qcset, type = "probe_coverage", outFile = NULL)
+print(p_qc_coverage)
+
+p_qc_sex <- plot(qcset, type = "predicted_sex", outFile = NULL)
+print(p_qc_sex)
+```
+
+### Export QC outputs
+
+```{r export-qc, eval = FALSE}
+qc_outdir <- "GSE240091_qc_output"
+dir.create(qc_outdir, showWarnings = FALSE, recursive = TRUE)
+
+export(
+  qcset,
+  outdir = qc_outdir,
+  format = c("xlsx", "rds", "txt"),
+  prefix = "GSE240091"
+)
+
+message("QC outputs exported to: ", qc_outdir)
+```
+
+---
+
+## Phase 3: Prepare Beta Values for ImprintomeSet
+
+### Use QC-clean beta values when available
+
+If you ran the raw-IDAT QC workflow above, use PASS samples from `qcset`.
+
+```{r beta-from-qc, eval = FALSE}
+qc_matrix <- qc_tables(qcset)[["QC_matrix"]]
+pass_samples <- qc_matrix$Sample_Name[qc_matrix$Final.QC == "PASS"]
+
+qcset_pass <- qcset
+beta(qcset_pass) <- beta(qcset)[, pass_samples, drop = FALSE]
+meta(qcset_pass) <- meta(qcset)[meta(qcset)$Sample_Name %in% pass_samples, , drop = FALSE]
+
+x <- as.ImprintomeSet(
+  qcset_pass,
+  probeset = readRDS(system.file("extdata", "probesets_hg19.rds", package = "imprintomeR"))[["selected"]],
+  genome = "hg19"
+)
+```
+
+### Processed-beta route from GEO
+
+Use this route when you want to run the imprinting workflow directly from GEO processed beta values.
+
+```{r extract-beta}
+beta_matrix <- exprs(eset)
+
+if (nrow(beta_matrix) == 0L) {
+  stop("No processed beta matrix was found in the GEO Series Matrix object. ",
+       "Run the raw IDAT QC workflow or inspect the GEO sample tables manually.")
+}
+
+storage.mode(beta_matrix) <- "numeric"
+beta_matrix <- beta_matrix[rowSums(!is.na(beta_matrix)) > 0, , drop = FALSE]
+
+message("Beta matrix dimensions: ", nrow(beta_matrix), " probes x ",
+        ncol(beta_matrix), " samples")
+message("Beta range: [", round(min(beta_matrix, na.rm = TRUE), 3), ", ",
+        round(max(beta_matrix, na.rm = TRUE), 3), "]")
+
+# Align GEO accession sample IDs between beta and metadata.
+meta_processed <- meta %>%
+  filter(Sample_Name %in% colnames(beta_matrix)) %>%
+  arrange(match(Sample_Name, colnames(beta_matrix)))
+beta_matrix <- beta_matrix[, meta_processed$Sample_Name, drop = FALSE]
+
+stopifnot(identical(colnames(beta_matrix), meta_processed$Sample_Name))
+```
+
+### Validate processed data
+
+```{r validate-data}
+pct_missing <- colSums(is.na(beta_matrix)) / nrow(beta_matrix) * 100
+message("Missing beta values per sample:")
+print(head(sort(pct_missing, decreasing = TRUE), n = 10))
+
+message("Sample names aligned: ", identical(colnames(beta_matrix), meta_processed$Sample_Name))
+print(table(meta_processed$Sample_Group))
+```
+
+---
+
+## Phase 4: Create ImprintomeSet
+
+### Load data using imprintomeR utilities
+
+```{r load-metabeta}
+beta_df <- as.data.frame(beta_matrix)
+beta_df <- cbind(NAME = rownames(beta_df), beta_df)
+
+input <- LoadMetaBeta(meta_processed, beta_df, probeset = NULL)
+
+message("Loaded data:")
+message("  Samples: ", ncol(input$beta))
+message("  Probes:  ", nrow(input$beta))
+message("  Metadata columns: ", paste(colnames(input$meta), collapse = ", "))
+```
+
+### Create the analysis-ready object
+
+```{r create-imprintomeset}
+probesets <- readRDS(
+  system.file("extdata", "probesets_hg19.rds", package = "imprintomeR")
+)
+
+x <- ImprintomeSet(
+  beta = input$beta,
+  meta = input$meta,
+  probeset = probesets[["selected"]],
+  genome = "hg19",
+  assay = "EPIC"
+)
+
+message("ImprintomeSet created:")
+message("  Samples: ", ncol(beta(x)))
+message("  Probes:  ", nrow(beta(x)))
+message("  Genome:  ", genome(x))
+message("  Assay:   ", assay(x))
+print(summary(x))
+```
+
+---
+
+## Phase 5: Run Workflow & Compute Statistics
+
+### Execute imprintomeR analysis
+
+```{r run-imprintome}
+message("Running imprintome analysis...")
+x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
+message("Analysis complete")
+
+res <- results(x)
+message("Results available:")
+print(names(res))
+
+status <- res[["AnalyzeImprintStatus.selected"]]
+head(status, n = 5)
+```
+
+### Compute per-group statistics
+
+```{r compute-stats}
+message("Imprinting status by group:")
+print(table(status[, c("Sample_Group", "Mechanism")]))
+
+stat_summary <- status %>%
+  group_by(Sample_Group, Mechanism) %>%
+  summarize(
+    n = n(),
+    median_IDS = median(IDS, na.rm = TRUE),
+    median_Angle = median(Angle, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(Sample_Group, desc(n))
+
+stat_summary
+```
+
+### Review key metrics
+
+```{r review-metrics}
+message("IDS distribution:")
+print(summary(status$IDS))
+
+message("\nMechanism classification:")
+print(table(status$Mechanism))
+
+message("\nAngle distribution:")
+print(summary(status$Angle))
+```
+
+---
+
+## Phase 6: Visualizations
+
+```{r choose-sample}
+sample_id_1 <- colnames(beta(x))[2]
+message("Representative sample for single-sample plots: ", sample_id_1)
+```
+
+### Plot 1: Polar scatter
+
+```{r plot-polar, fig.width = 8, fig.height = 8}
+p_polar <- plot(
+  x,
+  plot_type = "polar",
+  result_name = "AnalyzeImprintStatus.selected",
+  colorColumn = "Sample_Group",
+  outFile = NULL
+)
+print(p_polar)
+```
+
+### Plot 2: Beeswarm by origin
+
+```{r plot-beeswarm-origin, fig.width = 12, fig.height = 6}
+p_beeswarm_origin <- plot(
+  x,
+  plot_type = "beeswarm_origin",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  outFile = NULL
+)
+print(p_beeswarm_origin)
+```
+
+### Plot 3: Mirror density
+
+```{r plot-mirror-density, fig.width = 10, fig.height = 6}
+p_mirror <- plot(
+  x,
+  plot_type = "mirror_density",
+  probeset = "selected",
+  outFile = NULL
+)
+print(p_mirror)
+```
+
+### Plot 4: Circular heatmap
+
+```{r plot-circular, fig.width = 10, fig.height = 10}
+p_circular <- plot(
+  x,
+  plot_type = "circular_heatmap",
+  probeset = "selected",
+  outFile = NULL
+)
+p_circular
+```
+
+### Plot 5: Beta heatmap by probe
+
+```{r plot-heatmap-by-probe, fig.width = 10, fig.height = 8}
+p_heatmap <- plot(
+  x,
+  plot_type = "heatmap_by_probe",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  annoColumn = "Sample_Group",
+  outFile = NULL
+)
+draw(p_heatmap, merge_legend = TRUE)
+```
+
+### Plot 6: Beta heatmap by gene
+
+```{r plot-heatmap-by-gene, fig.width = 10, fig.height = 12}
+p_heatmap_by_gene <- plot(
+  x,
+  plot_type = "heatmap_by_gene",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  annoColumn = "Sample_Group",
+  clusterRows = TRUE,
+  clusterColumns = TRUE,
+  outFile = NULL
+)
+print(p_heatmap_by_gene)
+```
+
+### Plot 7: Radar plot
+
+```{r plot-radar, fig.width = 8, fig.height = 8}
+p_radar <- plot(
+  x,
+  plot_type = "radar",
+  sample_id = sample_id_1,
+  probeset = "selected",
+  outFile = NULL
+)
+print(p_radar)
+```
+
+### Plot 8: Beeswarm by chromosome
+
+```{r plot-beeswarm-chr, fig.width = 12, fig.height = 6}
+p_beeswarm_chr <- plot(
+  x,
+  plot_type = "beeswarm_chr",
+  sample_id = sample_id_1,
+  probeset = "selected",
+  outFile = NULL
+)
+print(p_beeswarm_chr)
+```
+
+### Plot 9: Rainfall plot
+
+```{r plot-rainfall, fig.width = 12, fig.height = 6}
+p_rainfall <- plot(
+  x,
+  plot_type = "rainfall",
+  sample_id = sample_id_1,
+  probeset = "classifier3",
+  outFile = NULL
+)
+print(p_rainfall)
+```
+
+---
+
+## Phase 7: Results Interpretation
+
+### Summary statistics
+
+```{r interpret-summary}
+normal_n <- sum(status$Mechanism == "NORMAL", na.rm = TRUE)
+total_n <- nrow(status)
+normal_pct <- normal_n / total_n * 100
+abnormal_pct <- 100 - normal_pct
+
+message("=== OVERALL IMPRINTING SUMMARY ===")
+message(sprintf("Normal imprinting:   %6.1f%% (%d/%d samples)",
+                normal_pct, normal_n, total_n))
+message(sprintf("Altered imprinting:  %6.1f%% (%d/%d samples)",
+                abnormal_pct, total_n - normal_n, total_n))
+
+message("\n=== BY SAMPLE GROUP ===")
+for (group in unique(status$Sample_Group)) {
+  idx <- status$Sample_Group == group
+  n <- sum(idx)
+  normal <- sum(status$Mechanism[idx] == "NORMAL", na.rm = TRUE)
+  message(sprintf("%12s: %d samples, %d normal (%.1f%%)",
+                  group, n, normal, 100 * normal / n))
+}
+```
+
+### Identify samples with aberrant imprinting
+
+```{r identify-abnormal}
+abnormal <- status %>% filter(Mechanism != "NORMAL")
+
+if (nrow(abnormal) > 0) {
+  message("=== ABERRANT IMPRINTING SAMPLES ===")
+  message("Sample count: ", nrow(abnormal))
+  print(abnormal %>% select(Sample_ID, Sample_Group, Mechanism, IDS, Angle) %>% head(n = 12))
+} else {
+  message("All samples show normal imprinting patterns by the selected IDS cutoff.")
+}
+```
+
+### Growth-speed comparison
+
+GSE240091 groups samples by growing teratoma growth speed. This block summarizes imprinting scores across slow, medium, and rapid groups.
+
+```{r growth-speed-summary}
+growth_summary <- status %>%
+  group_by(Sample_Group) %>%
+  summarize(
+    n = n(),
+    median_IDS = median(IDS, na.rm = TRUE),
+    mean_IDS = mean(IDS, na.rm = TRUE),
+    median_Angle = median(Angle, na.rm = TRUE),
+    most_common_mechanism = names(sort(table(Mechanism), decreasing = TRUE))[1],
+    .groups = "drop"
+  ) %>%
+  arrange(factor(Sample_Group, levels = c("GTSslow", "GTSmedium", "GTSrapid", "Other")))
+
+detailed_status <- status %>%
+  mutate(Sample_Title = meta(x)$Sample_Title[match(Sample_ID, meta(x)$Sample_Name)]) %>%
+  select(Sample_ID, Sample_Title, Sample_Group, Mechanism, IDS, Angle) %>%
+  arrange(Sample_Group, desc(IDS))
+
+growth_summary
+head(detailed_status, n = 12)
+```
+
+### Key findings template
+
+```{r key-findings}
+message("=== KEY BIOLOGICAL INSIGHTS TEMPLATE ===")
+message("1. Dataset: GSE240091, growing teratoma tissue methylation cohort")
+message("2. Platform: Illumina HumanMethylationEPIC / 850K")
+message("3. Samples analyzed: ", nrow(status))
+message("4. IDS range: [",
+        round(min(status$IDS, na.rm = TRUE), 3), ", ",
+        round(max(status$IDS, na.rm = TRUE), 3), "]")
+message("5. Most common mechanism: ",
+        names(sort(table(status$Mechanism), decreasing = TRUE))[1])
+message("6. Use growth_summary and detailed_status to compare imprinting metrics across growth-speed groups.")
+```
+
+---
+
+## Phase 8: Export & Save Results
+
+### Export ImprintomeSet outputs
+
+```{r export-imprintome}
+outdir <- "GSE240091_imprintome_output"
+dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
+
+manifest <- export(
+  x,
+  outdir = outdir,
+  result_names = "AnalyzeImprintStatus.selected",
+  save_plots = FALSE,
+  overwrite = TRUE
+)
+
+manifest
+```
+
+### Export summary tables
+
+```{r export-tables}
+results_file <- file.path(outdir, "GSE240091_imprintome_results.txt")
+write.table(
+  status,
+  file = results_file,
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE,
+  col.names = TRUE
+)
+
+summary_file <- file.path(outdir, "GSE240091_summary_statistics.txt")
+write.table(
+  stat_summary,
+  file = summary_file,
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE,
+  col.names = TRUE
+)
+
+growth_file <- file.path(outdir, "GSE240091_growth_speed_summary.txt")
+write.table(
+  growth_summary,
+  file = growth_file,
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE,
+  col.names = TRUE
+)
+
+detail_file <- file.path(outdir, "GSE240091_detailed_status.txt")
+write.table(
+  detailed_status,
+  file = detail_file,
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE,
+  col.names = TRUE
+)
+
+message("Results table: ", results_file)
+message("Summary statistics: ", summary_file)
+message("Growth-speed summary: ", growth_file)
+message("Detailed status: ", detail_file)
+```
+
+### List output files
+
+```{r list-outputs}
+output_files <- list.files(outdir, full.names = FALSE)
+message("=== OUTPUT FILES ===")
+message("Directory: ", outdir)
+for (f in sort(output_files)) {
+  fsize <- file.size(file.path(outdir, f))
+  message(sprintf("  %-45s %8.1f KB", f, fsize / 1024))
+}
+```
+
+---
+
+## Session Information & Reproducibility
+
+```{r session-info}
+message("=== REPRODUCIBILITY ===")
+message("R version: ", R.version$version.string)
+message("imprintomeR version: ", packageVersion("imprintomeR"))
+message("Execution date: ", Sys.Date())
+message("Random seed: 2026")
+
+sessionInfo()
+```
+
+---
+
+## Jupyter Notebook Conversion Guide
+
+This vignette is designed for conversion to Jupyter notebooks. To convert:
+
+```bash
+# 1. Render this Rmd to HTML (in R):
+rmarkdown::render("vignettes/GSE240091.Rmd")
+
+# 2. Convert HTML to Jupyter notebook:
+jupyter nbconvert --to notebook GSE240091.html --output GSE240091.ipynb
+
+# 3. Or use Jupytext to convert Rmd directly:
+jupytext --to notebook vignettes/GSE240091.Rmd
+```
+
+**Tips for Jupyter users:**
+- The raw-IDAT QC chunks are disabled by default; change `eval = FALSE` to `eval = TRUE` after downloading the raw archive.
+- Use `cache = TRUE` on GEO and QC chunks to avoid repeated downloads and IDAT reads.
+- Set `outFile` in plot calls to save publication-ready PDFs or PNGs.
+- Keep QC and imprintome outputs in separate directories for easier review.
+
+---
+
+## References
+
+- **GSE240091**: [NCBI GEO record](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE240091)
+- **GSE240091 publication**: PubMed 38296184 and the linked publication for growing teratoma syndrome
+- **imprintomeR documentation**: See package vignettes
+- **GEOquery**: Bioconductor package for GEO data access
+- **MethQcSet**: QC container for raw methylation array preprocessing
+- **ImprintomeSet**: Analysis container for imprinting studies
+
+---
+
+## License & Attribution
+
+This vignette uses publicly available data from NCBI Gene Expression Omnibus (GEO). Please cite the original GSE240091 growing teratoma study and imprintomeR when using this analysis.

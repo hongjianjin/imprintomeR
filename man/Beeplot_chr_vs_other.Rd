@@ -16,7 +16,7 @@ Beeplot_chr_vs_other(
 \arguments{
 \item{dat}{Data frame/matrix with sample columns plus grouping columns.}
 
-\item{meta}{Metadata data frame containing \code{SAMPLE_NAME} and optional \code{ID2}.}
+\item{meta}{Metadata data frame containing \code{Sample_Name} and optional \code{ID2}.}
 
 \item{group.by}{Column in \code{dat} used for faceting (default: \code{"chr"}).}
 

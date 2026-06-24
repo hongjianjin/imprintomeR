@@ -22,14 +22,13 @@ if (!methods::isGeneric("computeQC")) {
 #' @param x A `MethQcSet` object.
 #' @param detection_pval Optional matrix of detection p-values. If NULL, uses x@detection_pval.
 #' @param pcutoff Numeric, maximum mean detection p-value cutoff (default: 0.05).
-#' @param icutoff Numeric, minimum median intensity cutoff (default: 11).
 #' @param ... Additional arguments (reserved for future use).
 #'
 #' @return A `MethQcSet` object with updated qc_tables and qc_params.
 #'
 #' @keywords internal
 methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
-                                                     pcutoff = 0.05, icutoff = 11, ...) {
+                                                     pcutoff = 0.05, ...) {
   suppressMessages(suppressWarnings(library(matrixStats)))
 
   # Use provided or stored matrices
@@ -60,7 +59,7 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
 
   # Create base QC matrix
   qc_matrix <- data.frame(
-    SAMPLE_NAME = colnames(x@beta),
+    Sample_Name = colnames(x@beta),
     aveDetectionPval = aveDetPval,
     DetPval.0.01 = DetPval0.01,
     DetPval.0.05 = DetPval0.05,
@@ -97,7 +96,7 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
     recall_rate$pct_detected_fail <- NA_real_
   }
 
-  # Cutoffs table (22 core QC metrics + control metrics)
+  # Cutoffs table: detection/probe coverage required; intensity reported only; control metrics optional
   # Structured to match legacy meth_QC.R for compatibility
   cutoffs <- data.frame(
     criteria = c(
@@ -112,7 +111,7 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
       "CtrlMetrics.QC"
     ),
     cutoff   = c(
-      paste0(">", icutoff), paste0("<", pcutoff), ">95",
+      "reported", paste0("<", pcutoff), ">95",
       ">-4",
       ">0", ">5", ">5", ">5", ">5", ">1", ">1",
       ">1", ">1",
@@ -121,7 +120,7 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
       "PASS"
     ),
     Pass = c(
-      paste0(">=", icutoff), paste0("<=", pcutoff), ">=95",
+      "reported", paste0("<=", pcutoff), ">=95",
       "NA",
       ">0", ">5", ">5", ">5", ">5", ">1", ">1",
       ">1", ">1",
@@ -130,7 +129,7 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
       "PASS"
     ),
     Fail = c(
-      paste0("<", icutoff), paste0(">", pcutoff), "<=95",
+      "reported", paste0(">", pcutoff), "<=95",
       "NA",
       "<=0", "<=5", "<=5", "<=5", "<=5", "<=1", "<=1",
       "<=1", "<=1",
@@ -139,7 +138,7 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
       "FAIL"
     ),
     Final.QC = c(
-      "required", "required", "required",
+      NA, "required", "required",
       NA,
       NA, NA, NA, NA, NA, NA, NA, NA, NA,
       "required", "required", NA, NA, NA, NA, NA, NA,
@@ -168,7 +167,6 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
   # Store QC parameters
   new_qc_params <- list(
     pcutoff = pcutoff,
-    icutoff = icutoff,
     method  = "detection_pval_statistics"
   )
 

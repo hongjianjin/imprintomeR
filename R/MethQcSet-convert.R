@@ -129,7 +129,7 @@ methods::setMethod("as.ImprintomeSet", "MethQcSet", function(x, probeset = NULL,
   # =========================================================================
   meta <- x@meta
   
-  # Normalize column names: MethQcSet uses SAMPLE_NAME (all caps), ImprintomeSet expects Sample_Name
+  # Normalize older MethQcSet metadata that may use SAMPLE_NAME to canonical Sample_Name
   if ("SAMPLE_NAME" %in% colnames(meta) && !("Sample_Name" %in% colnames(meta))) {
     colnames(meta)[colnames(meta) == "SAMPLE_NAME"] <- "Sample_Name"
   }

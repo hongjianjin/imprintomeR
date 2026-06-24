@@ -10,13 +10,13 @@ CalcAvgByGrp(dat, meta = NULL)
 \item{dat}{Numeric matrix/data frame with probes/features in rows and samples
 in columns.}
 
-\item{meta}{Metadata data frame containing at least \code{SAMPLE_NAME} and
-\code{SAMPLE_GROUP}.}
+\item{meta}{Metadata data frame containing at least \code{Sample_Name} and
+\code{Sample_Group}.}
 }
 \value{
 Data frame of row-wise group means, one column per group.
 }
 \description{
-Computes per-row average values in \code{dat} for each \code{SAMPLE_GROUP} defined in
+Computes per-row average values in \code{dat} for each \code{Sample_Group} defined in
 \code{meta}, matching samples by \code{meta$Sample_Name} to column names in \code{dat}.
 }

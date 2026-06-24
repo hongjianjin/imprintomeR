@@ -178,8 +178,8 @@ Key MethQcSet features:
 - **Canonical `qc_tables` keys** (populated by `runMethQC()`):
   - `QC_matrix` — per-sample detection stats, intensity, predictedSex, `Final.QC`
   - `recall_rate` — per-probe % detected across all / PASS / FAIL samples
-  - `cutoffs` — QC threshold criteria with Pass/Fail expressions (22 core + control metrics)
-    - **Core metrics (3 rows):** log2MedianIntensity (>11), aveDetectionPval (<0.05), pctDetectedCpG_dP0.05 (>95)
+  - `cutoffs` — QC threshold criteria with Pass/Fail expressions (detection/probe-coverage required; intensity reported only; control metrics when available)
+    - **Core metrics (3 rows):** log2MedianIntensity (reported only), aveDetectionPval (<0.05), pctDetectedCpG_dP0.05 (>95)
     - **SNP metrics (1 row):** snps_outliers_aveLogOdds (>-4)
     - **Control metrics (18 rows, if ewastools available):** Restoration, Staining, Extension, Hybridization, Target_Removal, Bisulfite_Conversion, Specificity, Non-polymorphic
     - **Columns:** criteria, cutoff, Pass, Fail, Final.QC, CtrlMetrics.QC

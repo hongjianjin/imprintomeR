@@ -28,6 +28,7 @@ methods::setGeneric("meta<-", function(x, value) standardGeneric("meta<-"))
 #' @rdname MethQcSet-accessors
 #' @export
 methods::setReplaceMethod("meta", "MethQcSet", function(x, value) {
+  value <- .normalize_methqc_sample_name(value)
   x@meta <- value
   methods::validObject(x)
   x

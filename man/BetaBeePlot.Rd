@@ -23,7 +23,7 @@ BetaBeePlot(
 \arguments{
 \item{beta}{Numeric beta matrix with probes as rows and samples as columns.}
 
-\item{meta}{Sample metadata containing \code{SAMPLE_NAME} and grouping columns.}
+\item{meta}{Sample metadata containing \code{Sample_Name} and grouping columns.}
 
 \item{SAMPLEID}{Metadata column used as x-axis sample label.}
 

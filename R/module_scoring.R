@@ -459,7 +459,7 @@ Survey_Global_Imprinting_Batch <- function(betaFile, metaFile = NULL,
 
   # 5. Global Calculation (Group by Sample AND Chromosome)
   results <- combined_data %>%
-    group_by(SAMPLE_NAME, Chromosome) %>%
+    group_by(Sample_Name, Chromosome) %>%
     summarise(
       n_mat = sum(ORIGIN == "maternal", na.rm = TRUE),
       n_pat = sum(ORIGIN == "paternal", na.rm = TRUE),
@@ -489,8 +489,8 @@ Survey_Global_Imprinting_Batch <- function(betaFile, metaFile = NULL,
       Mechanism = if_else(IDS < 0.2, "ROI (Retention)", raw_mech),
       Chromosome = factor(Chromosome, levels = str_sort(unique(Chromosome), numeric = TRUE))
     ) %>%
-    select(SAMPLE_NAME, Chromosome, n_mat, n_pat, IDS, Status, Mechanism, Angle) %>%
-    arrange(SAMPLE_NAME, Chromosome)
+    select(Sample_Name, Chromosome, n_mat, n_pat, IDS, Status, Mechanism, Angle) %>%
+    arrange(Sample_Name, Chromosome)
 
     cols_to_keep <- intersect(colnames(meta), c("Sample_Name", "Sample_Group", "ID2"))
     meta_selected <- meta[, cols_to_keep, drop = FALSE]
@@ -498,8 +498,8 @@ Survey_Global_Imprinting_Batch <- function(betaFile, metaFile = NULL,
   # Join metadata to the report
   final_report <- report %>%
     left_join(meta_selected, by = "Sample_Name") %>%
-    select(SAMPLE_NAME, any_of(c("Sample_Group", "ID2")), Chromosome, n_mat, n_pat, IDS, Status, Mechanism, Angle) %>%
-    arrange(SAMPLE_NAME, Chromosome)
+    select(Sample_Name, any_of(c("Sample_Group", "ID2")), Chromosome, n_mat, n_pat, IDS, Status, Mechanism, Angle) %>%
+    arrange(Sample_Name, Chromosome)
 
   return(final_report)
 }
