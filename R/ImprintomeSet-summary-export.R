@@ -83,11 +83,14 @@ methods::setMethod(
     }
 
     plot_list <- plots(object)
-    plot_names <- names(plot_list)
-    if (is.null(plot_names)) {
-      plot_names <- paste0("plot_", seq_along(plot_list))
-    }
     if (length(plot_list) > 0L) {
+      plot_names <- names(plot_list)
+      if (is.null(plot_names) || length(plot_names) != length(plot_list)) {
+        plot_names <- rep("", length(plot_list))
+      }
+      missing_plot_names <- is.na(plot_names) | !nzchar(plot_names)
+      plot_names[missing_plot_names] <- paste0("plot_", which(missing_plot_names))
+
       ord <- order(plot_names)
       plot_names <- plot_names[ord]
       plot_list <- plot_list[ord]
@@ -210,48 +213,54 @@ methods::setMethod(
     # Export plots
     if (isTRUE(save_plots)) {
       p_list <- plots(x)
-      p_names <- names(p_list)
-      if (is.null(p_names)) {
-        p_names <- paste0("plot_", seq_along(p_list))
+      if (length(p_list) == 0L) {
+        message("No stored plots found in plots(x); skipping plot export.")
+      } else {
+        p_names <- names(p_list)
+        if (is.null(p_names) || length(p_names) != length(p_list)) {
+          p_names <- rep("", length(p_list))
+        }
+        missing_plot_names <- is.na(p_names) | !nzchar(p_names)
+        p_names[missing_plot_names] <- paste0("plot_", which(missing_plot_names))
         names(p_list) <- p_names
-      }
 
-      if (is.null(plot_names)) {
-        plot_names <- p_names
-      }
-      plot_names <- sort(intersect(plot_names, names(p_list)))
+        if (is.null(plot_names)) {
+          plot_names <- p_names
+        }
+        plot_names <- sort(intersect(plot_names, names(p_list)))
 
-      plot_device <- tolower(plot_device)
-      if (!plot_device %in% c("pdf", "png")) {
-        stop("plot_device must be one of: pdf, png")
-      }
-
-      for (nm in plot_names) {
-        pobj <- p_list[[nm]]
-        safe_nm <- sanitize_name(nm)
-
-        if (inherits(pobj, "ggplot") || inherits(pobj, "patchwork")) {
-          fpath <- file.path(outdir, paste0("plot_", safe_nm, ".", plot_device))
-          if (!overwrite && file.exists(fpath)) {
-            status <- "skipped_exists"
-          } else {
-            ggplot2::ggsave(filename = fpath, plot = pobj, width = width, height = height, units = "in", limitsize = TRUE)
-            status <- "written"
-          }
-        } else {
-          fpath <- file.path(outdir, paste0("plot_", safe_nm, ".rds"))
-          if (!overwrite && file.exists(fpath)) {
-            status <- "skipped_exists"
-          } else {
-            saveRDS(pobj, fpath)
-            status <- "written"
-          }
+        plot_device <- tolower(plot_device)
+        if (!plot_device %in% c("pdf", "png")) {
+          stop("plot_device must be one of: pdf, png")
         }
 
-        manifest <- rbind(
-          manifest,
-          data.frame(category = "plots", name = nm, file = fpath, status = status, stringsAsFactors = FALSE)
-        )
+        for (nm in plot_names) {
+          pobj <- p_list[[nm]]
+          safe_nm <- sanitize_name(nm)
+
+          if (inherits(pobj, "ggplot") || inherits(pobj, "patchwork")) {
+            fpath <- file.path(outdir, paste0("plot_", safe_nm, ".", plot_device))
+            if (!overwrite && file.exists(fpath)) {
+              status <- "skipped_exists"
+            } else {
+              ggplot2::ggsave(filename = fpath, plot = pobj, width = width, height = height, units = "in", limitsize = TRUE)
+              status <- "written"
+            }
+          } else {
+            fpath <- file.path(outdir, paste0("plot_", safe_nm, ".rds"))
+            if (!overwrite && file.exists(fpath)) {
+              status <- "skipped_exists"
+            } else {
+              saveRDS(pobj, fpath)
+              status <- "written"
+            }
+          }
+
+          manifest <- rbind(
+            manifest,
+            data.frame(category = "plots", name = nm, file = fpath, status = status, stringsAsFactors = FALSE)
+          )
+        }
       }
     }
 

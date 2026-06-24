@@ -401,11 +401,14 @@ methods::setMethod(
     width <- if (!is.null(args$width)) as.numeric(args$width)[1] else 10
     height <- if (!is.null(args$height)) as.numeric(args$height)[1] else 10
     SAMPLEID <- .imprint_get_arg_chr(args, "SAMPLEID", "Sample_Name")
-    
+
     sample_id <- .imprint_get_arg_chr(args, "sample_id", NULL)
     chr_focus <- .imprint_get_arg_chr(args, "chr", NULL)
     prefix <- .imprint_get_arg_chr(args, "prefix", NULL)
     sectionColumn <- .imprint_get_arg_chr(args, "sectionColumn", "Sample_Group")
+    annoColumn <- .imprint_get_arg_chr(args, "annoColumn", "Sample_Group")
+    clusterRows <- if (!is.null(args$clusterRows)) isTRUE(args$clusterRows) else TRUE
+    clusterColumns <- if (!is.null(args$clusterColumns)) isTRUE(args$clusterColumns) else TRUE
 
     valid_plot_types <- c(
       "auto", "polar", "mirror_density", "beeswarm", "beeswarm_origin", "beeswarm_chr", "violin",
@@ -595,6 +598,9 @@ methods::setMethod(
           beta = beta_plot,
           meta = meta_x,
           SAMPLEID = SAMPLEID,
+          annoColumn = annoColumn,
+          clusterRows = clusterRows,
+          clusterColumns = clusterColumns,
           outFile = outFile
         )
       )
@@ -607,9 +613,9 @@ methods::setMethod(
           meta = meta_x,
           probeset = probeset_name,
           SAMPLEID = SAMPLEID,
-          annoColumn = "Sample_Group",
-          clusterRows = TRUE,
-          clusterColumns = TRUE,
+          annoColumn = annoColumn,
+          clusterRows = clusterRows,
+          clusterColumns = clusterColumns,
           outFile = outFile,
           imgSizeFactor = 0.5
         )
@@ -619,7 +625,7 @@ methods::setMethod(
     if (plot_type == "circular_heatmap") {
       # Use same probeset subsetting logic as beeswarm: subset beta first, then visualize
       beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "circular_heatmap")
-      
+
       # Check if sectionColumn exists and has meaningful values (not all "Unknown")
       effective_section_column <- sectionColumn
       if (!sectionColumn %in% colnames(meta_x)) {
@@ -633,7 +639,7 @@ methods::setMethod(
           effective_section_column <- "Sample_Name"
         }
       }
-      
+
       return(
         BetaCircularHeatmap(
           beta = beta_plot,

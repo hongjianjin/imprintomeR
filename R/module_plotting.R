@@ -70,18 +70,18 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
   } else {
     cat("\nERROR: beta column does not match meta$Sample_Name. \n")
     return(NULL)
-  } 
-  colnames(beta) <- newIDs 
+  }
+  colnames(beta) <- newIDs
   cor_matrix <- cor(beta)
 
- 
- 
-  plotWidth<- plotHeight<- ifelse(ncol(cor_matrix)<10, 10, 10+ (ncol(cor_matrix)-10)*0.8 ) 
+
+
+  plotWidth<- plotHeight<- ifelse(ncol(cor_matrix)<10, 10, 10+ (ncol(cor_matrix)-10)*0.8 )
   color_palette <- colorRampPalette(c("blue", "white", "red"))(100)
  # Define breaks from -1 to 1
    breaks_list <- seq(-1, 1, length.out = 101)
   # Generate heatmap
-  outFile1 <- paste0(prefix, "_detail.pdf")  
+  outFile1 <- paste0(prefix, "_detail.pdf")
   hm <- pheatmap(cor_matrix,
           color = color_palette,
           breaks = breaks_list,
@@ -92,9 +92,9 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
           main = "Correlation Heatmap",
           file=outFile1,
           width=plotWidth,height=plotHeight)
-  cat(paste0('\nInfo: ',basename(outFile1),'[saved]'))            
+  cat(paste0('\nInfo: ',basename(outFile1),'[saved]'))
   #================================================================
-  outFile2 <- paste0(prefix, "_simple.pdf")            
+  outFile2 <- paste0(prefix, "_simple.pdf")
   hm <- pheatmap(cor_matrix,
           color = color_palette,
           breaks = breaks_list,
@@ -105,9 +105,9 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
           main = "Correlation Heatmap",
           file=outFile2,
           width=plotWidth/2,height=plotHeight/2)
-  cat(paste0('\nInfo: ',basename(outFile2),'[saved]'))     
+  cat(paste0('\nInfo: ',basename(outFile2),'[saved]'))
   #================================================================
-  outFile3 <- paste0(prefix, "_auto.simple.pdf") 
+  outFile3 <- paste0(prefix, "_auto.simple.pdf")
   hm <- pheatmap(cor_matrix,
           color = color_palette,
           breaks = breaks_list,
@@ -118,7 +118,7 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
           main = "Correlation Heatmap",
           file=outFile3,
           width=plotWidth/2,height=plotHeight/2)
-  cat(paste0('\nInfo: ',basename(outFile3),'[saved]'))              
+  cat(paste0('\nInfo: ',basename(outFile3),'[saved]'))
   return(cor_matrix)
 }
 #================================================================
@@ -139,13 +139,13 @@ ComputePCA  <- function(df, meta, scale=T, topn = 3000,varMethod="mad",groupColu
     cat("\n[ComputePCA] ERROR: parameter [meta] must be a data.frame! \n")
     stop("Exit...")
   }
-  #validate input 
+  #validate input
   colnames(meta) <- toupper(colnames(meta))
   if (!all(c("Sample_Name","Sample_Group","COLOR") %in% colnames(meta))) {
     cat("\n[ComputePCA] INFO: Invalid meta file. Sample_Name, Sample_Group or COLOR column(s) not found.\n")
     stop("exit.")
   }
-  
+
   isNewName <- length(intersect(colnames(df), meta$NEWNAME )) > length(intersect(colnames(df), meta$ID ))
   if (isNewName){
     cat("\n[ComputePCA] INFO: Use NEWNAME in df table..\n")
@@ -182,7 +182,7 @@ ComputePCA  <- function(df, meta, scale=T, topn = 3000,varMethod="mad",groupColu
   if (nrow(used) == 0) {
     stop("[ComputePCA] ERROR: no valid features selected for PCA after filtering.")
   }
-  pcs <- prcomp(t(used), center = TRUE, scale = scale) 
+  pcs <- prcomp(t(used), center = TRUE, scale = scale)
   pctVar <- round(((pcs$sdev)^2 / sum((pcs$sdev)^2) * 100), 2)
   tmp <- as.data.frame(pcs$x)
   #mat <- data.frame(X=tmp[,"PC1"],Y=tmp[,"PC2"], meta[rownames(tmp),])  # data ready for plot
@@ -198,8 +198,8 @@ ComputeTSNE  <- function(PCAobj, npcs=50,perplexity=5, max_iter=5000, dims=2, se
   meta <-  PCAobj[["meta"]]
   npcs <- ifelse(ncol(pca$x)>npcs,npcs,ncol(pca$x))
   print(ncol(pca$x))
-  topPCS <- pca$x[,1:npcs]  
-  
+  topPCS <- pca$x[,1:npcs]
+
   cat("\nINFO: tSNE [start] \n",apply(topPCS[,1:5],2,class),"\n")
   #print(topPCS[1:3,1:4])
   tmpfile = paste0("tsne.npcs",npcs,".perp",perplexity,".max_iter",max_iter,".tmp");
@@ -219,13 +219,13 @@ ComputeTSNE  <- function(PCAobj, npcs=50,perplexity=5, max_iter=5000, dims=2, se
 }
 #================================================================
 
-DimPlot  <- function(DimReduc,  reduction = "PCA", ShapeColumn=NULL, IdColumn='Sample_Name', groupColumn='Sample_Group', 
+DimPlot  <- function(DimReduc,  reduction = "PCA", ShapeColumn=NULL, IdColumn='Sample_Name', groupColumn='Sample_Group',
   ColorColumn="COLOR",outFile=NA, label=F, title=NA,palette="Default",alpha=0.8){
   library(ggplot2)
   library(ggrepel)
   options(bitmapType = "cairo")
   #-----------------------------------------------
-  meta <- DimReduc[["meta"]]   
+  meta <- DimReduc[["meta"]]
   DF <- DimReduc[["mat"]]
   topn <- DimReduc[["topn"]]
   if (toupper(reduction) =="PCA"){
@@ -245,7 +245,7 @@ DimPlot  <- function(DimReduc,  reduction = "PCA", ShapeColumn=NULL, IdColumn='S
     myTitle <- paste0("topn=",topn, ",npcs=",DimReduc[["npcs"]], ", perplexity=",DimReduc[["perplexity"]],", max_iter=",DimReduc[["max_iter"]])
     xlab <- paste0("tSNE_1")
     ylab <- paste0("tSNE_2")
-  } 
+  }
   if (! is.na(title) & !is.null(title)){
     myTitle <- paste0(title,"\n", myTitle)
   }
@@ -261,7 +261,7 @@ DimPlot  <- function(DimReduc,  reduction = "PCA", ShapeColumn=NULL, IdColumn='S
     meta$SYMBOL <- 21
   }else{
     if( ! ShapeColumn %in% colnames(meta)){
-      cat("\nWarn: invalid ShapeColumn.", ShapeColumn,"\n") 
+      cat("\nWarn: invalid ShapeColumn.", ShapeColumn,"\n")
       #print(colnames(meta))
       meta$SHAPE <- "None"
       meta$SYMBOL <- 21
@@ -278,14 +278,14 @@ DimPlot  <- function(DimReduc,  reduction = "PCA", ShapeColumn=NULL, IdColumn='S
       }else{
         meta$SYMBOL <- shapes[as.integer(as.factor(meta$SHAPE))]
       }
-      #print(meta[, c("SHAPE","SYMBOL")])      
+      #print(meta[, c("SHAPE","SYMBOL")])
     }
 
   }
    sampleSize <- nrow(meta)
   dotSize <- 5-log2(nrow(meta))/2
   dotSize <- ifelse(dotSize<1 , 1, dotSize)
-  options(stringsAsFactors = F) 
+  options(stringsAsFactors = F)
   DF<- data.frame(DF, ID=meta$ID, GROUP=meta$GROUP, COLOR=meta$COLOR)
   if ("NEWNAME" %in% colnames(meta)){
     DF <- cbind(DF, INFO=paste(meta$ID, meta$NEWNAME,meta$GROUP, meta$SHAPE,sep="\n"))
@@ -293,19 +293,19 @@ DimPlot  <- function(DimReduc,  reduction = "PCA", ShapeColumn=NULL, IdColumn='S
   }else{
     DF <- data.frame(DF, INFO=paste(meta$ID, meta$GROUP,meta$SHAPE,sep="\n"))
     #DF<- data.frame(DF, meta[, c("ID", "GROUP",  "COLOR")])
-  } 
+  }
 
   if (length(unique(DF$GROUP)) !=length(unique(DF$COLOR))){ # update color
     for(grp in unique(DF$GROUP)) {
       DF$COLOR[DF$GROUP ==grp] <- head(DF$COLOR[DF$GROUP ==grp],n=1)
     }
   }
-  
+
   if("SHAPE" %in% colnames(meta)){
     DF<- cbind(DF, SHAPE=meta$SHAPE, SYMBOL=meta$SYMBOL)
     #DF$SHAPE[DF$SHAPE=="" | is.na(DF$SHAPE) ] <- "NA"
     if (length(unique(DF$SHAPE)) <= 5){
-      #shapes<- c(21,23,24,22,25) 
+      #shapes<- c(21,23,24,22,25)
       fill_manual_status <- TRUE
     }else{
       #shapes<- c(19, 17, 15, 18, 16, 14:0)
@@ -332,7 +332,7 @@ DimPlot  <- function(DimReduc,  reduction = "PCA", ShapeColumn=NULL, IdColumn='S
         geom_point(size = dotSize,  aes(fill=GROUPS,shape=SHAPES),color="grey50",alpha=alpha)+
         scale_fill_manual(name="Color", values =setNames(uniqCombs$COLOR, uniqCombs$GROUP)) +
         scale_shape_manual(name="Shape", values = setNames(uniqCombs$SYMBOL,uniqCombs$SHAPE))+
-        guides(fill=guide_legend(override.aes=list(shape=21))) + 
+        guides(fill=guide_legend(override.aes=list(shape=21))) +
         theme_bw() + theme_classic(base_size = 10) + theme(aspect.ratio=1)+
         theme(panel.border = element_rect(colour = "grey10", fill=NA, linewidth=1.5)) +
         theme(
@@ -353,7 +353,7 @@ DimPlot  <- function(DimReduc,  reduction = "PCA", ShapeColumn=NULL, IdColumn='S
         geom_point(size = dotSize,  aes(color=GROUPS,shape=SHAPES),alpha=alpha)+
         scale_color_manual(name="Color", values=setNames(uniqCombs$COLOR, uniqCombs$GROUP))+
         scale_shape_manual(name="Shape", values=setNames(uniqCombs$SYMBOL, uniqCombs$SHAPE) )+
-        guides(color=guide_legend(override.aes=list(shape=21))) + 
+        guides(color=guide_legend(override.aes=list(shape=21))) +
         theme_bw() + theme_classic(base_size = 10) + theme(aspect.ratio=1)+
         theme(panel.border = element_rect(colour = "grey10", fill=NA, linewidth=1.5)) +
         theme(
@@ -372,7 +372,7 @@ DimPlot  <- function(DimReduc,  reduction = "PCA", ShapeColumn=NULL, IdColumn='S
       xlab(xlab) + ylab(ylab) +
       geom_hline(yintercept = 0, colour = "grey70", linetype = "dashed", linewidth = 0.25) +
       geom_vline(xintercept = 0, colour = "grey70", linetype = "dashed", linewidth = 0.25) +
-      geom_point(size = dotSize,  aes(fill=GROUPS), colour="grey50",lwd = 2, alpha=0.6,shape=21) + 
+      geom_point(size = dotSize,  aes(fill=GROUPS), colour="grey50",lwd = 2, alpha=0.6,shape=21) +
       scale_fill_manual(name="GROUP", labels=uniqCombs$GROUP, values = uniqCombs$COLOR) +
       theme_bw() + theme_classic(base_size = 10) + theme(aspect.ratio=1)+
       theme(panel.border = element_rect(colour = "grey20", fill = NA, linewidth = 1.5)) +
@@ -400,7 +400,7 @@ DimPlot  <- function(DimReduc,  reduction = "PCA", ShapeColumn=NULL, IdColumn='S
           pg2 <- pg
         }
     }else{
-      pg2 <- pg 
+      pg2 <- pg
     }
     adj <- ifelse(length(levels(GROUPS))>16,2,0) + ifelse(length(levels(SHAPES))>10,2,0) # in case there are many legend labels
     ggsave(file = outFile, pg2, width = 7+adj, height = 6+adj, units = "in")
@@ -410,7 +410,7 @@ DimPlot  <- function(DimReduc,  reduction = "PCA", ShapeColumn=NULL, IdColumn='S
 }
 #================================================================
 
-Meth_PCA_Adv <- function(dat,meta=NULL, ShapeColumn=NULL,IdColumn='Sample_Name', groupColumn='Sample_Group', 
+Meth_PCA_Adv <- function(dat,meta=NULL, ShapeColumn=NULL,IdColumn='Sample_Name', groupColumn='Sample_Group',
             ColorColumn="COLOR", scale=F,  topn = 3000, outPrefix=NULL, label=F, palette="Default") {
   #  typically do not need to scale because beta values range from 0 to 1, representing the proportion of methylation.
   rdsFile <- paste0(outPrefix,"_PCAobj.rds")
@@ -431,12 +431,12 @@ Meth_PCA_Adv <- function(dat,meta=NULL, ShapeColumn=NULL,IdColumn='Sample_Name',
   }
   pdfFile <-  paste0(outPrefix,"_PCA_",palette,".pdf")
   pg <- DimPlot(PCAobj, reduction = "PCA", ShapeColumn=ShapeColumn, IdColumn=IdColumn, groupColumn=groupColumn,
-        ColorColumn=ColorColumn,label=label, title="PCA",palette=palette,outFile=pdfFile) 
+        ColorColumn=ColorColumn,label=label, title="PCA",palette=palette,outFile=pdfFile)
 
   return(pg)
 }
 
-Meth_TSNE_Adv <- function(dat,meta=NULL, ShapeColumn=NULL,IdColumn='Sample_Name', groupColumn='Sample_Group', ColorColumn="COLOR", 
+Meth_TSNE_Adv <- function(dat,meta=NULL, ShapeColumn=NULL,IdColumn='Sample_Name', groupColumn='Sample_Group', ColorColumn="COLOR",
      scale=F,  topn = 3000, npcs=50,perplexity=5, max_iter=5000,dims=3, outPrefix=NA, label=F, seed=123,palette="Default") {
   rdsFile <- paste0(outPrefix,"_PCAobj.rds")
   if (file.exists(rdsFile)){
@@ -447,20 +447,20 @@ Meth_TSNE_Adv <- function(dat,meta=NULL, ShapeColumn=NULL,IdColumn='Sample_Name'
     saveRDS(PCAobj,file=rdsFile)
     cat(paste0('\n\t',basename(rdsFile),' [saved]'))
   }
-  cat("\nINFO:compute.tSNE [start]") 
+  cat("\nINFO:compute.tSNE [start]")
   objFile <- paste0(outPrefix,"_tSNEobj.rds")
   if (file.exists(objFile)){
      tSNEobj   <- readRDS(objFile)
-     cat(paste0('\n\t',basename(objFile),' [loaded]'))   
-  }else{ 
+     cat(paste0('\n\t',basename(objFile),' [loaded]'))
+  }else{
      tSNEobj <- ComputeTSNE(PCAobj, npcs=npcs,perplexity=perplexity, max_iter=max_iter, dims=dims, seed=seed)
      saveRDS(tSNEobj,file=objFile)
-     cat(paste0('\n\t',basename(objFile),' [saveded]'))   
+     cat(paste0('\n\t',basename(objFile),' [saveded]'))
   }
-  cat("\nINFO:compute.tSNE [end]") 
+  cat("\nINFO:compute.tSNE [end]")
   pdfFile <-  paste0(outPrefix,"_tSNE_",palette,".pdf")
   pg <- DimPlot(tSNEobj, reduction = "tSNE", ShapeColumn=ShapeColumn,IdColumn='Sample_Name', groupColumn='Sample_Group',
-         ColorColumn=ColorColumn,label=label, title="tSNE",palette=palette,outFile=pdfFile) 
+         ColorColumn=ColorColumn,label=label, title="tSNE",palette=palette,outFile=pdfFile)
   return(pg)
 }
 
@@ -629,7 +629,7 @@ BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
     pg2 <- suppressWarnings(cowplot::get_legend(pg + theme(legend.position = "right") + guides(color = guide_legend(ncol = 1))))
     imgHeight <- if (!is.null(height)) height else (5 + max(nchar(meta$SAMPLEID)) / 20)
     #legendWidth <- ifelse(max(nchar(meta$Sample_Group))<30, 1, 2)  # control the width of legend
-    plots <- patchwork::wrap_plots(pg1, pg2, ncol = 1, widths = 10)  
+    plots <- patchwork::wrap_plots(pg1, pg2, ncol = 1, widths = 10)
   }else{
     plots <- pg1
     imgHeight <- if (!is.null(height)) height else 5
@@ -713,7 +713,7 @@ BetaBeePlot_SNP <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL
     geom_quasirandom(cex = dotSize) +
     theme_classic(base_size = 10) +
     labs(y = "methylation level", x = "ID") +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))  
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
   imgHeight <- 5 + max(nchar(meta$SAMPLEID)) / 20
   #plots <- cowplot::plot_grid(pg1, pg2, ncol = 2, rel_widths = c(8, 1))
@@ -758,10 +758,10 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
       q("no")
     }
     if("ORIGIN" %in% colnames(probes)){
-       anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name","ORIGIN")]  
+       anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name","ORIGIN")]
        colnames(anno)[3:4] <- c("GENE","CATEGORY")
     }else{
-     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")] 
+     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")]
      anno$CATEGORY <- "NA"
      colnames(anno)[3] <- "GENE"
     }
@@ -804,10 +804,10 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
   } else {
     cat("\nERROR: beta column does not match meta$Sample_Name. \n")
     return(NULL)
-  } 
-  colnames(beta) <- newIDs 
+  }
+  colnames(beta) <- newIDs
   beta$Probe=rownames(beta)
-  beta$CATEGORY= anno[common_probes,"CATEGORY"]   
+  beta$CATEGORY= anno[common_probes,"CATEGORY"]
   suppressMessages({
     used <- reshape2::melt(beta, id.vars = c("Probe", "CATEGORY"),variable.name = "ID",value.name = "value")
   })
@@ -831,22 +831,22 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
   imgHeight <- 5 + max(nchar(meta$SAMPLEID)) / 20
   num_groups <- length(unique(used$CATEGORY))
  pg_sep <- ggplot(used, aes(x = interaction(ID, CATEGORY), y = value, color = CATEGORY)) +
-    geom_quasirandom(size = dotSize, alpha = alpha, pch=20) + 
-    stat_summary(fun = median, geom = "errorbar", aes(ymin = after_stat(y), ymax = after_stat(y)), 
-                 width = 0.75, linewidth = 0.8, color="grey30") + 
-    facet_wrap(~ ID, nrow = 1, scales = "free_x", strip.position = "bottom") + 
+    geom_quasirandom(size = dotSize, alpha = alpha, pch=20) +
+    stat_summary(fun = median, geom = "errorbar", aes(ymin = after_stat(y), ymax = after_stat(y)),
+                 width = 0.75, linewidth = 0.8, color="grey30") +
+    facet_wrap(~ ID, nrow = 1, scales = "free_x", strip.position = "bottom") +
      scale_x_discrete( labels = function(x) {
        labels <- rep("", length(x))
        labels[seq(1, length(x), by = num_groups)] <- unlist(strsplit(as.character(x), "\\."))[1]
        labels
   }) +
-    theme_minimal() + 
+    theme_minimal() +
     theme_classic(base_size = 10) +
     labs(y = "Methylation Level", x = "ID",subtitle=paste0(probeset,":", chr)) +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1), 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1),
           axis.title.x = element_blank(),
           axis.ticks.x = element_blank(),
-          strip.text = element_blank(), 
+          strip.text = element_blank(),
           strip.background = element_blank())
 
   outFile2 <- paste0(tools::file_path_sans_ext(outFile),"_sep.pdf")
@@ -896,10 +896,10 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
       q("no")
     }
     if(group %in% colnames(probes)){
-       anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name",group)]  
+       anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name",group)]
        colnames(anno)[3:4] <- c("GENE","CATEGORY")
     }else{
-     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")] 
+     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")]
      anno$CATEGORY <- "NA"
      colnames(anno)[3] <- "GENE"
     }
@@ -936,8 +936,8 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
   } else {
     cat("\nERROR: beta column does not match meta$Sample_Name. \n")
     return(NULL)
-  } 
-  colnames(beta) <- newIDs 
+  }
+  colnames(beta) <- newIDs
   beta$Probe=rownames(beta)
   beta$CATEGORY= anno[common_probes,"CATEGORY"]
 
@@ -947,20 +947,20 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
   if(! useNA){
      used <- used[used$CATEGORY %in% c("paternal","maternal"),]
   }
- 
+
   #meta <- meta[order(meta$Sample_Group), ] # order GROUP
   #orderedIDs <- meta$SAMPLEID # order SMAPLEID by GROUP
   #rownames(meta) <- as.character(meta$SAMPLEID)
   used$value <- as.numeric(as.character(used$value))
   if(nrow(meta)==1){
       cat("\n generate dotplot [single sample]...\n")
-      
+
 
         pg_sep <- ggplot(used, aes(x = 1, y = value, color = CATEGORY)) +
           geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
           geom_quasirandom(cex = dotSize,alpha = alpha, width = 0.3) +
-          stat_summary(fun = median, geom = "errorbar", aes(ymin = after_stat(y), ymax = after_stat(y)), 
-          width = 0.5, linewidth = 0.7, color="grey30") + 
+          stat_summary(fun = median, geom = "errorbar", aes(ymin = after_stat(y), ymax = after_stat(y)),
+          width = 0.5, linewidth = 0.7, color="grey30") +
           facet_wrap(~ CATEGORY, nrow = 1)+
           theme_classic(base_size = 10) +
           theme(axis.text.x = element_blank(),axis.ticks.x = element_blank(),
@@ -971,8 +971,8 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
 
         pg_sep_style0 <- ggplot(used, aes(x = CATEGORY, y = value, color = CATEGORY)) +
           geom_quasirandom(cex = dotSize,alpha = alpha, width = 0.25) +
-          stat_summary(fun = median, geom = "errorbar", aes(ymin = after_stat(y), ymax = after_stat(y)), 
-          width = 0.5, linewidth = 0.7, color="grey30") + 
+          stat_summary(fun = median, geom = "errorbar", aes(ymin = after_stat(y), ymax = after_stat(y)),
+          width = 0.5, linewidth = 0.7, color="grey30") +
           theme_classic(base_size = 10) +
           labs(y = "methylation level", x = group, title=newIDs) +
           theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
@@ -1009,26 +1009,26 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
       #plots <- cowplot::plot_grid(pg1, pg2, ncol = 2, rel_widths = c(8, 1))
       num_groups <- length(unique(used$CATEGORY))
     pg_sep <- ggplot(used, aes(x = interaction(ID, CATEGORY), y = value, color = CATEGORY)) +
-        geom_quasirandom(size = dotSize, alpha = alpha, pch=20) + 
-        stat_summary(fun = median, geom = "errorbar", aes(ymin = after_stat(y), ymax = after_stat(y)), 
-                    width = 0.75, linewidth = 0.8, color="grey30") + 
-        facet_wrap(~ ID, nrow = 1, scales = "free_x", strip.position = "bottom") + 
+        geom_quasirandom(size = dotSize, alpha = alpha, pch=20) +
+        stat_summary(fun = median, geom = "errorbar", aes(ymin = after_stat(y), ymax = after_stat(y)),
+                    width = 0.75, linewidth = 0.8, color="grey30") +
+        facet_wrap(~ ID, nrow = 1, scales = "free_x", strip.position = "bottom") +
         scale_x_discrete( labels = function(x) {
           labels <- rep("", length(x))
           labels[seq(1, length(x), by = num_groups)] <- unlist(strsplit(as.character(x), "\\."))[1]
           labels
       }) +
-        theme_minimal() + 
+        theme_minimal() +
         theme_classic(base_size = 10) +
         labs(y = "Methylation Level", x = "ID") +
-        theme(axis.text.x = element_text(angle = 90, hjust = 1), 
+        theme(axis.text.x = element_text(angle = 90, hjust = 1),
               axis.title.x = element_blank(),
               axis.ticks.x = element_blank(),
-              strip.text = element_blank(), 
+              strip.text = element_blank(),
               strip.background = element_blank())
 
   }
-  
+
   outFile2 <- paste0(tools::file_path_sans_ext(outFile),"_sep.pdf")
   if (!is.null(outFile)) {
     if (ncol(beta) > 20) {
@@ -1077,7 +1077,7 @@ BetaBeeswarm_chr <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFil
       cat("\nERROR: unavailable probeset & probes not given.\n")
       q("no")
     }
-    anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")]   
+    anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")]
     colnames(anno)[3] <- "GENE"
     rownames(anno) <- probes$NAME
   }else{
@@ -1131,7 +1131,7 @@ BetaBeeswarm_chr <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFil
   for (sample in unique(beta_melt$variable)) {
     cat("\n\t", sample)
     sample_data <- subset(beta_melt, variable == sample)
-    chr_levels <- stringr::str_sort(unique(sample_data$Chromosome), numeric = TRUE) 
+    chr_levels <- stringr::str_sort(unique(sample_data$Chromosome), numeric = TRUE)
     sample_data$Chromosome <- factor(sample_data$Chromosome, levels=chr_levels)
 
     pg <- ggplot(sample_data, aes(x = 1, y = value), alpha = alpha) +
@@ -1141,7 +1141,7 @@ BetaBeeswarm_chr <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFil
       geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40",linewidth = 0.5) +
       geom_hline(yintercept = c(0.3,0.7), linetype ="dotted", color = "grey60",linewidth = 0.5) +
       theme(axis.text.x = element_blank(),axis.ticks.x = element_blank(),
-      panel.border = element_rect(color = "grey20", fill = NA, linewidth = 0.5)) 
+      panel.border = element_rect(color = "grey20", fill = NA, linewidth = 0.5))
      if(! pdfFolder %in% c(NULL, FALSE)){ # plot individual sample to seperate file
         pdfFile<- paste0(outDir,"/",sample,".jpg")
         ggsave(file=pdfFile,pg,width=10,height=4,units="in", limitsize = TRUE)
@@ -1172,10 +1172,10 @@ BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
       q("no")
     }
     if("ORIGIN" %in% colnames(probes)){
-       anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name","ORIGIN")]  
+       anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name","ORIGIN")]
        colnames(anno)[3:4] <- c("GENE","CATEGORY")
     }else{
-     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")] 
+     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")]
      anno$CATEGORY <- "NA"
      colnames(anno)[3] <- "GENE"
     }
@@ -1234,13 +1234,13 @@ BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
   for (sample in unique(beta_melt$variable)) {
     cat("\n\t", sample)
     sample_data <- subset(beta_melt, variable == sample)
-    chr_levels <- stringr::str_sort(unique(sample_data$Chromosome), numeric = TRUE) 
+    chr_levels <- stringr::str_sort(unique(sample_data$Chromosome), numeric = TRUE)
     sample_data$Chromosome <- factor(sample_data$Chromosome, levels=chr_levels)
     #pg0 <- ggplot(sample_data, aes(x = Chromosome, y = value), alpha = alpha) +
     #  geom_quasirandom(cex = dotSize) +
     #  theme_classic(base_size = 10) + ggtitle(label = sample) +
     #  labs(y = "methylation level", x = "Chromosome") +
-    #  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))  
+    #  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
     pg <- ggplot(sample_data, aes(x = 1, y = value,color=CATEGORY), alpha = alpha) +
       geom_quasirandom(cex = dotSize) +
       facet_wrap(~ Chromosome, nrow = 1) +  theme_classic(base_size = 10) + ggtitle(label = sample) +
@@ -1248,8 +1248,8 @@ BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
       geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40",linewidth = 0.5) +
       geom_hline(yintercept = c(0.3,0.7), linetype ="dotted", color = "grey60",linewidth = 0.5) +
       theme(axis.text.x = element_blank(),axis.ticks.x = element_blank(),
-      panel.border = element_rect(color = "grey20", fill = NA, linewidth = 0.5)) 
-       if(! pdfFolder %in% c(NULL, FALSE)){ 
+      panel.border = element_rect(color = "grey20", fill = NA, linewidth = 0.5))
+       if(! pdfFolder %in% c(NULL, FALSE)){
        pdfFile<- paste0(outDir,"/",sample,".jpg")
        ggsave(file=pdfFile,pg,width=10,height=4,units="in", limitsize = TRUE)
      }
@@ -1263,7 +1263,7 @@ BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
 
 ##################################################################
 
-BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn = "Sample_Group", clusterRows = TRUE, clusterColumns = TRUE, 
+BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn = "Sample_Group", clusterRows = TRUE, clusterColumns = TRUE,
    outFile = NULL, imgSizeFactor=0.5) {
   suppressMessages(library(circlize))
   suppressMessages(library(ComplexHeatmap))
@@ -1277,15 +1277,21 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
      cat("\nINFO: use alternative label.",SAMPLEID ,"\n")
   }
   TargetIDs <- rownames(beta)
-  validIds <- intersect(meta$Sample_Name, colnames(beta))
-  meta$SAMPLEID <- meta[, SAMPLEID]
+  if (!("Sample_Name" %in% colnames(meta))) {
+    stop("BetaHeatmap requires meta with a Sample_Name column.")
+  }
+  if (!(SAMPLEID %in% colnames(meta))) {
+    stop("BetaHeatmap requires SAMPLEID column '", SAMPLEID, "' in meta.")
+  }
+  validIds <- intersect(as.character(meta$Sample_Name), colnames(beta))
   if (length(validIds) > 0) {
-    meta <- meta[validIds, ]
-    beta <- beta[, validIds]
+    meta <- meta[match(validIds, as.character(meta$Sample_Name)), , drop = FALSE]
+    beta <- beta[, validIds, drop = FALSE]
   } else {
     cat("\nERROR: beta column does not match meta$Sample_Name. \n")
     return(NULL)
   }
+  meta$SAMPLEID <- as.character(meta[[SAMPLEID]])
   colnames(beta) <- meta$SAMPLEID
 
   # Ensure Sample_Group exists; create if missing
@@ -1296,9 +1302,9 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
   if (!annoColumn %in% colnames(meta)) {
     annoColumn <- "Sample_Group"
   }
-  
+
   meta <- meta[order(meta$Sample_Group), ] # order GROUP
-  beta <- beta[, as.character(meta$SAMPLEID)] # order SMAPLEID by GROUP
+  beta <- beta[, as.character(meta$SAMPLEID), drop = FALSE] # order SAMPLEID by GROUP
   rownames(meta) <- as.character(meta$SAMPLEID)
 
   if (!"COLOR" %in% colnames(meta)) {
@@ -1357,7 +1363,7 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
   plotHeight <- 5 + log10(nrow(used)+1) * 7
   fontsize <- (18 - log2(nrow(used)+1)) / 2
   legend_key_title <- "Methylation"
-  
+
   if(! clusterRows){ # sort by rowname
     library(stringr)
     used <- used[str_order(rownames(used), numeric = TRUE), ]
@@ -1377,7 +1383,7 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
     garbage <- dev.off()
     cat("\n\t", basename(outFile), "[saved]")
   }
-  return(hm) 
+  return(hm)
 }
 
 ##################################################################
@@ -1493,13 +1499,19 @@ BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
   beta_agg <- as.matrix(beta_agg)
 
   # Prepare samples
-  validIds <- intersect(meta$Sample_Name, colnames(beta_agg))
+  if (!("Sample_Name" %in% colnames(meta))) {
+    stop("BetaHeatmapByGene requires meta with a Sample_Name column.")
+  }
+  if (!(SAMPLEID %in% colnames(meta))) {
+    stop("BetaHeatmapByGene requires SAMPLEID column '", SAMPLEID, "' in meta.")
+  }
+  validIds <- intersect(as.character(meta$Sample_Name), colnames(beta_agg))
   if (length(validIds) == 0) {
     stop("No samples match between beta and meta.")
   }
-  meta$SAMPLEID <- meta[, SAMPLEID]
-  meta <- meta[validIds, ]
-  beta_agg <- beta_agg[, validIds]
+  meta <- meta[match(validIds, as.character(meta$Sample_Name)), , drop = FALSE]
+  beta_agg <- beta_agg[, validIds, drop = FALSE]
+  meta$SAMPLEID <- as.character(meta[[SAMPLEID]])
   colnames(beta_agg) <- meta$SAMPLEID
 
   # Ensure Sample_Group exists
@@ -1511,8 +1523,8 @@ BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
   }
 
   # Order by group
-  meta <- meta[order(meta$Sample_Group), ]
-  beta_agg <- beta_agg[, as.character(meta$SAMPLEID)]
+  meta <- meta[order(meta$Sample_Group), , drop = FALSE]
+  beta_agg <- beta_agg[, as.character(meta$SAMPLEID), drop = FALSE]
   rownames(meta) <- as.character(meta$SAMPLEID)
 
   # Assign colors if needed
@@ -1762,7 +1774,7 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
       cat("\nERROR: unavailable probeset & probes not given.\n")
       q("no")
     }
-    anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")]   
+    anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")]
     colnames(anno)[3] <- "GENE"
     rownames(anno) <- probes$NAME
   }else{
@@ -1801,28 +1813,38 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
 
   # generate circular heatmap
   circle_size <- unit(1, "snpc")
-  if (is.null(outFile)) {
-    timeStamp <- substr(strtrim(gsub("[-: ]", "", Sys.time()), 16), 5, 12) # "11301304"
-    outFile <- paste0("circular_heatmap_", timeStamp, ".pdf")
+  save_plot <- !is.null(outFile) && nzchar(outFile)
+  if (save_plot) {
+    outFile <- paste0(tools::file_path_sans_ext(outFile), ".pdf")
   }
-  
+
   # Clear any previous circos state AFTER setting up parameters
   circos.clear()
-  
-  pdf(outFile, width = 12, height = 10)  # Larger canvas: 12x10 inches
+  on.exit(circos.clear(), add = TRUE)
+
+  if (save_plot) {
+    pdf(outFile, width = 12, height = 10)  # Larger canvas: 12x10 inches
+    on.exit({
+      dev.off()
+      cat("\n\t", basename(outFile), "[saved]\n")
+    }, add = TRUE)
+  }
   # Initialize base graphics system explicitly to avoid blank pages
   plot.new()
-  
-  pushViewport(viewport(
-    x = 0.05, y = 0.5, width = circle_size, height = circle_size,
-    just = c("left", "center")
-  ))
-  par(omi = gridOMI(), new = TRUE)  # new = TRUE to allow overwriting plot.new()
-  circlize_plot(beta_list, beta_anno, colors = col_meth, track_height = 0.1)
-  upViewport()
-  draw(lgd_meth, x = unit(1.2, "npc"), just = "left")
-  garbage <- dev.off()
-  cat("\n\t", basename(outFile), "[saved]\n")
+
+  if (save_plot) {
+    pushViewport(viewport(
+      x = 0.05, y = 0.5, width = circle_size, height = circle_size,
+      just = c("left", "center")
+    ))
+    par(omi = gridOMI(), new = TRUE)  # new = TRUE to allow overwriting plot.new()
+    circlize_plot(beta_list, beta_anno, colors = col_meth, track_height = 0.1)
+    upViewport()
+    draw(lgd_meth, x = unit(1.2, "npc"), just = "left")
+  } else {
+    circlize_plot(beta_list, beta_anno, colors = col_meth, track_height = 0.1)
+    draw(lgd_meth, x = unit(0.98, "npc"), just = "right")
+  }
   # system(paste0("ls ", outFile, ">pdf.lst"))
   #system(" pdf2jpg.sh -i pdf.lst -o jpg")
 }
@@ -1855,7 +1877,7 @@ VennDiagram <- function(vennList,setNames=NULL, style="venn", prefix=NULL){
                 nsets = length(vennList), order.by = "freq",
                 sets.bar.color = "#56B4E9",
                 number.angles = 30,
-                text.scale=2 ) 
+                text.scale=2 )
           print(plot, newpage = FALSE) # remove the first blank page
         }else if(style =="vennerable"){
           vobj <- Vennerable::Venn(vennList)
@@ -1873,14 +1895,14 @@ VennDiagram <- function(vennList,setNames=NULL, style="venn", prefix=NULL){
           Vennerable::plot(vobj, gpList = venn_gp, show = list(Universe = FALSE))
         }
     }
-    garbage<-dev.off()   
+    garbage<-dev.off()
   return(plot)
 }
 
 #================================================================
 
 ##################################################################
-#  01/20/2026,15:29:49 
+#  01/20/2026,15:29:49
 ##################################################################
 #================================================================
 
@@ -1901,13 +1923,13 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
   if (!(colorColumn %in% colnames(data))) {
     stop("colorColumn not found in data: ", colorColumn)
   }
-  
+
   # Define our 8 mechanism anchors
   mechanism_labels <- c(
-    "Pat-Gain\n(0°)", "Global-Hyper\n(45°)", "Mat-Gain\n(90°)", "Mat-Gain+Pat-Loss\n(135°)", 
+    "Pat-Gain\n(0°)", "Global-Hyper\n(45°)", "Mat-Gain\n(90°)", "Mat-Gain+Pat-Loss\n(135°)",
     "Pat-Loss\n(180°)", "Global-Hypo\n(225°)", "Mat-Loss\n(270°)", "Pat-Gain+Mat-Loss\n(315°)"
   )
-  
+
   # Calculate break points in radians (0 to 2pi)
   # 0, 45, 90, 135, 180, 225, 270, 315 degrees
   #degree_breaks <- seq(0, 7*pi/4, by = pi/4)
@@ -1916,7 +1938,7 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
   y_labels <- c("0.2", "0.4", "0.6","0.8")
 # 2. Define the Sector Boundaries (The Green Lines)
   # Shifting by -22.5 degrees to create the "grid" boundaries
-  boundary_lines <- seq(22.5, 360, by = 45) 
+  boundary_lines <- seq(22.5, 360, by = 45)
 
   groups <- unique(as.character(data[, colorColumn]))
   n_groups <- length(groups)
@@ -1932,17 +1954,17 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
   uniqCombs <- data.frame(COLOR = unname(group_colors), GROUP = names(group_colors), stringsAsFactors = FALSE)
   # sort chr1, chr2...
   data[,colorColumn] <- factor( data[,colorColumn], levels=stringr::str_sort( unique(data[,colorColumn]), numeric = TRUE) )
-  
+
   dotSize <-  max(3, 8/log10(nrow(data)+10)) # 4/log10(nrow(data)+10)
   imgSize <-  ifelse(nrow(data) >1000, 12, 8)
 
   pg <- ggplot(data, aes(x = Angle, y = IDS)) +
     geom_vline(xintercept = degree_breaks, color = "grey90", linetype = "dashed") +
-    geom_vline(xintercept = boundary_lines, 
+    geom_vline(xintercept = boundary_lines,
                color = "#2ecc71", # A professional "Bio-Green"
-               linetype = "solid", 
-               linewidth = 0.8, 
-               alpha = 0.6) +       
+               linetype = "solid",
+               linewidth = 0.8,
+               alpha = 0.6) +
     geom_hline(yintercept = 0.2, color = "grey60", linewidth = 0.7, linetype = "solid")+
     geom_point(aes(fill = .data[[colorColumn]]),color= "grey30",shape=21,size=dotSize, alpha = alpha, stroke=0.5) +
     coord_polar(theta = "x", start = -pi/2,clip = "off", direction =-1) +  # move 0 degree to 3 o'clock like standard mathematics, counter-clock-wise
@@ -1952,8 +1974,8 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
       labels = mechanism_labels,
       expand = c(0, 0)
     ) +
-     annotate("text", x = 45, y = y_ticks, label = y_labels, 
-             size = 3.5, color = "darkred", fontface = "bold", vjust = -0.5) + 
+     annotate("text", x = 45, y = y_ticks, label = y_labels,
+             size = 3.5, color = "darkred", fontface = "bold", vjust = -0.5) +
     theme_minimal() +
     scale_y_continuous(
       limits = c(0, 0.8),
@@ -1961,7 +1983,7 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
       expand = c(0, 0),
       labels = NULL # Hide default y-labels to use our annotated ones,
     )+
-    scale_fill_manual(name="Color", values=stats::setNames(uniqCombs$COLOR, uniqCombs$GROUP))+ 
+    scale_fill_manual(name="Color", values=stats::setNames(uniqCombs$COLOR, uniqCombs$GROUP))+
     theme(
     # Positions the radial (y) axis labels
       axis.text.y = element_text(size = 8, color = "grey40", hjust = 1),
@@ -1970,16 +1992,16 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
       # Clean up the circular grid
       panel.grid.major.x = element_line(color = "grey90"), # Radial lines
       panel.grid.major.y = element_line(color = "grey90"), # Circular rings
-      
+
       # Ensure labels don't get cut off
       plot.margin = margin(20, 20, 20, 20),
       axis.text.x = element_text(size = 10, face = "bold")
-    ) + 
+    ) +
       labs(
       title = title,
       subtitle = subtitle,
       x = NULL, y = NULL
-    )+ 
+    )+
     theme( legend.position = "bottom"  ) +
     guides( fill = guide_legend(nrow = 2))
 
@@ -1997,7 +2019,7 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
                                   probeset = probeset_options,
                                   outFile = NULL ) {
     library(ggplot2)
-    suppressMessages(suppressWarnings(library(dplyr)))  
+    suppressMessages(suppressWarnings(library(dplyr)))
     library(tidyr)
   resolved <- .resolve_beta_meta_inputs(betaFile, metaFile, require_meta = TRUE)
   betaFile <- resolved$beta
@@ -2012,21 +2034,21 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
       beta <- input[["beta"]]
     }
     tmp  <- SubsetBeta_By_Probeset(beta, probeset = probeset, prefix = NULL)
-    
+
     probesets <- tmp[["probesets"]]
     beta <- tmp[["beta"]]
-    beta <- na.omit(beta) 
+    beta <- na.omit(beta)
 
     validIds <- intersect(meta$Sample_Name, colnames(beta))
     if (length(validIds) ==0) {
       cat("\nERROR: beta column does not match meta$Sample_Name. \n")
       return(NULL)
-    } 
+    }
     meta <- meta[meta$Sample_Name %in% validIds, , drop = FALSE]
     beta <- beta[, validIds, drop = FALSE]
     meta$SAMPLEID <- meta[,SAMPLEID]
     newIDs <- meta[["SAMPLEID"]]
-    colnames(beta) <- newIDs 
+    colnames(beta) <- newIDs
 
     maternal_probes <- intersect(probesets$NAME[grep("maternal", probesets$ORIGIN)], rownames(beta))
     paternal_probes <- intersect(probesets$NAME[grep("paternal", probesets$ORIGIN)], rownames(beta))
@@ -2035,8 +2057,8 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
     beta_long <- as.data.frame(beta) %>%
       mutate(NAME = rownames(.)) %>%
       pivot_longer(
-        cols = -NAME, 
-        names_to = "Sample_Name", 
+        cols = -NAME,
+        names_to = "Sample_Name",
         values_to = "Beta"
       )
   # This adds the 'ORIGIN' (maternal/paternal) and other columns to every row
@@ -2046,20 +2068,20 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
   used_long <- used_long %>%
         filter(!is.na(Beta),!is.na(ORIGIN)) %>%
         mutate(ORIGIN = factor(ORIGIN, levels = c("maternal", "paternal")))
-        
+
     # View the result
     head(used_long)
     # 1. Prepare data (ensure it is in Long Format)
     # You need a column 'Beta' and a column 'ORIGIN' (maternal/paternal)
-    plot_data <- used_long 
+    plot_data <- used_long
 
     # 2. Generate the Vertical Plot
     pg <- ggplot(plot_data, aes(x = Beta, fill = ORIGIN)) +
       # Maternal density on the "right" (positive)
-      geom_density(data = filter(plot_data, ORIGIN == "maternal"), 
+      geom_density(data = filter(plot_data, ORIGIN == "maternal"),
                   aes(y = after_stat(density)), alpha = 0.7) +
       # Paternal density on the "left" (negative)
-      geom_density(data = filter(plot_data, ORIGIN == "paternal"), 
+      geom_density(data = filter(plot_data, ORIGIN == "paternal"),
                   aes(y = -after_stat(density)), alpha = 0.7) +
       # Add the 0.5 reference line (now horizontal)
       geom_vline(xintercept = 0.5, linetype = "dashed", color = "black") +
@@ -2071,11 +2093,11 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
       labs(
         title = "Methylation Shift",
         subtitle= paste0("probeset:", probeset),
-        x = "Methylation (Î²)", 
+        x = "Methylation (Î²)",
         y = "Density (Paternal < 0 > Maternal)"
       )
 
-  
+
     if(!is.null(outFile)){
       imgSize <- ifelse(nrow(beta) >20, 12, 6)
       .imprint_save_plot(pg, outFile = outFile, width = imgSize, height = imgSize, units = "in", limitsize = TRUE)
@@ -2085,7 +2107,7 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
 
 #================================================================
 #' Comprehensive Imprinting Analysis for imprintomeR
-#' 
+#'
 #' @param betaFile  Character. file of beta values (Probes as rownames, Samples as colnames).
 #' @param metaFile  Character. file of sample information.
 #' @param probeset  Character. the name of a predefined imprinting probeset.
@@ -2108,7 +2130,7 @@ PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probe
       cat("\nERROR: unavailable probeset & probes not given.\n")
       q("no")
     }
-    anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name","ORIGIN")]   
+    anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name","ORIGIN")]
     colnames(anno)[3] <- "GENE"
     rownames(anno) <- probes$NAME
 
@@ -2131,7 +2153,7 @@ PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probe
     arrange(CHR, MAPINFO)%>%
     group_by(CHR) %>%
     # Create an index for even spacing
-    mutate(Probe_Index = row_number()) %>% 
+    mutate(Probe_Index = row_number()) %>%
     ungroup() %>%
     mutate(IDI = (beta - 0.5) * 2)
 
@@ -2185,20 +2207,22 @@ PlotRadar1 <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize
     metric = rownames(df),
     value = as.numeric(df[,1])
   )
-  
+
   # Sort metrics numerically/alphabetically
   plot_data <- plot_data[str_order(plot_data$metric, numeric = TRUE), ]
   n_metrics <- nrow(plot_data)
-  
+
   # Shift values to be positive (0 to 2) so coord_polar works
   # -1 -> 0 (center), 0 -> 1 (mid), 1 -> 2 (outer)
   plot_data$value_scaled <- plot_data$value + 1
-  
+
   # 2. Handle the "Short Path" Loop Closure
   # We map metrics to a numeric index 1:N, then add point N+1 as a duplicate of point 1
-  plot_data_closed <- plot_data %>%
-    mutate(idx = row_number()) %>%
-    bind_rows(., slice(., 1) %>% mutate(idx = n_metrics + 1))
+  plot_data_closed <- dplyr::mutate(plot_data, idx = dplyr::row_number())
+  plot_data_closed <- dplyr::bind_rows(
+    plot_data_closed,
+    dplyr::mutate(dplyr::slice(plot_data_closed, 1), idx = n_metrics + 1)
+  )
 
   # 3. Calculate Radial Label Angles & Justification
   # This ensures text is readable and points outward from the center
@@ -2232,32 +2256,32 @@ PlotRadar1 <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize
     annotate("path", x = seq(1, n_metrics + 1, length.out = 200), y = 0, color = "grey85") + # -1 ring
     annotate("path", x = seq(1, n_metrics + 1, length.out = 200), y = 1, color = "grey30", linewidth = 0.7) + # 0 ring
     annotate("path", x = seq(1, n_metrics + 1, length.out = 200), y = 2, color = "grey85") + # 1 ring
-    
+
     # Spokes (Segments instead of vlines to keep them inside the circle)
-    geom_segment(data = spoke_df, 
-                 aes(x = x, xend = x, y = y_start, yend = y_end), 
+    geom_segment(data = spoke_df,
+                 aes(x = x, xend = x, y = y_start, yend = y_end),
                  color = "grey40", linetype = "dashed") +
-    
+
     # Data Connection (The "Spider Web" line)
     geom_path(color = "#1f78b4", linewidth = 1.2, alpha = 0.8) +
     geom_point(color = "#1f78b4", size = pt.size) +
-    
+
     # Scale Labels (-1, 0, 1) placed at the 12 o'clock position
-    annotate("text", x = pos_3_oclock , y = c(0, 1, 2), label = c("-1", "0", "1"), 
+    annotate("text", x = pos_3_oclock , y = c(0, 1, 2), label = c("-1", "0", "1"),
              color = "purple", size = fontsize, fontface = "bold", vjust = -0.5) +
-    
+
     # Radial Metric Labels
-    geom_text(data = label_df, 
+    geom_text(data = label_df,
               aes(x = idx, y = 2.15, label = metric, angle = angle_final, hjust = hjust, color = label_color),
               ,show.legend = FALSE, size = fontsize) +
     scale_color_identity() +
     # Polar Transformation (start=0 puts first metric at top)
     coord_polar(start = 0) +
-    
+
     # Scales and Limits
     scale_y_continuous(limits = c(-1, 3)) + # Limit of 3 creates space for labels, # The more negative the first number, the bigger the center hole.
     scale_x_continuous(limits = c(1, n_metrics + 1)) +
-    
+
     # Styling
     labs(title = title, x = NULL, y = NULL) +
     theme_minimal() +
@@ -2272,7 +2296,7 @@ PlotRadar1 <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize
   if (!is.null(outFile)) {
     ggsave(filename = outFile, plot = p, width = 12, height = 12, units = "in", bg = "white")
   }
-  
+
   return(p)
 }
 
@@ -2291,11 +2315,11 @@ PlotRadar <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=
     value = as.numeric(df[,1]),
     stringsAsFactors = FALSE
   )
-  
+
   plot_data <- plot_data[str_order(plot_data$metric, numeric = TRUE), ]
   n_metrics <- nrow(plot_data)
   plot_data$value_scaled <- plot_data$value + 1
-  
+
   # 2. Add Color Logic (Shared by dots and labels)
   plot_data <- plot_data %>%
     mutate(
@@ -2316,8 +2340,10 @@ PlotRadar <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=
     )
 
   # 4. Path Closure (For the connecting line)
-  plot_data_closed <- plot_data %>%
-    bind_rows(., slice(., 1) %>% mutate(idx = n_metrics + 1))
+  plot_data_closed <- dplyr::bind_rows(
+    plot_data,
+    dplyr::mutate(dplyr::slice(plot_data, 1), idx = n_metrics + 1)
+  )
 
   # 5. Spokes and Scale positions
   spoke_df <- data.frame(x = 1:n_metrics, y_start = 0, y_end = 2)
@@ -2326,27 +2352,27 @@ PlotRadar <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=
   # 6. Build Plot
   p <- ggplot(plot_data_closed, aes(x = idx, y = value_scaled)) +
     # Background Grid Rings
-    annotate("path", x = seq(1, n_metrics + 1, length.out = 200), y = 0, color = "grey85") + 
-    annotate("path", x = seq(1, n_metrics + 1, length.out = 200), y = 1, color = "grey30", linewidth = 0.7) + 
-    annotate("path", x = seq(1, n_metrics + 1, length.out = 200), y = 2, color = "grey85") + 
-    
+    annotate("path", x = seq(1, n_metrics + 1, length.out = 200), y = 0, color = "grey85") +
+    annotate("path", x = seq(1, n_metrics + 1, length.out = 200), y = 1, color = "grey30", linewidth = 0.7) +
+    annotate("path", x = seq(1, n_metrics + 1, length.out = 200), y = 2, color = "grey85") +
+
     # Spokes (Dashed lines)
-    geom_segment(data = spoke_df, aes(x = x, xend = x, y = y_start, yend = y_end), 
+    geom_segment(data = spoke_df, aes(x = x, xend = x, y = y_start, yend = y_end),
                  color = "grey90", linetype = "dashed") +
-    
+
     # The Connecting Line (Solid Grey to let colors pop)
     geom_path(color = "grey40", linewidth = 0.8, alpha = 0.8) +
-    
+
     # DOTS and labels colored by origin using the same scheme as rainfall.
     geom_point(aes(color = origin_group), size = pt.size) +
-    
+
     # Scale Labels at 3 o'clock
-    annotate("text", x = pos_3_oclock, y = c(0, 1, 2), label = c("-1", "0", "1"), 
+    annotate("text", x = pos_3_oclock, y = c(0, 1, 2), label = c("-1", "0", "1"),
          color = .imprint_origin_colors()["reference"], size = fontsize, fontface = "bold", vjust = -0.7) +
-    
+
     # METRIC LABELS (Colored blue/brown to match dots)
-    geom_text(data = label_df, 
-              aes(x = idx, y = 2.15, label = metric, angle = angle_final, 
+    geom_text(data = label_df,
+              aes(x = idx, y = 2.15, label = metric, angle = angle_final,
                   hjust = hjust, color = origin_group),
               size = fontsize, show.legend = FALSE) +
     scale_color_manual(
@@ -2359,11 +2385,11 @@ PlotRadar <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=
       labels = c("maternal", "paternal", "other"),
       name = "Allelic origin"
     ) +
-    
+
     coord_polar(start = 0) +
-    scale_y_continuous(limits = c(-0.6, 3)) + 
+    scale_y_continuous(limits = c(-0.6, 3)) +
     scale_x_continuous(limits = c(1, n_metrics + 1)) +
-    
+
     labs(
       title = title,
       subtitle = paste0("Sample: ", id),
@@ -2383,7 +2409,7 @@ PlotRadar <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=
     )
 
   if (!is.null(outFile)) ggsave(outFile, p, width = 12, height = 12, bg = "white")
-  
+
   return(p)
 }
 
@@ -2402,48 +2428,48 @@ PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, a
   anno_path <- .resolve_extdata_file("probesets_hg19.rds")
   probesets <- readRDS(anno_path)
   # Using 'selected' probeset for distribution analysis
-  anno <- probesets[[probeset]] %>% 
-    select(NAME, CHR, ORIGIN) %>% 
+  anno <- probesets[[probeset]] %>%
+    select(NAME, CHR, ORIGIN) %>%
     as.data.frame()
   rownames(anno) <- anno$NAME
 
   # 2. Align Data
   valid_probes <- intersect(rownames(beta), rownames(anno))
   beta_sub <- beta[valid_probes, , drop = FALSE]
-  
+
   # 3. Pivot Long and Aggregate
   # We don't care about Sample Names anymore, so we pivot and keep values pooled
   used <- as.data.frame(beta_sub) %>%
     mutate(Probe = rownames(.),
            Chromosome = anno[valid_probes, "CHR"],
            ORIGIN = anno[valid_probes, "ORIGIN"]) %>%
-    pivot_longer(cols = -c(Probe, Chromosome, ORIGIN), 
-                 names_to = "SampleID", 
+    pivot_longer(cols = -c(Probe, Chromosome, ORIGIN),
+                 names_to = "SampleID",
                  values_to = "value") %>%
     filter(!is.na(value))
 
   # 4. Factor Ordering for Chromosomes
   # This ensures chr1 is at the top and chr22 is at the bottom (or vice versa)
-  used$Chromosome <- factor(used$Chromosome, 
+  used$Chromosome <- factor(used$Chromosome,
                              levels = rev(str_sort(unique(used$Chromosome), numeric = TRUE)))
   used$ORIGIN <- factor(used$ORIGIN, levels = c("maternal", "paternal"))
 
   # 5. Generate Plot
   cat("\n Generating aggregated cohort ridgeline plot...\n")
-  
+
   pg <- ggplot(used, aes(x = value, y = Chromosome, fill = ORIGIN)) +
     # Vertical reference lines at 0, 0.5, and 1
     geom_vline(xintercept = c(0, 0.5, 1), linetype = "dashed", color = "grey80") +
-    
+
     # One ridge per chromosome, colored by Origin
     geom_density_ridges(alpha = alpha, scale = scale, color = "white") +
-    
+
     # Split by Origin to see Maternal vs Paternal side-by-side
     facet_wrap(~ORIGIN) +
-    
+
     scale_fill_manual(values = .imprint_origin_colors()[c("maternal", "paternal")]) +
     scale_x_continuous(limits = c(-0.05, 1.05), breaks = seq(0, 1, 0.25)) +
-    
+
     theme_ridges(center_axis_labels = TRUE) +
     theme(
       legend.position = "none",
@@ -2481,51 +2507,51 @@ BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, pro
   anno_path <- .resolve_extdata_file("probesets_hg19.rds")
   probesets <- readRDS(anno_path)
   # Selecting the 'selected' probeset which contains the CHR and ORIGIN mapping
-  anno <- probesets[[probeset]] %>% 
-    select(NAME, CHR, ORIGIN) %>% 
+  anno <- probesets[[probeset]] %>%
+    select(NAME, CHR, ORIGIN) %>%
     as.data.frame()
   rownames(anno) <- anno$NAME
 
   # 2. Align Data
   valid_probes <- intersect(rownames(beta), rownames(anno))
   beta_sub <- beta[valid_probes, , drop = FALSE]
-  
+
   # 3. Pivot Long (Aggregating all samples into one distribution)
   used <- as.data.frame(beta_sub) %>%
     mutate(Probe = rownames(.),
            Chromosome = anno[valid_probes, "CHR"],
            ORIGIN = anno[valid_probes, "ORIGIN"]) %>%
-    pivot_longer(cols = -c(Probe, Chromosome, ORIGIN), 
-                 names_to = "SampleID", 
+    pivot_longer(cols = -c(Probe, Chromosome, ORIGIN),
+                 names_to = "SampleID",
                  values_to = "value") %>%
     filter(!is.na(value))
 
   # 4. Factor Ordering
   # Ensure chromosomes follow 1, 2, 3... order
-  used$Chromosome <- factor(used$Chromosome, 
+  used$Chromosome <- factor(used$Chromosome,
                              levels = str_sort(unique(used$Chromosome), numeric = TRUE))
   # Ensure Origin labels are consistent
   used$ORIGIN <- factor(used$ORIGIN, levels = c("maternal", "paternal"))
 
   # 5. Generate Plot
   cat("\n Generating faceted distribution plot (Maternal/Paternal side-by-side)...\n")
-  
+
   pg <- ggplot(used, aes(x = ORIGIN, y = value, fill = ORIGIN)) +
     # Reference line at 0.5 (the expected hemi-methylated midpoint)
     geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey70") +
-    
+
     # Violin plots show the density of the cohort
     geom_violin(trim = TRUE, alpha = alpha, color = "black", size = 0.3) +
-    
+
     # Add a narrow boxplot inside to show the median and IQR
     geom_boxplot(width = 0.2, color = "black", outlier.shape = NA, alpha = 0.5) +
-    
+
     # FACET BY CHROMOSOME: Each chromosome gets its own box
-    facet_wrap(~ Chromosome, ncol = 6) + 
-    
+    facet_wrap(~ Chromosome, ncol = 6) +
+
     scale_fill_manual(values = .imprint_origin_colors()[c("maternal", "paternal")]) +
     scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1)) +
-    
+
     theme_bw() +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
@@ -2574,7 +2600,7 @@ Plot_ICR_var_med <- function(plot_data, outFile=NULL, project="cohort", style="b
     # 2. Group for calculation
     group_by(icr_name, SAMPLE_GROUP) %>%
     # 3. Add the group-level median as a new column
-    summarise(Group_Median_Beta = median(Median_Beta, na.rm = TRUE), 
+    summarise(Group_Median_Beta = median(Median_Beta, na.rm = TRUE),
           Group_SD_Beta     = sd(Median_Beta, na.rm = TRUE),
           CpG_Count = mean(CpG_Count),
           .groups = "drop" )
@@ -2603,13 +2629,13 @@ Plot_ICR_var_med <- function(plot_data, outFile=NULL, project="cohort", style="b
   if(style=="beeswarm"){
      suppressMessages(suppressWarnings(library("ggbeeswarm")))
      pg <- ggplot(plot_data, aes(x = reorder(icr_name, Drift_Distance, FUN = median), y = Median_Beta)) +
-    geom_quasirandom(cex = 1, alpha = 0.5, pch=20, aes(color=ImpVar_Score)) + 
-        stat_summary(fun = median, geom = "errorbar", aes(ymin = after_stat(y), ymax = after_stat(y)), 
-                    width = 0.75, linewidth = 0.8, color="grey30") 
+    geom_quasirandom(cex = 1, alpha = 0.5, pch=20, aes(color=ImpVar_Score)) +
+        stat_summary(fun = median, geom = "errorbar", aes(ymin = after_stat(y), ymax = after_stat(y)),
+                    width = 0.75, linewidth = 0.8, color="grey30")
   }else{
     pg <- ggplot(plot_data, aes(x = reorder(icr_name, Median_Beta, FUN = median), y = Median_Beta)) +
     geom_boxplot(outlier.shape = NA, fill = "skyblue", alpha = 0.5) +
-    geom_jitter(aes(color = ImpVar_Score), width = 0.2, alpha = 0.7) 
+    geom_jitter(aes(color = ImpVar_Score), width = 0.2, alpha = 0.7)
   }
   # 2. Build the Plot
   pg <- pg +
@@ -2658,11 +2684,11 @@ if(F){
 
    outFile<- paste0("GSE52576_sig.Joshi_impvar.pdf")
    ggsave(file=outFile,pg1,width=12,height=5,units="in", limitsize = TRUE)
-   
+
 # We filter for a subset (e.g., top 30 most variable ICRs) to keep the plot readable
 top_drift_icrs <- final_report %>%
   group_by(icr_name) %>%
-  summarise(var_of_medians = var(Median_Beta, na.rm = TRUE)) 
+  summarise(var_of_medians = var(Median_Beta, na.rm = TRUE))
 
 plot_data <- final_report %>% filter(icr_name %in% top_drift_icrs$icr_name)
 
@@ -2686,13 +2712,13 @@ pg0 <- ggplot(plot_data, aes(x = reorder(icr_name, Median_Beta, FUN = median), y
 
    outFile<- paste0("GSE52576_sig.Joshi_impvar_ICR_drift_faceted2.pdf")
    ggsave(file=outFile,pg0,width=img_width,height=img_height,units="in", limitsize = FALSE)
-   
+
 
 
    final_report$CHR <- sub("_.*", "", final_report$icr_name)
   pg2 <-  ggplot(final_report, aes(x = icr_name, y = Median)) +
   # Background shaded area for expected range (0.35 - 0.65)
-  annotate("rect", xmin = -Inf, xmax = Inf, ymin = 0.35, ymax = 0.65, 
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = 0.35, ymax = 0.65,
            fill = "green", alpha = 0.1) +
   geom_jitter(aes(size = ImpVar_Score, color = ImpVar_Score), alpha = 0.6) +
   facet_wrap(~CHR, scales = "free_x") +
@@ -2789,10 +2815,10 @@ BetaBeePlot_orgin2 <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = N
       q("no")
     }
     if(group %in% colnames(probes)){
-       anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name",group)]  
+       anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name",group)]
        colnames(anno)[3:4] <- c("GENE","CATEGORY")
     }else{
-     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")] 
+     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")]
      anno$CATEGORY <- "NA"
      colnames(anno)[3] <- "GENE"
     }
@@ -2829,8 +2855,8 @@ BetaBeePlot_orgin2 <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = N
   } else {
     cat("\nERROR: beta column does not match meta$Sample_Name. \n")
     return(NULL)
-  } 
-  colnames(beta) <- newIDs 
+  }
+  colnames(beta) <- newIDs
   beta$Probe=rownames(beta)
   beta$CATEGORY= anno[common_probes,"CATEGORY"]
 
@@ -2846,17 +2872,17 @@ suppressMessages(suppressWarnings(library(dplyr)))
 
 # 1. Create a list of plots (one for each unique ID)
 plot_list <- lapply(unique(used$ID), function(current_id) {
-  
+
   # Filter data for just this ID
   df_sub <- used %>% filter(ID == current_id)
-  
+
   # Generate the individual "panel"
   p <- ggplot(df_sub, aes(x = CATEGORY, y = value, color = CATEGORY)) +
     geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
     geom_quasirandom(cex = dotSize, alpha = alpha, width = 0.3) +
-    stat_summary(fun = median, geom = "errorbar", 
-                 aes(ymin = after_stat(y), ymax = after_stat(y)), 
-                 width = 0.5, linewidth = 0.7, color="grey30") + 
+    stat_summary(fun = median, geom = "errorbar",
+                 aes(ymin = after_stat(y), ymax = after_stat(y)),
+                 width = 0.5, linewidth = 0.7, color="grey30") +
     # Use the ID as the title for this specific panel
     labs(title = current_id, y = "Methylation (Î²)", x = NULL) +
     scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
@@ -2875,7 +2901,7 @@ plot_list <- lapply(unique(used$ID), function(current_id) {
 # 'wrap_plots' handles a list of plots automatically
 nc <- ifelse(ncol(beta) <10, ncol(beta), 10)
 nr <- ceiling(ncol(beta)/nc)
-pg  <- wrap_plots(plot_list) + 
+pg  <- wrap_plots(plot_list) +
   plot_layout(ncol = nc) + # Adjust columns based on your cohort size
   plot_annotation(
     title = 'Beeswarm Violin',

@@ -322,9 +322,32 @@ If you ran the raw-IDAT QC workflow above, use PASS samples from `qcset`.
 qc_matrix <- qc_tables(qcset)[["QC_matrix"]]
 pass_samples <- qc_matrix$Sample_Name[qc_matrix$Final.QC == "PASS"]
 
-qcset_pass <- qcset
-beta(qcset_pass) <- beta(qcset)[, pass_samples, drop = FALSE]
-meta(qcset_pass) <- meta(qcset)[meta(qcset)$Sample_Name %in% pass_samples, , drop = FALSE]
+meta_pass <- meta(qcset)[match(pass_samples, meta(qcset)$Sample_Name), , drop = FALSE]
+beta_pass <- beta(qcset)[, pass_samples, drop = FALSE]
+det_pval_pass <- if (!is.null(detection_pval(qcset))) {
+  detection_pval(qcset)[, pass_samples, drop = FALSE]
+} else {
+  NULL
+}
+qc_tables_pass <- lapply(qc_tables(qcset), function(tbl) {
+  if (is.data.frame(tbl) && "Sample_Name" %in% colnames(tbl)) {
+    tbl[tbl$Sample_Name %in% pass_samples, , drop = FALSE]
+  } else {
+    tbl
+  }
+})
+
+qcset_pass <- MethQcSet(
+  meta = meta_pass,
+  platform = platform(qcset),
+  beta = beta_pass,
+  detection_pval = det_pval_pass,
+  qc_tables = qc_tables_pass,
+  aggregation_status = aggregation_status(qcset),
+  qc_params = qc_params(qcset)
+)
+
+saveRDS(qcset_pass, file=paste0(qc_outdir,"/GSE240091_qcset_pass.rds"))
 
 x <- as.ImprintomeSet(
   qcset_pass,
@@ -333,90 +356,7 @@ x <- as.ImprintomeSet(
 )
 ```
 
-### Processed-beta route from GEO
-
-Use this route when you want to run the imprinting workflow directly from GEO processed beta values.
-
-```{r extract-beta}
-beta_matrix <- exprs(eset)
-
-if (nrow(beta_matrix) == 0L) {
-  stop("No processed beta matrix was found in the GEO Series Matrix object. ",
-       "Run the raw IDAT QC workflow or inspect the GEO sample tables manually.")
-}
-
-storage.mode(beta_matrix) <- "numeric"
-beta_matrix <- beta_matrix[rowSums(!is.na(beta_matrix)) > 0, , drop = FALSE]
-
-message("Beta matrix dimensions: ", nrow(beta_matrix), " probes x ",
-        ncol(beta_matrix), " samples")
-message("Beta range: [", round(min(beta_matrix, na.rm = TRUE), 3), ", ",
-        round(max(beta_matrix, na.rm = TRUE), 3), "]")
-
-# Align GEO accession sample IDs between beta and metadata.
-meta_processed <- meta %>%
-  filter(Sample_Name %in% colnames(beta_matrix)) %>%
-  arrange(match(Sample_Name, colnames(beta_matrix)))
-beta_matrix <- beta_matrix[, meta_processed$Sample_Name, drop = FALSE]
-
-stopifnot(identical(colnames(beta_matrix), meta_processed$Sample_Name))
-```
-
-### Validate processed data
-
-```{r validate-data}
-pct_missing <- colSums(is.na(beta_matrix)) / nrow(beta_matrix) * 100
-message("Missing beta values per sample:")
-print(head(sort(pct_missing, decreasing = TRUE), n = 10))
-
-message("Sample names aligned: ", identical(colnames(beta_matrix), meta_processed$Sample_Name))
-print(table(meta_processed$Sample_Group))
-```
-
----
-
-## Phase 4: Create ImprintomeSet
-
-### Load data using imprintomeR utilities
-
-```{r load-metabeta}
-beta_df <- as.data.frame(beta_matrix)
-beta_df <- cbind(NAME = rownames(beta_df), beta_df)
-
-input <- LoadMetaBeta(meta_processed, beta_df, probeset = NULL)
-
-message("Loaded data:")
-message("  Samples: ", ncol(input$beta))
-message("  Probes:  ", nrow(input$beta))
-message("  Metadata columns: ", paste(colnames(input$meta), collapse = ", "))
-```
-
-### Create the analysis-ready object
-
-```{r create-imprintomeset}
-probesets <- readRDS(
-  system.file("extdata", "probesets_hg19.rds", package = "imprintomeR")
-)
-
-x <- ImprintomeSet(
-  beta = input$beta,
-  meta = input$meta,
-  probeset = probesets[["selected"]],
-  genome = "hg19",
-  assay = "EPIC"
-)
-
-message("ImprintomeSet created:")
-message("  Samples: ", ncol(beta(x)))
-message("  Probes:  ", nrow(beta(x)))
-message("  Genome:  ", genome(x))
-message("  Assay:   ", assay(x))
-print(summary(x))
-```
-
----
-
-## Phase 5: Run Workflow & Compute Statistics
+## Phase 4: Run Workflow & Compute Statistics
 
 ### Execute imprintomeR analysis
 
@@ -467,7 +407,7 @@ print(summary(status$Angle))
 
 ---
 
-## Phase 6: Visualizations
+## Phase 5: Visualizations
 
 ```{r choose-sample}
 sample_id_1 <- colnames(beta(x))[2]
@@ -564,6 +504,7 @@ p_radar <- plot(
   probeset = "selected",
   outFile = NULL
 )
+options(repr.plot.width = 10, repr.plot.height = 10)
 print(p_radar)
 ```
 
@@ -593,9 +534,30 @@ p_rainfall <- plot(
 print(p_rainfall)
 ```
 
+### Store generated plots
+
+```{r store-plots}
+plot_list <- plots(x)
+new_plots <- list(
+  "polar.selected" = p_polar,
+  "beeswarm_origin.selected" = p_beeswarm_origin,
+  "mirror_density.selected" = p_mirror,
+  "circular.selected" = p_circular,
+  "heatmap.selected" = p_heatmap,
+  "heatmap_by_gene.selected" = p_heatmap_by_gene,
+  "radar.sample1" = p_radar,
+  "beeswarm_chr.sample1" = p_beeswarm_chr,
+  "rainfall.sample1" = p_rainfall
+)
+new_plots <- new_plots[!vapply(new_plots, is.null, logical(1))]
+plot_list[names(new_plots)] <- new_plots
+plots(x) <- plot_list
+names(plots(x))
+```
+
 ---
 
-## Phase 7: Results Interpretation
+## Phase 6: Results Interpretation
 
 ### Summary statistics
 
@@ -625,41 +587,18 @@ for (group in unique(status$Sample_Group)) {
 
 ```{r identify-abnormal}
 abnormal <- status %>% filter(Mechanism != "NORMAL")
+sample_col <- intersect(c("Sample_Name", "Sample_ID"), colnames(status))[1]
 
 if (nrow(abnormal) > 0) {
   message("=== ABERRANT IMPRINTING SAMPLES ===")
   message("Sample count: ", nrow(abnormal))
-  print(abnormal %>% select(Sample_ID, Sample_Group, Mechanism, IDS, Angle) %>% head(n = 12))
+  print(abnormal %>% select(all_of(sample_col), Sample_Group, Mechanism, IDS, Angle) %>% head(n = 12))
 } else {
   message("All samples show normal imprinting patterns by the selected IDS cutoff.")
 }
 ```
 
-### Growth-speed comparison
 
-GSE240091 groups samples by growing teratoma growth speed. This block summarizes imprinting scores across slow, medium, and rapid groups.
-
-```{r growth-speed-summary}
-growth_summary <- status %>%
-  group_by(Sample_Group) %>%
-  summarize(
-    n = n(),
-    median_IDS = median(IDS, na.rm = TRUE),
-    mean_IDS = mean(IDS, na.rm = TRUE),
-    median_Angle = median(Angle, na.rm = TRUE),
-    most_common_mechanism = names(sort(table(Mechanism), decreasing = TRUE))[1],
-    .groups = "drop"
-  ) %>%
-  arrange(factor(Sample_Group, levels = c("GTSslow", "GTSmedium", "GTSrapid", "Other")))
-
-detailed_status <- status %>%
-  mutate(Sample_Title = meta(x)$Sample_Title[match(Sample_ID, meta(x)$Sample_Name)]) %>%
-  select(Sample_ID, Sample_Title, Sample_Group, Mechanism, IDS, Angle) %>%
-  arrange(Sample_Group, desc(IDS))
-
-growth_summary
-head(detailed_status, n = 12)
-```
 
 ### Key findings template
 
@@ -678,85 +617,22 @@ message("6. Use growth_summary and detailed_status to compare imprinting metrics
 
 ---
 
-## Phase 8: Export & Save Results
+## Phase 7: Export Results
 
-### Export ImprintomeSet outputs
-
-```{r export-imprintome}
-outdir <- "GSE240091_imprintome_output"
-dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
-
+```{r export-results, eval = FALSE}
 manifest <- export(
   x,
-  outdir = outdir,
+  outdir = "GSE240091_imprintome_output",
   result_names = "AnalyzeImprintStatus.selected",
   save_plots = FALSE,
+  plot_device = "pdf",
   overwrite = TRUE
 )
 
-manifest
+head(manifest)
 ```
 
-### Export summary tables
-
-```{r export-tables}
-results_file <- file.path(outdir, "GSE240091_imprintome_results.txt")
-write.table(
-  status,
-  file = results_file,
-  sep = "\t",
-  quote = FALSE,
-  row.names = FALSE,
-  col.names = TRUE
-)
-
-summary_file <- file.path(outdir, "GSE240091_summary_statistics.txt")
-write.table(
-  stat_summary,
-  file = summary_file,
-  sep = "\t",
-  quote = FALSE,
-  row.names = FALSE,
-  col.names = TRUE
-)
-
-growth_file <- file.path(outdir, "GSE240091_growth_speed_summary.txt")
-write.table(
-  growth_summary,
-  file = growth_file,
-  sep = "\t",
-  quote = FALSE,
-  row.names = FALSE,
-  col.names = TRUE
-)
-
-detail_file <- file.path(outdir, "GSE240091_detailed_status.txt")
-write.table(
-  detailed_status,
-  file = detail_file,
-  sep = "\t",
-  quote = FALSE,
-  row.names = FALSE,
-  col.names = TRUE
-)
-
-message("Results table: ", results_file)
-message("Summary statistics: ", summary_file)
-message("Growth-speed summary: ", growth_file)
-message("Detailed status: ", detail_file)
-```
-
-### List output files
-
-```{r list-outputs}
-output_files <- list.files(outdir, full.names = FALSE)
-message("=== OUTPUT FILES ===")
-message("Directory: ", outdir)
-for (f in sort(output_files)) {
-  fsize <- file.size(file.path(outdir, f))
-  message(sprintf("  %-45s %8.1f KB", f, fsize / 1024))
-}
-```
+`export()` writes `results(x)` and optionally `plots(x)`. Save extra summary tables only when you need custom reporting beyond the export manifest.
 
 ---
 

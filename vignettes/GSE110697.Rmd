@@ -258,9 +258,30 @@ If you ran the raw-IDAT QC workflow above, use PASS samples from `qcset`.
 qc_matrix <- qc_tables(qcset)[["QC_matrix"]]
 pass_samples <- qc_matrix$Sample_Name[qc_matrix$Final.QC == "PASS"]
 
-qcset_pass <- qcset
-beta(qcset_pass) <- beta(qcset)[, pass_samples, drop = FALSE]
-meta(qcset_pass) <- meta(qcset)[meta(qcset)$Sample_Name %in% pass_samples, , drop = FALSE]
+meta_pass <- meta(qcset)[match(pass_samples, meta(qcset)$Sample_Name), , drop = FALSE]
+beta_pass <- beta(qcset)[, pass_samples, drop = FALSE]
+det_pval_pass <- if (!is.null(detection_pval(qcset))) {
+  detection_pval(qcset)[, pass_samples, drop = FALSE]
+} else {
+  NULL
+}
+qc_tables_pass <- lapply(qc_tables(qcset), function(tbl) {
+  if (is.data.frame(tbl) && "Sample_Name" %in% colnames(tbl)) {
+    tbl[tbl$Sample_Name %in% pass_samples, , drop = FALSE]
+  } else {
+    tbl
+  }
+})
+
+qcset_pass <- MethQcSet(
+  meta = meta_pass,
+  platform = platform(qcset),
+  beta = beta_pass,
+  detection_pval = det_pval_pass,
+  qc_tables = qc_tables_pass,
+  aggregation_status = aggregation_status(qcset),
+  qc_params = qc_params(qcset)
+)
 
 x <- as.ImprintomeSet(
   qcset_pass,
@@ -529,6 +550,27 @@ p_rainfall <- plot(
 print(p_rainfall)
 ```
 
+### Store generated plots
+
+```{r store-plots}
+plot_list <- plots(x)
+new_plots <- list(
+  "polar.selected" = p_polar,
+  "beeswarm_origin.selected" = p_beeswarm_origin,
+  "mirror_density.selected" = p_mirror,
+  "circular.selected" = p_circular,
+  "heatmap.selected" = p_heatmap,
+  "heatmap_by_gene.selected" = p_heatmap_by_gene,
+  "radar.sample1" = p_radar,
+  "beeswarm_chr.sample1" = p_beeswarm_chr,
+  "rainfall.sample1" = p_rainfall
+)
+new_plots <- new_plots[!vapply(new_plots, is.null, logical(1))]
+plot_list[names(new_plots)] <- new_plots
+plots(x) <- plot_list
+names(plots(x))
+```
+
 ---
 
 ## Phase 7: Results Interpretation
@@ -561,11 +603,12 @@ for (group in unique(status$Sample_Group)) {
 
 ```{r identify-abnormal}
 abnormal <- status %>% filter(Mechanism != "NORMAL")
+sample_col <- intersect(c("Sample_Name", "Sample_ID"), colnames(status))[1]
 
 if (nrow(abnormal) > 0) {
   message("=== ABERRANT IMPRINTING SAMPLES ===")
   message("Sample count: ", nrow(abnormal))
-  print(abnormal %>% select(Sample_ID, Sample_Group, Mechanism, IDS, Angle) %>% head(n = 12))
+  print(abnormal %>% select(all_of(sample_col), Sample_Group, Mechanism, IDS, Angle) %>% head(n = 12))
 } else {
   message("All samples show normal imprinting patterns by the selected IDS cutoff.")
 }
@@ -578,7 +621,7 @@ APT and AKT sample titles use shared numeric suffixes for many primary/xenograft
 ```{r pair-aware-summary}
 status_pairs <- status %>%
   mutate(
-    Sample_Title = meta(x)$Sample_Title[match(Sample_ID, meta(x)$Sample_Name)],
+    Sample_Title = meta(x)$Sample_Title[match(.data[[sample_col]], meta(x)$Sample_Name)],
     Pair_ID = sub("^[A-Za-z]+", "", Sample_Title)
   )
 
@@ -589,7 +632,7 @@ paired_ids <- status_pairs %>%
 
 pair_summary <- status_pairs %>%
   filter(Pair_ID %in% paired_ids) %>%
-  select(Pair_ID, Sample_ID, Sample_Title, Sample_Group, Mechanism, IDS, Angle) %>%
+  select(Pair_ID, all_of(sample_col), Sample_Title, Sample_Group, Mechanism, IDS, Angle) %>%
   arrange(Pair_ID, Sample_Group)
 
 head(pair_summary, n = 12)
@@ -612,74 +655,22 @@ message("6. Use pair_summary to inspect primary/xenograft concordance by matched
 
 ---
 
-## Phase 8: Export & Save Results
+## Phase 8: Export Results
 
-### Export ImprintomeSet outputs
-
-```{r export-imprintome}
-outdir <- "GSE110697_imprintome_output"
-dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
-
+```{r export-results, eval = FALSE}
 manifest <- export(
   x,
-  outdir = outdir,
+  outdir = "GSE110697_imprintome_output",
   result_names = "AnalyzeImprintStatus.selected",
-  save_plots = FALSE,
+  save_plots = TRUE,
+  plot_device = "pdf",
   overwrite = TRUE
 )
 
-manifest
+head(manifest)
 ```
 
-### Export summary tables
-
-```{r export-tables}
-results_file <- file.path(outdir, "GSE110697_imprintome_results.txt")
-write.table(
-  status,
-  file = results_file,
-  sep = "\t",
-  quote = FALSE,
-  row.names = FALSE,
-  col.names = TRUE
-)
-
-summary_file <- file.path(outdir, "GSE110697_summary_statistics.txt")
-write.table(
-  stat_summary,
-  file = summary_file,
-  sep = "\t",
-  quote = FALSE,
-  row.names = FALSE,
-  col.names = TRUE
-)
-
-pair_file <- file.path(outdir, "GSE110697_pair_summary.txt")
-write.table(
-  pair_summary,
-  file = pair_file,
-  sep = "\t",
-  quote = FALSE,
-  row.names = FALSE,
-  col.names = TRUE
-)
-
-message("Results table: ", results_file)
-message("Summary statistics: ", summary_file)
-message("Pair summary: ", pair_file)
-```
-
-### List output files
-
-```{r list-outputs}
-output_files <- list.files(outdir, full.names = FALSE)
-message("=== OUTPUT FILES ===")
-message("Directory: ", outdir)
-for (f in sort(output_files)) {
-  fsize <- file.size(file.path(outdir, f))
-  message(sprintf("  %-45s %8.1f KB", f, fsize / 1024))
-}
-```
+`export()` writes `results(x)` and optionally `plots(x)`. Save extra summary tables only when you need custom reporting beyond the export manifest.
 
 ---
 
