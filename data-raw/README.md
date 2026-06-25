@@ -8,15 +8,16 @@ This directory contains documentation and scripts for preparing the large data f
 
 ## Required Data Files
 
-The imprintomeR package requires two large annotation files:
+The imprintomeR package requires these annotation files:
 
 1. **anno.uniq_harmonized.liftover.rds** (52 MB)
    - CpG probe annotations from Illumina EPIC/HM450K arrays
    - Contains genomic coordinates (hg19 liftover)
    
-2. **probesets_hg19.rds** (256 KB)
-   - ICR (Imprinted Gene Region) probeset definitions
+2. **probesets_hg19.rds** (~82 KB)
+   - Curated ICR (Imprinted Gene Region) probeset definitions
    - Contains chromosome, origin (maternal/paternal), and gene annotations
+   - Includes: `Jima`, `Joshi`, `Court`, `Rosenski`, `selected`, `NanoImprint`, and `chr11p15`
 
 ## Setup
 
