@@ -26,7 +26,7 @@
 
 \item{result_names}{Character vector of result names to export. \code{NULL} means all.}
 
-\item{prefix}{Filename prefix for exported files, including the saved \code{ImprintomeSet} object and plot files.}
+\item{prefix}{Filename prefix for exported files, including result tables, the saved \code{ImprintomeSet} object, and plot files.}
 \item{save_plots}{Logical; whether to export plot objects in \code{plots(x)}.}
 
 \item{plot_names}{Character vector of plot names to export when \code{save_plots=TRUE}.

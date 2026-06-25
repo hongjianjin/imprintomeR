@@ -260,7 +260,7 @@ test_that("summarize reports results inventory", {
 
 
 
-test_that("export saves ImprintomeSet object with prefix", {
+test_that("export saves ImprintomeSet object and results with prefix", {
   d <- make_synthetic_imprintome_inputs()
   x <- ImprintomeSet(
     beta = d$beta,
@@ -270,15 +270,20 @@ test_that("export saves ImprintomeSet object with prefix", {
     assay = "EPICv1"
   )
 
+  results(x) <- list(sample_results = data.frame(Sample_Name = colnames(d$beta), IDS = seq_along(colnames(d$beta))))
+
   outdir <- tempfile("imprintome_export_")
   on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)
 
   manifest <- export(x, outdir = outdir, prefix = "demo", save_plots = TRUE)
   object_file <- file.path(outdir, "demo_imprintomeSet.rds")
+  results_file <- file.path(outdir, "demo_results_sample_results.tsv")
 
   expect_true(file.exists(object_file))
+  expect_true(file.exists(results_file))
   expect_s4_class(readRDS(object_file), "ImprintomeSet")
   expect_true(any(manifest$category == "object" & manifest$file == object_file))
+  expect_true(any(manifest$category == "results" & manifest$file == results_file))
 })
 
 

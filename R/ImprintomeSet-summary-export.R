@@ -118,7 +118,7 @@ methods::setMethod(
 #' @param x An `ImprintomeSet` object.
 #' @param outdir Output directory.
 #' @param result_names Character vector of result names to export. `NULL` means all.
-#' @param prefix Filename prefix for exported files, including the saved `ImprintomeSet` object and plot files.
+#' @param prefix Filename prefix for exported files, including result tables, the saved ImprintomeSet object, and plot files.
 #' @param save_plots Logical; whether to export plot objects in `plots(x)`.
 #' @param plot_names Character vector of plot names to export when `save_plots=TRUE`.
 #'   `NULL` means all stored plots.
@@ -206,7 +206,7 @@ methods::setMethod(
       safe_nm <- sanitize_name(nm)
 
       if (is.data.frame(obj) || is.matrix(obj)) {
-        fpath <- file.path(outdir, paste0("results_", safe_nm, ".tsv"))
+        fpath <- file.path(outdir, paste0(safe_prefix, "_results_", safe_nm, ".tsv"))
         if (!overwrite && file.exists(fpath)) {
           status <- "skipped_exists"
         } else {
@@ -214,7 +214,7 @@ methods::setMethod(
           status <- "written"
         }
       } else {
-        fpath <- file.path(outdir, paste0("results_", safe_nm, ".rds"))
+        fpath <- file.path(outdir, paste0(safe_prefix, "_results_", safe_nm, ".rds"))
         if (!overwrite && file.exists(fpath)) {
           status <- "skipped_exists"
         } else {
