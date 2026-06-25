@@ -25,7 +25,7 @@ if (!methods::isGeneric("merge")) {
 #'
 #' @return A single `MethQcSet` object with:
 #'   \itemize{
-#'     \item Metadata deduplicated by `Sample_Name` and merged
+#'     \item Metadata merged by rows and reordered to match beta sample order
 #'     \item Beta matrices joined by probe `TargetID` (rownames)
 #'     \item Metadata reordered to match final beta sample order
 #'     \item Detection p-values aligned if present in all inputs
@@ -35,11 +35,12 @@ if (!methods::isGeneric("merge")) {
 #' @details
 #' **Merge Contract (Synchronized Operation):**
 #' 1. Validates all inputs are same platform
-#' 2. Merges metadata: stack by rows, deduplicate by Sample_Name (keeping first occurrence)
-#' 3. Merges beta matrices: join by TargetID (rownames), concat by sample columns
-#' 4. Merges detection p-values: same method as beta (if present)
-#' 5. Reorders metadata to match final beta column order
-#' 6. Concatenates QC tables, filtering to samples in final object
+#' 2. Requires unique Sample_Name values across inputs
+#' 3. Merges metadata: stack by rows and preserve beta sample order
+#' 4. Merges beta matrices: join by TargetID (rownames), concat by sample columns
+#' 5. Merges detection p-values: same method as beta (if present)
+#' 6. Reorders metadata to match final beta column order
+#' 7. Concatenates QC tables, filtering to samples in final object
 #'
 #' This ensures metadata, beta, and detection p-values remain synchronized
 #' (no hidden sample drift).
@@ -59,10 +60,24 @@ methods::setMethod("merge", "MethQcSet", function(x, y, how = "inner", ...) {
   # Collect all objects: x, then y
   all_objects <- c(list(x), y)
 
+  if (!all(vapply(all_objects, function(obj) is(obj, "MethQcSet"), logical(1)))) {
+    stop("All objects supplied to merge() must be MethQcSet objects")
+  }
+
   # Validate all same platform
   platforms <- sapply(all_objects, function(obj) obj@platform)
   if (length(unique(platforms)) > 1) {
     stop("Cannot merge MethQcSet objects from different platforms. Found: ", paste(unique(platforms), collapse = ", "))
+  }
+
+  sample_names <- unlist(lapply(all_objects, function(obj) colnames(obj@beta)), use.names = FALSE)
+  duplicate_samples <- unique(sample_names[duplicated(sample_names)])
+  if (length(duplicate_samples) > 0L) {
+    stop(
+      "Cannot merge MethQcSet objects with duplicate sample names: ",
+      paste(duplicate_samples, collapse = ", "),
+      ". Rename samples or subset to unique Sample_Name values before merging."
+    )
   }
 
   # Warn if any non-aggregated EPICv2
@@ -73,14 +88,13 @@ methods::setMethod("merge", "MethQcSet", function(x, y, how = "inner", ...) {
   }
 
   # ========================================================================
-  # Step 1: Merge metadata (deduplicate by Sample_Name)
+  # Step 1: Merge metadata
   # ========================================================================
   metas <- lapply(all_objects, function(obj) obj@meta)
   meta_merged <- do.call(rbind, metas)
   rownames(meta_merged) <- NULL
 
-  # Deduplicate: keep first occurrence of each Sample_Name
-  meta_merged <- meta_merged[!duplicated(meta_merged$Sample_Name), ]
+  # Inputs are validated above to have unique sample names across objects.
 
   # ========================================================================
   # Step 2: Merge beta matrices (join by TargetID, concat by samples)
@@ -141,13 +155,13 @@ methods::setMethod("merge", "MethQcSet", function(x, y, how = "inner", ...) {
     dpval_merged <- dpvals_df[[1]]
     for (i in 2:length(dpvals_df)) {
       if (how_lower == "inner") {
-        dpval_merged <- inner_join(dpval_merged, dpvals_df[[i]], by = "TargetID")
+        dpval_merged <- dplyr::inner_join(dpval_merged, dpvals_df[[i]], by = "TargetID")
       } else if (how_lower == "outer") {
-        dpval_merged <- full_join(dpval_merged, dpvals_df[[i]], by = "TargetID")
+        dpval_merged <- dplyr::full_join(dpval_merged, dpvals_df[[i]], by = "TargetID")
       } else if (how_lower == "left") {
-        dpval_merged <- left_join(dpval_merged, dpvals_df[[i]], by = "TargetID")
+        dpval_merged <- dplyr::left_join(dpval_merged, dpvals_df[[i]], by = "TargetID")
       } else if (how_lower == "right") {
-        dpval_merged <- right_join(dpval_merged, dpvals_df[[i]], by = "TargetID")
+        dpval_merged <- dplyr::right_join(dpval_merged, dpvals_df[[i]], by = "TargetID")
       }
     }
 

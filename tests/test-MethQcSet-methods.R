@@ -121,6 +121,37 @@ test_that("merge combines two MethQcSet objects", {
   expect_equal(nrow(meta(merged)), 4)
 })
 
+
+test_that("merge inner synchronizes beta, detection p-values, and metadata", {
+  meta1 <- data.frame(Sample_Name = c("S1", "S2"), stringsAsFactors = FALSE)
+  beta1 <- matrix(seq_len(8), nrow = 4, dimnames = list(paste0("cg", 1:4), meta1$Sample_Name))
+  dp1 <- matrix(seq_len(8) / 100, nrow = 4, dimnames = dimnames(beta1))
+  obj1 <- MethQcSet(meta = meta1, platform = "EPIC", beta = beta1, detection_pval = dp1)
+
+  meta2 <- data.frame(Sample_Name = c("S3", "S4"), stringsAsFactors = FALSE)
+  beta2 <- matrix(seq_len(8) + 100, nrow = 4, dimnames = list(paste0("cg", 3:6), meta2$Sample_Name))
+  dp2 <- matrix((seq_len(8) + 100) / 100, nrow = 4, dimnames = dimnames(beta2))
+  obj2 <- MethQcSet(meta = meta2, platform = "EPIC", beta = beta2, detection_pval = dp2)
+
+  merged <- merge(obj1, obj2, how = "inner")
+
+  expect_equal(rownames(beta(merged)), c("cg3", "cg4"))
+  expect_equal(colnames(beta(merged)), c("S1", "S2", "S3", "S4"))
+  expect_equal(meta(merged)$Sample_Name, colnames(beta(merged)))
+  expect_equal(rownames(detection_pval(merged)), rownames(beta(merged)))
+  expect_equal(colnames(detection_pval(merged)), colnames(beta(merged)))
+  expect_equal(detection_pval(merged)[, "S3"], dp2[c("cg3", "cg4"), "S3"])
+})
+
+test_that("merge errors clearly on duplicate sample names", {
+  obj1 <- .create_test_methqcset(n_samples = 2, n_probes = 20)
+  obj2 <- .create_test_methqcset(n_samples = 2, n_probes = 20)
+
+  expect_error(
+    merge(obj1, obj2, how = "inner"),
+    regexp = "duplicate sample names"
+  )
+})
 # Test find_intersection for samples
 test_that("find_intersection finds common samples", {
   obj1 <- .create_test_methqcset(n_samples = 3, n_probes = 50)

@@ -18,7 +18,7 @@
 \value{
 A single \code{MethQcSet} object with:
 \itemize{
-\item Metadata deduplicated by \code{Sample_Name} and merged
+\item Metadata merged by rows and reordered to match beta sample order
 \item Beta matrices joined by probe \code{TargetID} (rownames)
 \item Metadata reordered to match final beta sample order
 \item Detection p-values aligned if present in all inputs
@@ -33,7 +33,8 @@ metadata and beta matrix alignment.
 \strong{Merge Contract (Synchronized Operation):}
 \enumerate{
 \item Validates all inputs are same platform
-\item Merges metadata: stack by rows, deduplicate by Sample_Name (keeping first occurrence)
+\item Requires unique Sample_Name values across inputs
+\item Merges metadata: stack by rows and preserve beta sample order
 \item Merges beta matrices: join by TargetID (rownames), concat by sample columns
 \item Merges detection p-values: same method as beta (if present)
 \item Reorders metadata to match final beta column order

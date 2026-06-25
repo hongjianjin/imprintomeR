@@ -382,7 +382,8 @@ qcset2 <- runMethQC(meta2, platform = "EPIC")
 merged <- merge(qcset1, qcset2, how = "inner")
 
 # Find common elements
-common <- find_intersection(qcset1, qcset2, by = c("samples", "probes"))
+common_samples <- find_intersection(qcset1, qcset2, by = "samples")
+common_probes <- find_intersection(qcset1, qcset2, by = "probes")
 ```
 
 ### ImprintomeSet: Analysis Container
