@@ -12,7 +12,8 @@ testthat::local_edition(1)
     file.path("R", "ImprintomeSet-class.R"),
     file.path("R", "ImprintomeSet-accessors.R"),
     file.path("R", "ImprintomeSet-run.R"),
-    file.path("R", "ImprintomeSet-plot.R")
+    file.path("R", "ImprintomeSet-plot.R"),
+    file.path("R", "ImprintomeSet-visualizations.R")
   )
 
   has_required <- function(root) {
@@ -68,7 +69,8 @@ testthat::local_edition(1)
     file.path(pkg_root, "R", "ImprintomeSet-class.R"),
     file.path(pkg_root, "R", "ImprintomeSet-accessors.R"),
     file.path(pkg_root, "R", "ImprintomeSet-run.R"),
-    file.path(pkg_root, "R", "ImprintomeSet-plot.R")
+    file.path(pkg_root, "R", "ImprintomeSet-plot.R"),
+    file.path(pkg_root, "R", "ImprintomeSet-visualizations.R")
   )
 
   for (f in r_files) {
@@ -204,5 +206,29 @@ testthat::test_that("plot errors on unsupported plot_type", {
   .with_plot_fixture_files({
     x <- .make_imprintomeset()
     testthat::expect_error(plot(x, plot_type = "not_a_plot"), "Unsupported plot_type")
+  })
+})
+
+testthat::test_that("runImprintomeVisualizations stores successful plots", {
+  testthat::skip_if_not_installed("ggplot2")
+  .with_plot_fixture_files({
+    x <- .make_imprintomeset()
+    x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
+
+    x <- runImprintomeVisualizations(
+      x,
+      plot_types = c("polar"),
+      probeset = "selected",
+      prefix = "demo",
+      verbose = FALSE
+    )
+
+    testthat::expect_s4_class(x, "ImprintomeSet")
+    testthat::expect_true("polar.selected" %in% names(plots(x)))
+    testthat::expect_s3_class(plots(x)[["polar.selected"]], "ggplot")
+
+    manifest <- attr(x, "visualization_manifest")
+    testthat::expect_true(is.data.frame(manifest))
+    testthat::expect_equal(manifest$status[1], "stored")
   })
 })

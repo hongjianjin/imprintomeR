@@ -40,6 +40,43 @@ test_that("computeQC computes QC metrics", {
   expect_false("icutoff" %in% names(qc_params(obj_qc)))
 })
 
+
+test_that("subsetMethQC keeps PASS samples and synchronized assay slots", {
+  obj <- .create_test_methqcset(n_samples = 4, n_probes = 20)
+  qcm <- data.frame(
+    Sample_Name = paste0("S", 1:4),
+    Final.QC = c("PASS", "FAIL", "PASS", "FAIL"),
+    stringsAsFactors = FALSE
+  )
+  qc_tables(obj) <- list(
+    QC_matrix = qcm,
+    recall_rate = data.frame(Sample_Name = qcm$Sample_Name, value = seq_len(4))
+  )
+
+  obj_pass <- subsetMethQC(obj)
+
+  expect_s4_class(obj_pass, "MethQcSet")
+  expect_equal(meta(obj_pass)$Sample_Name, c("S1", "S3"))
+  expect_equal(colnames(beta(obj_pass)), c("S1", "S3"))
+  expect_equal(colnames(detection_pval(obj_pass)), c("S1", "S3"))
+  expect_equal(qc_tables(obj_pass)$QC_matrix$Sample_Name, c("S1", "S3"))
+  expect_equal(qc_tables(obj_pass)$recall_rate$Sample_Name, c("S1", "S3"))
+})
+
+test_that("subsetMethQC accepts explicit sample_names", {
+  obj <- .create_test_methqcset(n_samples = 3, n_probes = 20)
+  qc_tables(obj) <- list(QC_matrix = data.frame(
+    Sample_Name = paste0("S", 1:3),
+    Final.QC = c("FAIL", "FAIL", "PASS"),
+    stringsAsFactors = FALSE
+  ))
+
+  obj_sub <- subsetMethQC(obj, sample_names = c("S2", "missing", "S1"))
+
+  expect_equal(meta(obj_sub)$Sample_Name, c("S2", "S1"))
+  expect_equal(colnames(beta(obj_sub)), c("S2", "S1"))
+})
+
 # Test aggregate_probes
 test_that("aggregate_probes works for EPICv2", {
   meta <- data.frame(Sample_Name = c("S1", "S2"), stringsAsFactors = FALSE)

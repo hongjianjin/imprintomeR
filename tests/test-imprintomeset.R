@@ -259,6 +259,56 @@ test_that("summarize reports results inventory", {
 })
 
 
+
+test_that("export saves ImprintomeSet object with prefix", {
+  d <- make_synthetic_imprintome_inputs()
+  x <- ImprintomeSet(
+    beta = d$beta,
+    meta = d$meta,
+    probeset = d$probeset,
+    genome = "hg19",
+    assay = "EPICv1"
+  )
+
+  outdir <- tempfile("imprintome_export_")
+  on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  manifest <- export(x, outdir = outdir, prefix = "demo", save_plots = TRUE)
+  object_file <- file.path(outdir, "demo_imprintomeSet.rds")
+
+  expect_true(file.exists(object_file))
+  expect_s4_class(readRDS(object_file), "ImprintomeSet")
+  expect_true(any(manifest$category == "object" & manifest$file == object_file))
+})
+
+
+test_that("export writes file-backed stored plots as plot files", {
+  d <- make_synthetic_imprintome_inputs()
+  x <- ImprintomeSet(
+    beta = d$beta,
+    meta = d$meta,
+    probeset = d$probeset,
+    genome = "hg19",
+    assay = "EPICv1"
+  )
+
+  p_list <- plots(x)
+  p_list[["circular.selected"]] <- structure(
+    list(device = "pdf", bytes = charToRaw("%PDF-1.4\n%test\n")),
+    class = c("imprintome_plot_file", "list")
+  )
+  plots(x) <- p_list
+
+  outdir <- tempfile("imprintome_export_plots_")
+  on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  manifest <- export(x, outdir = outdir, prefix = "demo", save_plots = TRUE)
+  plot_file <- file.path(outdir, "demo_plot_circular.selected.pdf")
+
+  expect_true(file.exists(plot_file))
+  expect_true(file.size(plot_file) > 0)
+  expect_true(any(manifest$category == "plots" & manifest$file == plot_file))
+})
 test_that("Meth_QC returns deterministic tabular QC outputs", {
   with_synthetic_probeset_fixture({
     d <- make_synthetic_imprintome_inputs()

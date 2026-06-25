@@ -178,48 +178,24 @@ p_polar_s4 <- plot(
 
 ### 2.3 Compact All-Plot-Type Demo
 
+Use `runImprintomeVisualizations()` when you want a compact all-plot workflow. It stores successful plots in `plots(x)` and records skipped plots in `attr(x, "visualization_manifest")`.
+
 ```{r, eval = FALSE}
 sample_id1 <- colnames(beta(x))[2]
 
-p_auto <- plot(x, plot_type = "auto", result_name = "AnalyzeImprintStatus.selected",
-               colorColumn = "Sample_Group", outFile = "demo_auto.pdf")
-p_polar <- plot(x, plot_type = "polar", result_name = "AnalyzeImprintStatus.selected",
-                colorColumn = "Sample_Group", outFile = "demo_polar.pdf")
-p_mirror <- plot(x, plot_type = "mirror_density", probeset = "selected",
-                 SAMPLEID = "Sample_Name", outFile = "demo_mirror_density.pdf")
-p_bee <- plot(x, plot_type = "beeswarm", SAMPLEID = "Sample_Name",
-        probeset = "selected",
-              outFile = "demo_beeswarm.pdf")
-p_bee_origin <- plot(x, plot_type = "beeswarm_origin", SAMPLEID = "Sample_Name",
-         probeset = "selected", title = "Beeswarm Origin (Cohort)",
-         outFile = "demo_beeswarm_origin.pdf")
-p_bee_chr <- plot(x, plot_type = "beeswarm_chr", probeset = "selected",
-      sample_id = sample_id1, chr = "chr11",
-      title = "Beeswarm by Chromosome", outFile = "demo_beeswarm_chr.pdf")
-p_vln <- plot(x, plot_type = "violin", SAMPLEID = "Sample_Name",
-        probeset = "selected",
-              outFile = "demo_violin.pdf")
-p_heatmap_by_probe <- plot(x, plot_type = "heatmap_by_probe", SAMPLEID = "Sample_Name",
-          probeset = "selected",
-                  outFile = "demo_heatmap_by_probe.pdf")
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "all",
+  probeset = "selected",
+  sample_id = sample_id1,
+  prefix = "demo",
+  outdir = "demo_plots",
+  save_plots = TRUE,
+  store_plots = TRUE
+)
 
-p_heatmap_by_gene <- plot(  x,  plot_type = "heatmap_by_gene",  probeset = "selected",
-        SAMPLEID = "Sample_Name",  annoColumn = "Sample_Group",
-        clusterRows = TRUE,  clusterColumns = TRUE,
-        outFile = "demo_heatmap_by_gene.pdf")
-
-p_circular <- plot(x, plot_type = "circular_heatmap", SAMPLEID = "Sample_Name",
-                   sectionColumn = "Sample_Group", probeset = "selected",
-                   outFile = "demo_circular_heatmap.pdf")
-cor_mat <- plot(x, plot_type = "cor_heatmap", SAMPLEID = "Sample_Name",
-                probeset = "selected",
-                prefix = "demo")
-outFile <- paste0("imprintomeset_quickstart_rainfall_", sample_id1, ".pdf")
-p_rain <- plot(x, plot_type = "rainfall", sample_id = sample_id1,
-               probeset = "classifier3", outFile = outFile)
-outFile <- paste0("imprintomeset_quickstart_radar_", sample_id1, ".pdf")
-p_radar <- plot(x, plot_type = "radar", probeset = "selected", sample_id = sample_id1,
-                title = "ImprintomeSet Radar", outFile = outFile)
+attr(x, "visualization_manifest")
+names(plots(x))
 ```
 
 ## 3. Sample-Level Visualizations
@@ -370,13 +346,13 @@ plot(
 
 ### 5.3 Circular Heatmap
 
-Circular heatmap displays methylation values arranged in a circular layout. Each chromosome forms a radial sector, 
+Circular heatmap displays methylation values arranged in a circular layout. Each chromosome forms a radial sector,
 with probes arranged clockwise. Sample groups are rendered as separate "pie slices" around the center white circle,
 allowing visual comparison of methylation patterns across grouped samples and chromosomes simultaneously.
 
 **Parameters:**
 
-- `sectionColumn`: metadata column for grouping samples (default `"Sample_Group"`). If the column is missing, 
+- `sectionColumn`: metadata column for grouping samples (default `"Sample_Group"`). If the column is missing,
   samples are grouped by `Sample_Name` (one section per sample). If both are missing, all samples appear in one section.
 - `probeset`: probeset name (default `"selected"`)
 - `SAMPLEID`: metadata column for sample labeling
@@ -404,8 +380,8 @@ plot(
 
 ### 5.4 Heatmap Aggregated by Gene Symbol
 
-This visualization aggregates probe-level beta values to gene-level summaries 
-by grouping probes with the same `Closest_TSS_gene_name` from the selected probeset. 
+This visualization aggregates probe-level beta values to gene-level summaries
+by grouping probes with the same `Closest_TSS_gene_name` from the selected probeset.
 Within each gene, probes are aggregated per sample using the **median** function.
 
 **Features:**
@@ -503,26 +479,24 @@ imprintomeR:::Beeplot_chr_vs_other_single(
 
 ## 7. Persist Plot Objects Inside ImprintomeSet
 
+`runImprintomeVisualizations()` stores successful plots in `plots(x)` when `store_plots = TRUE`, so the object can be exported later with `export(x, save_plots = TRUE)`.
+
 ```{r, eval = FALSE}
-p_list <- plots(x)
-p_list[["polar.selected"]] <- p_polar
-p_list[["mirror.selected"]] <- p_mirror
-p_list[["radar.sample1"]] <- p_radar
-p_list[["beeswarm.cohort"]] <- p_bee
-p_list[["beeswarm.origin.cohort"]] <- p_bee_origin
-p_list[["beeswarm.chr.sample1"]] <- p_bee_chr
-p_list[["violin.cohort"]] <- p_vln
-p_list[["rainfall.sample1"]] <- p_rain
-plots(x) <- p_list
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "default",
+  probeset = "selected",
+  sample_id = colnames(beta(x))[2],
+  prefix = "imprintomeset_results_export",
+  store_plots = TRUE,
+  save_plots = FALSE
+)
 
 names(plots(x))
 
 # Access stored plot objects
-p_origin_from_object <- plots(x)[["beeswarm.origin.cohort"]]
-p_chr_from_object <- plots(x)[["beeswarm.chr.sample1"]]
-
-p_origin_from_object
-p_chr_from_object
+plots(x)[["polar.selected"]]
+plots(x)[["beeswarm_origin.selected"]]
 ```
 
 ## 8. Summarize and Export
@@ -537,6 +511,7 @@ s$plots
 manifest <- export(
   x,
   outdir = "imprintome_export",
+  prefix = "imprintomeset_results_export",
   save_plots = TRUE,
   plot_device = "pdf",
   overwrite = TRUE
@@ -545,7 +520,7 @@ manifest <- export(
 head(manifest)
 ```
 
-`export()` writes result tables and stored plot objects. QC tables remain available through `qc(x)` and `summarize(x)$qc`.
+`export()` writes the full `ImprintomeSet` object as `<prefix>_imprintomeSet.rds`, result tables, and stored plot objects. QC tables remain available through `qc(x)` and `summarize(x)$qc`.
 
 **For MethQcSet export**, the output includes a `summary.txt` file with an automatically-generated "Notes" section:
 

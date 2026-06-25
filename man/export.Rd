@@ -15,6 +15,7 @@
   width = 8,
   height = 6,
   overwrite = TRUE,
+  prefix = "imprintome",
   ...
 )
 }
@@ -25,6 +26,7 @@
 
 \item{result_names}{Character vector of result names to export. \code{NULL} means all.}
 
+\item{prefix}{Filename prefix for exported files, including the saved \code{ImprintomeSet} object and plot files.}
 \item{save_plots}{Logical; whether to export plot objects in \code{plots(x)}.}
 
 \item{plot_names}{Character vector of plot names to export when \code{save_plots=TRUE}.
@@ -44,14 +46,14 @@
 A data.frame manifest with one row per exported object.
 }
 \description{
-Writes selected result tables and optionally stored plots to \code{outdir}.
+Writes the \code{ImprintomeSet} object, selected result tables, and optionally stored plots to \code{outdir}.
 Data-frame/matrix results are exported as TSV; other result objects are saved
-as RDS. Plot export supports ggplot-compatible objects via \code{ggsave}; other
-plot objects are saved as RDS.
+as RDS. Plot export supports ggplot-compatible, ComplexHeatmap, recorded, and
+file-backed plot objects as plot files when possible; other plot object types are serialized as RDS.
 }
 \examples{
 \dontrun{
-manifest <- export(x, outdir = "imprintome_export", save_plots = TRUE)
+manifest <- export(x, outdir = "imprintome_export", prefix = "imprintome", save_plots = TRUE)
 head(manifest)
 }
 }

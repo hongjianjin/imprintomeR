@@ -16,9 +16,9 @@ Numeric vector of IDS values.
 }
 \description{
 Computes the Euclidean distance from the balanced imprinting state
-$$(0.5, 0.5)$$ using paternal and maternal median methylation.
+\eqn{(0.5, 0.5)} using paternal and maternal median methylation.
 }
 \details{
 Formula:
-$$IDS = \sqrt{(paternal\_median - 0.5)^2 + (maternal\_median - 0.5)^2}$$
+\eqn{IDS = sqrt((paternal_median - 0.5)^2 + (maternal_median - 0.5)^2)}
 }

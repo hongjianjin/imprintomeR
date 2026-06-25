@@ -2,7 +2,7 @@
 
 imprintomeR delivers comprehensive analysis and visualization of genomic imprinting from methylation array data. It enforces a robust S4 preprocessing-first workflow that integrates technical quality control (QC), computation of Imprinting Deviation Scores (IDS), and publication-quality visualizations. The package provides two formal S4 containers:
 
-- **MethQcSet**: Single-platform QC and preprocessing  
+- **MethQcSet**: Single-platform QC and preprocessing
 - **ImprintomeSet**: Analysis-ready container for imprinting studies
 
 ## Installation
@@ -249,7 +249,7 @@ s <- summarize(x)
 p <- plot(x, plot_type = "polar", result_name = "AnalyzeImprintStatus.selected",
           colorColumn = "Sample_Group", outFile = "polar.pdf")
 
-manifest <- export(x, outdir = "imprintome_export", save_plots = TRUE)
+manifest <- export(x, outdir = "imprintome_export", prefix = "imprintome", save_plots = TRUE)
 ```
 
 ## Detailed Examples
@@ -463,6 +463,27 @@ s$plots
 - `rainfall` - chromosomal rainfall plot (single sample)
 - `radar` - radar/star plot of imprinting metrics (single sample)
 
+### Standard workflow plots
+
+```r
+sample_id1 <- colnames(beta(x))[2]
+
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "default",
+  probeset = "selected",
+  sample_id = sample_id1,
+  prefix = "imprintome",
+  store_plots = TRUE,
+  save_plots = FALSE
+)
+
+attr(x, "visualization_manifest")
+names(plots(x))
+```
+
+Use `save_plots = TRUE` with `outdir = "plots"` to write plot files while storing successful plot objects.
+
 ### Example plots
 
 ```r
@@ -652,6 +673,7 @@ This provides transparency about what data was available during export.
 manifest <- export(
   x,
   outdir = "imprintome_results",
+  prefix = "imprintome",
   save_plots = TRUE,
   plot_device = "pdf"
 )
@@ -693,7 +715,7 @@ x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
 
 # Visualize and export
 plot(x, plot_type = "polar", outFile = "polar.pdf")
-export(x, outdir = "your_analysis_output", save_plots = TRUE)
+export(x, outdir = "your_analysis_output", prefix = "your_analysis", save_plots = TRUE)
 ```
 
 

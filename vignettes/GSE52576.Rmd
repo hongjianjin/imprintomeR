@@ -68,12 +68,12 @@ message("Downloading ", geo_gse, " from GEO...")
 tryCatch({
   gse <- getGEO(geo_gse, GSEMatrix = TRUE, AnnotGPL = TRUE, getGPL = FALSE)
   eset <- gse[[1]]  # Extract ExpressionSet object
-  
+
   message("✓ Download successful")
   message("  Samples: ", ncol(eset))
   message("  Probes:  ", nrow(eset))
 }, error = function(e) {
-  stop("Failed to download ", geo_gse, ":\n", conditionMessage(e), 
+  stop("Failed to download ", geo_gse, ":\n", conditionMessage(e),
        "\nCheck internet connection and GEO availability.")
 })
 ```
@@ -96,7 +96,7 @@ head(pdata[, c("geo_accession", "title", "source_name_ch1")], n = 3)
 ```{r format-data}
 # Extract beta values (methylation intensities, 0-1 scale)
 beta_matrix <- exprs(eset)
-message("Beta matrix dimensions: ", nrow(beta_matrix), " probes × ", 
+message("Beta matrix dimensions: ", nrow(beta_matrix), " probes × ",
         ncol(beta_matrix), " samples")
 message("Beta range: [", round(min(beta_matrix, na.rm = TRUE), 3), ", ",
         round(max(beta_matrix, na.rm = TRUE), 3), "]")
@@ -235,152 +235,41 @@ print(summary(status$Angle))
 
 ---
 
-## Phase 4: Visualizations — Complete Gallery
+## Phase 4: Visualizations - Complete Gallery
 
-### Plot 1: Polar scatter (IDS vs Angle)
+```{r run-visualizations, fig.width = 10, fig.height = 6}
+sample_id_1 <- colnames(beta(x))[2]
+message("Representative sample for single-sample plots: ", sample_id_1)
 
-The **polar plot** is the primary visualization—it shows each sample's imprinting deviation in 2D space, colored by mechanism classification.
-
-```{r plot-polar, fig.width = 8, fig.height = 8}
-p_polar <- plot(
+x <- runImprintomeVisualizations(
   x,
-  plot_type = "polar",
-  outFile = NULL  # Display only; set to filename to save
-)
-print(p_polar)
-message("✓ Polar plot complete")
-```
-
-### Plot 2: Beeswarm by origin (cohort-level methylation)
-
-The **beeswarm plot** shows methylation distribution for each sample, faceted by parental origin (paternal vs maternal imprinting).
-
-```{r plot-beeswarm-origin, fig.width = 12, fig.height = 6}
-p_beeswarm_origin <- plot(
-  x,
-  plot_type = "beeswarm_origin",
-  outFile = NULL
-)
-options(repr.plot.width = 16, repr.plot.height = 6) 
-print(p_beeswarm_origin)
-message("✓ Beeswarm by origin plot complete")
-```
-
-### Plot 3: Mirror density 
-
-p_mirror <- plot(
-  x,
-  plot_type = "mirror_density",
-  outFile = NULL
-)
-print(p_mirror)
-message("✓ Bmirror_density plot complete")
-
-### Plot 3: Circular heatmap (complex multi-dimensional view)
-
-The **circular heatmap** integrates probeset annotations (chromosome, imprinting type) with methylation and statistical significance.
-
-```{r plot-circular, fig.width = 10, fig.height = 10}
-p_circular <- plot(
-  x,
-  plot_type = "circular_heatmap",
-  outFile = NULL
-)
-message("✓ Circular heatmap complete")
-```
-
-
-
-### Plot 4: Beta heatmap (methylation by probeset)
-
-The **heatmap** shows normalized methylation levels (beta values) across all probes and samples, organized by Sample_Group.
-
-```{r plot-heatmap, fig.width = 10, fig.height = 8}
-p_heatmap <- plot(
-  x,
-  plot_type = "heatmap_by_probe",
   probeset = "selected",
-  SAMPLEID = "Sample_Name",
-  outFile = NULL
-)
-options(repr.plot.width = 10, repr.plot.height = 12) 
-draw(p_heatmap, merge_legend = TRUE)
-message("✓ Heatmap complete")
-
-```
-
-### Plot 5: Beta heatmap_by_gene (aggregates probes to gene level)
-```{r plot-heatmap-by-gene, fig.width = 10, fig.height = 12}
-p_heatmap_by_gene <- plot(
-  x,
-  plot_type = "heatmap_by_gene",
-  probeset = "selected",
-  SAMPLEID = "Sample_Name",
-  annoColumn = "Sample_Group",
-  clusterRows = TRUE,
-  clusterColumns = TRUE,
-  outFile = NULL
-)
-
-options(repr.plot.width = 10, repr.plot.height = 12) 
-print(p_heatmap_by_gene)
-message("✓ Heatmap complete")
-```
-
-
-### Plot 6: Radar plot (multi-dimensional sample summary)
-
-The **radar plot** displays a single sample's imprinting profile across multiple dimensions (IDS, Angle, IDI summary).
-
-```{r plot-radar, fig.width = 8, fig.height = 8}
-
-p_radar <- plot(
-  x,
-  plot_type = "radar",
   sample_id = sample_id_1,
-  probeset = "selected",
-  outFile = NULL
+  prefix = "GSE52576",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
 )
-options(repr.plot.width = 8, repr.plot.height = 8) 
-print(p_radar)
-message("✓ Radar plot complete")
+
+attr(x, "visualization_manifest")
+names(plots(x))
 ```
 
+### Display selected stored plots
 
+```{r display-stored-plots, fig.width = 10, fig.height = 6}
+if (!is.null(plots(x)[["polar.selected"]])) {
+  print(plots(x)[["polar.selected"]])
+}
 
-### Plot 7: Beeswarm by chromosome (spatially organized)
+if (!is.null(plots(x)[["beeswarm_origin.selected"]])) {
+  print(plots(x)[["beeswarm_origin.selected"]])
+}
 
-The **chromosome beeswarm plot** shows methylation distribution for a single sample, faceted by chromosome location of imprinted sites.
-
-```{r plot-beeswarm-chr, fig.width = 12, fig.height = 6}
-p_beeswarm_chr <- plot(
-  x,
-  plot_type = "beeswarm_chr",
-  sample_id = sample_id_1,
-  outFile = NULL
-)
-options(repr.plot.width = 8, repr.plot.height = 8) 
-print(p_beeswarm_chr)
-message("✓ Beeswarm by chromosome plot complete")
-```
-
-### Plot 8: Rainfall plot (sample-level detail)
-
-The **rainfall plot** shows methylation deviations (IDI) across genomic positions for a single representative sample. Select sample 2 for demonstration:
-
-```{r plot-rainfall, fig.width = 12, fig.height = 6}
-sample_id_1 <- colnames(beta(x))[2]  # Select second sample
-message("Generating rainfall plot for sample: ", sample_id_1)
-
-p_rainfall <- plot(
-  x,
-  plot_type = "rainfall",
-  sample_id = sample_id_1,
-  probeset = "classifier3",
-  outFile = NULL
-)
-options(repr.plot.width = 14, repr.plot.height = 8) 
-
+rainfall_name <- grep("^rainfall\\.", names(plots(x)), value = TRUE)[1]
+if (!is.na(rainfall_name)) {
+  print(plots(x)[[rainfall_name]])
+}
 ```
 
 ---
@@ -395,10 +284,10 @@ normal_pct <- sum(res$status$Mechanism == "NORMAL") / nrow(res$status) * 100
 abnormal_pct <- 100 - normal_pct
 
 message("=== OVERALL IMPRINTING SUMMARY ===")
-message(sprintf("Normal imprinting:    %6.1f%% (%d/%d samples)", 
+message(sprintf("Normal imprinting:    %6.1f%% (%d/%d samples)",
                 normal_pct, sum(res$status$Mechanism == "NORMAL"), nrow(res$status)))
-message(sprintf("Abnormal imprinting:  %6.1f%% (%d/%d samples)", 
-                abnormal_pct, nrow(res$status) - sum(res$status$Mechanism == "NORMAL"), 
+message(sprintf("Abnormal imprinting:  %6.1f%% (%d/%d samples)",
+                abnormal_pct, nrow(res$status) - sum(res$status$Mechanism == "NORMAL"),
                 nrow(res$status)))
 
 # By sample group
@@ -407,7 +296,7 @@ for (group in unique(meta(x)$Sample_Group)) {
   idx <- meta(x)$Sample_Group == group
   n <- sum(idx)
   normal <- sum(res$status$Mechanism[idx] == "NORMAL")
-  message(sprintf("%20s: %d samples, %d normal (%.1f%%)", 
+  message(sprintf("%20s: %d samples, %d normal (%.1f%%)",
                   group, n, normal, 100*normal/n))
 }
 ```
@@ -451,10 +340,10 @@ message("=== KEY BIOLOGICAL INSIGHTS ===")
 message("1. Dataset: GSE52576 (methylation study of imprinting disorders)")
 message("2. Platform: Illumina 450K methylation array")
 message("3. Samples analyzed: ", nrow(res$status))
-message("4. Geographic distribution: IDS range [", 
+message("4. Geographic distribution: IDS range [",
         round(min(res$status$IDS), 3), ", ",
         round(max(res$status$IDS), 3), "]")
-message("5. Most common mechanism: ", 
+message("5. Most common mechanism: ",
         names(sort(table(res$status$Mechanism), decreasing = TRUE))[1])
 message("\n→ See plots above for detailed visualization of these patterns")
 ```
@@ -578,6 +467,6 @@ jupytext --to notebook vignettes/GSE52576.Rmd
 
 ## License & Attribution
 
-This vignette uses publicly available data from NCBI Gene Expression Omnibus (GEO). 
+This vignette uses publicly available data from NCBI Gene Expression Omnibus (GEO).
 Please cite the original GSE52576 study and imprintomeR when using this analysis.
 

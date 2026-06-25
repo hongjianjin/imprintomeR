@@ -126,7 +126,7 @@ exported_files <- export(
 )
 # Creates two Excel workbooks:
 #   qc_table_main.xlsx: metadata, QC_matrix, Ctrl_matrix (if available), statistics
-#   qc_table_extra.xlsx: QC_metrics (thresholds), recall_rate (if available), 
+#   qc_table_extra.xlsx: QC_metrics (thresholds), recall_rate (if available),
 #                         contamination (if available), predUniqDonor_ID (if available)
 # Plus: qcset.rds (full MethQcSet object)
 # Plus: qcset_summary.txt (summary report with Notes section documenting missing sheets)
@@ -274,196 +274,54 @@ genome(x) <- "hg38"
 
 ## 7. Plot with ImprintomeSet Dispatcher
 
-Use `plot_type` to choose a visualization backend while keeping one unified
-object-first interface.
+Use `runImprintomeVisualizations()` to generate the standard workflow plots, store successful plot objects in `plots(x)`, and optionally save files. The helper uses the same object-first `plot()` dispatcher underneath, so individual plot calls remain available when you need a custom figure.
 
-Supported `plot_type` values:
+Supported workflow plot sets:
 
-- `auto`
-- `polar`
-- `mirror_density`
-- `beeswarm`
-- `beeswarm_origin`
-- `beeswarm_chr`
-- `violin`
-- `heatmap`
-- `heatmap_by_gene`
-- `circular_heatmap`
-- `cor_heatmap`
-- `rainfall`
-- `radar`
-
-### 7.1 Example Code for Every Plot Type
-
-For a compact one-block demo of all plot backends, see
-*ImprintomeSet Visualization Gallery*, Section 2.3.
+- `plot_types = "default"`: polar, beeswarm by origin, mirror density, probe/gene heatmaps, radar, chromosome beeswarm, and rainfall
+- `plot_types = "all"`: all supported non-auto plot backends, including violin and correlation heatmap
+- `plot_types = c(...)`: any explicit subset of supported plot types
 
 ```{r, eval = FALSE}
-# Use a real sample identifier for sample-level views
 sample_id1 <- colnames(beta(x))[2]
 
-# 1) auto: returns most recent stored plot when available, else polar fallback
-p_auto <- plot(
+x <- runImprintomeVisualizations(
   x,
-  plot_type = "auto",
-  result_name = "AnalyzeImprintStatus.selected",
-  colorColumn = "Sample_Group",
-  title = "ImprintomeSet Auto",
-  outFile = "imprintomeset_quickstart_auto.pdf"
-)
-
-# 2) polar
-p_polar <- plot(
-  x,
-  plot_type = "polar",
-  result_name = "AnalyzeImprintStatus.selected",
-  colorColumn = "Sample_Group",
-  title = "ImprintomeSet Polar",
-  outFile = "imprintomeset_quickstart_polar.pdf"
-)
-
-# 3) mirror_density
-p_mirror <- plot(
-  x,
-  plot_type = "mirror_density",
-  probeset = "selected",
-  SAMPLEID = "Sample_Name",
-  outFile = "imprintomeset_quickstart_mirror.pdf"
-)
-
-# 4) beeswarm
-p_bee <- plot(
-  x,
-  plot_type = "beeswarm",
-  probeset = "selected",
-  SAMPLEID = "Sample_Name",
-  outFile = "imprintomeset_quickstart_beeswarm.pdf"
-)
-
-# 5) beeswarm_origin
-p_bee_origin <- plot(
-  x,
-  plot_type = "beeswarm_origin",
-  probeset = "selected",
-  SAMPLEID = "Sample_Name",
-  title = "Beeswarm Origin (Cohort)",
-  outFile = "imprintomeset_quickstart_beeswarm_origin.pdf"
-)
-
-# 6) beeswarm_chr
-p_bee_chr <- plot(
-  x,
-  plot_type = "beeswarm_chr",
+  plot_types = "default",
   probeset = "selected",
   sample_id = sample_id1,
-  chr = "chr11",
-  title = "Beeswarm by Chromosome (Origin Split)",
-  outFile = "imprintomeset_quickstart_beeswarm_chr.pdf"
+  prefix = "imprintomeset_quickstart",
+  store_plots = TRUE,
+  save_plots = FALSE
 )
 
-# 7) violin
-p_violin <- plot(
-  x,
-  plot_type = "violin",
-  probeset = "selected",
-  SAMPLEID = "Sample_Name",
-  outFile = "imprintomeset_quickstart_violin.pdf"
-)
-
-# 8) heatmap_by_probe
-p_heatmap <- plot(
-  x,
-  plot_type = "heatmap_by_probe",
-  probeset = "selected",
-  SAMPLEID = "Sample_Name",
-  outFile = "imprintomeset_quickstart_heatmap.pdf"
-)
-
-# 9) heatmap_by_gene (aggregates probes to gene level)
-p_heatmap_by_gene <- plot(
-  x,
-  plot_type = "heatmap_by_gene",
-  probeset = "selected",
-  SAMPLEID = "Sample_Name",
-  annoColumn = "Sample_Group",
-  clusterRows = TRUE,
-  clusterColumns = TRUE,
-  outFile = "imprintomeset_quickstart_heatmap_by_gene.pdf"
-)
-
-# 10) circular_heatmap
-p_circular <- plot(
-  x,
-  plot_type = "circular_heatmap",
-  SAMPLEID = "Sample_Name",
-  sectionColumn = "Sample_Group",
-  probeset = "selected",
-  outFile = "imprintomeset_quickstart_circular_heatmap.pdf"
-)
-
-# 10) cor_heatmap
-cor_mat <- plot(
-  x,
-  plot_type = "cor_heatmap",
-  probeset = "selected",
-  SAMPLEID = "Sample_Name",
-  prefix = "imprintomeset_quickstart"
-)
-
-# 12) rainfall
-outFile <- paste0("imprintomeset_quickstart_rainfall_", sample_id1, ".pdf")
-p_rainfall <- plot(
-  x,
-  plot_type = "rainfall",
-  sample_id = sample_id1,
-  probeset = "classifier3",
-  outFile = outFile
-)
-
-# 13) radar
-outFile <- paste0("imprintomeset_quickstart_radar_", sample_id1, ".pdf")
-p_radar <- plot(
-  x,
-  plot_type = "radar",
-  probeset = "selected",
-  sample_id = sample_id1,
-  title = "ImprintomeSet Radar",
-  outFile = outFile
-)
+attr(x, "visualization_manifest")
+names(plots(x))
 ```
 
-`beeswarm_chr` returns a chromosome-faceted plot for one sample with
-maternal/paternal split points and per-group median summary markers.
-
-### 7.2 Access Plot Objects Stored in ImprintomeSet
+### 7.1 Access Stored Plot Objects
 
 ```{r, eval = FALSE}
-# Save selected plot outputs into the object
-p_list <- plots(x)
-p_list[["auto.selected"]] <- p_auto
-p_list[["polar.selected"]] <- p_polar
-p_list[["mirror.selected"]] <- p_mirror
-p_list[["beeswarm.selected"]] <- p_bee
-p_list[["beeswarm_origin.selected"]] <- p_bee_origin
-p_list[["beeswarm_chr.sample1"]] <- p_bee_chr
-p_list[["violin.selected"]] <- p_violin
-p_list[["heatmap.selected"]] <- p_heatmap
-p_list[["heatmap_by_gene.selected"]] <- p_heatmap_by_gene
-p_list[["circular.selected"]] <- p_circular
-p_list[["rainfall.sample1"]] <- p_rainfall
-p_list[["radar.sample1"]] <- p_radar
-plots(x) <- p_list
-
-# List available stored plots
-names(plots(x))
-
-# Retrieve one plot object by name
 p_from_object <- plots(x)[["beeswarm_origin.selected"]]
 p_from_object
 
-# Retrieve a chromosome-faceted beeswarm plot
-p_chr_from_object <- plots(x)[["beeswarm_chr.sample1"]]
+p_chr_from_object <- plots(x)[[grep("^beeswarm_chr\\.", names(plots(x)), value = TRUE)[1]]]
 p_chr_from_object
+```
+
+### 7.2 Save Plot Files During Generation
+
+```{r, eval = FALSE}
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "default",
+  probeset = "selected",
+  sample_id = sample_id1,
+  prefix = "imprintomeset_quickstart",
+  outdir = "imprintome_results/plots",
+  save_plots = TRUE,
+  store_plots = TRUE
+)
 ```
 
 ## 8. Export Results
@@ -472,6 +330,7 @@ p_chr_from_object
 manifest <- export(
   x,
   outdir = "imprintome_results",
+  prefix = "imprintomeset_quickstart",
   save_plots = TRUE,
   plot_device = "pdf",
   overwrite = TRUE
@@ -480,7 +339,7 @@ manifest <- export(
 head(manifest)
 ```
 
-`export()` writes `results(x)` and optionally `plots(x)`.
+`export()` writes the full `ImprintomeSet` object as `<prefix>_imprintomeSet.rds`, plus `results(x)` and optionally `plots(x)`.
 
 **For QC preprocessing (MethQcSet)**, the export includes `summary.txt` with a "Notes" section documenting any optional sheets not created due to missing underlying data. Check it to understand data availability:
 

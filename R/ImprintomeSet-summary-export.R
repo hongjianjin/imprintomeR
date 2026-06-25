@@ -110,14 +110,15 @@ methods::setMethod(
 
 #' Export ImprintomeSet Outputs to Disk
 #'
-#' Writes selected result tables and optionally stored plots to `outdir`.
+#' Writes the `ImprintomeSet` object, selected result tables, and optionally stored plots to `outdir`.
 #' Data-frame/matrix results are exported as TSV; other result objects are saved
-#' as RDS. Plot export supports ggplot-compatible objects via `ggsave`; other
-#' plot objects are saved as RDS.
+#' as RDS. Plot export supports ggplot-compatible, ComplexHeatmap, recorded, and
+#' file-backed plot objects as plot files when possible; other plot object types are serialized as RDS.
 #'
 #' @param x An `ImprintomeSet` object.
 #' @param outdir Output directory.
 #' @param result_names Character vector of result names to export. `NULL` means all.
+#' @param prefix Filename prefix for exported files, including the saved `ImprintomeSet` object and plot files.
 #' @param save_plots Logical; whether to export plot objects in `plots(x)`.
 #' @param plot_names Character vector of plot names to export when `save_plots=TRUE`.
 #'   `NULL` means all stored plots.
@@ -133,14 +134,14 @@ methods::setMethod(
 #'
 #' @examples
 #' \dontrun{
-#' manifest <- export(x, outdir = "imprintome_export", save_plots = TRUE)
+#' manifest <- export(x, outdir = "imprintome_export", prefix = "imprintome", save_plots = TRUE)
 #' head(manifest)
 #' }
 if (!methods::isGeneric("export")) {
   methods::setGeneric(
     "export",
     function(x, outdir, result_names = NULL, save_plots = FALSE, plot_names = NULL,
-             plot_device = "pdf", width = 8, height = 6, overwrite = TRUE, ...) {
+             plot_device = "pdf", width = 8, height = 6, overwrite = TRUE, prefix = "imprintome", ...) {
       standardGeneric("export")
     }
   )
@@ -152,7 +153,7 @@ methods::setMethod(
   "export",
   signature(x = "ImprintomeSet"),
   function(x, outdir, result_names = NULL, save_plots = FALSE, plot_names = NULL,
-           plot_device = "pdf", width = 8, height = 6, overwrite = TRUE, ...) {
+           plot_device = "pdf", width = 8, height = 6, overwrite = TRUE, prefix = "imprintome", ...) {
     methods::validObject(x)
 
     if (!dir.exists(outdir)) {
@@ -167,6 +168,24 @@ methods::setMethod(
       file = character(0),
       status = character(0),
       stringsAsFactors = FALSE
+    )
+
+    safe_prefix <- if (is.null(prefix) || length(prefix) == 0L) "" else sanitize_name(as.character(prefix)[1])
+    if (is.na(safe_prefix) || !nzchar(safe_prefix)) {
+      safe_prefix <- "imprintome"
+    }
+
+    # Export full ImprintomeSet object
+    object_path <- file.path(outdir, paste0(safe_prefix, "_imprintomeSet.rds"))
+    if (!overwrite && file.exists(object_path)) {
+      object_status <- "skipped_exists"
+    } else {
+      saveRDS(x, object_path)
+      object_status <- "written"
+    }
+    manifest <- rbind(
+      manifest,
+      data.frame(category = "object", name = "ImprintomeSet", file = object_path, status = object_status, stringsAsFactors = FALSE)
     )
 
     # Export results
@@ -227,7 +246,12 @@ methods::setMethod(
         if (is.null(plot_names)) {
           plot_names <- p_names
         }
+        requested_plot_names <- plot_names
         plot_names <- sort(intersect(plot_names, names(p_list)))
+        if (length(plot_names) == 0L) {
+          message("No matching stored plots found for export. Stored plots: ", paste(names(p_list), collapse = ", "),
+                  "; requested plots: ", paste(requested_plot_names, collapse = ", "))
+        }
 
         plot_device <- tolower(plot_device)
         if (!plot_device %in% c("pdf", "png")) {
@@ -239,15 +263,52 @@ methods::setMethod(
           safe_nm <- sanitize_name(nm)
 
           if (inherits(pobj, "ggplot") || inherits(pobj, "patchwork")) {
-            fpath <- file.path(outdir, paste0("plot_", safe_nm, ".", plot_device))
+            fpath <- file.path(outdir, paste0(safe_prefix, "_plot_", safe_nm, ".", plot_device))
             if (!overwrite && file.exists(fpath)) {
               status <- "skipped_exists"
             } else {
               ggplot2::ggsave(filename = fpath, plot = pobj, width = width, height = height, units = "in", limitsize = TRUE)
               status <- "written"
             }
+          } else if (inherits(pobj, "imprintome_plot_file") && is.raw(pobj$bytes)) {
+            device <- if (!is.null(pobj$device) && nzchar(pobj$device)) pobj$device else "pdf"
+            fpath <- file.path(outdir, paste0(safe_prefix, "_plot_", safe_nm, ".", device))
+            if (!overwrite && file.exists(fpath)) {
+              status <- "skipped_exists"
+            } else {
+              writeBin(pobj$bytes, fpath)
+              status <- "written"
+            }
+          } else if (inherits(pobj, "Heatmap") || inherits(pobj, "HeatmapList")) {
+            fpath <- file.path(outdir, paste0(safe_prefix, "_plot_", safe_nm, ".", plot_device))
+            if (!overwrite && file.exists(fpath)) {
+              status <- "skipped_exists"
+            } else {
+              if (identical(plot_device, "pdf")) {
+                grDevices::pdf(fpath, width = width, height = height)
+              } else {
+                grDevices::png(fpath, width = width, height = height, units = "in", res = 300)
+              }
+              tryCatch(
+                ComplexHeatmap::draw(pobj, merge_legend = TRUE),
+                finally = grDevices::dev.off()
+              )
+              status <- "written"
+            }
+          } else if (inherits(pobj, "recordedplot")) {
+            fpath <- file.path(outdir, paste0(safe_prefix, "_plot_", safe_nm, ".pdf"))
+            if (!overwrite && file.exists(fpath)) {
+              status <- "skipped_exists"
+            } else {
+              grDevices::pdf(fpath, width = width, height = height)
+              tryCatch(
+                grDevices::replayPlot(pobj),
+                finally = grDevices::dev.off()
+              )
+              status <- "written"
+            }
           } else {
-            fpath <- file.path(outdir, paste0("plot_", safe_nm, ".rds"))
+            fpath <- file.path(outdir, paste0(safe_prefix, "_plot_", safe_nm, ".rds"))
             if (!overwrite && file.exists(fpath)) {
               status <- "skipped_exists"
             } else {

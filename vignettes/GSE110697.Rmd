@@ -255,33 +255,10 @@ message("QC outputs exported to: ", qc_outdir)
 If you ran the raw-IDAT QC workflow above, use PASS samples from `qcset`.
 
 ```{r beta-from-qc, eval = FALSE}
-qc_matrix <- qc_tables(qcset)[["QC_matrix"]]
-pass_samples <- qc_matrix$Sample_Name[qc_matrix$Final.QC == "PASS"]
+qcset_pass <- subsetMethQC(qcset, final_qc = "PASS")
 
-meta_pass <- meta(qcset)[match(pass_samples, meta(qcset)$Sample_Name), , drop = FALSE]
-beta_pass <- beta(qcset)[, pass_samples, drop = FALSE]
-det_pval_pass <- if (!is.null(detection_pval(qcset))) {
-  detection_pval(qcset)[, pass_samples, drop = FALSE]
-} else {
-  NULL
-}
-qc_tables_pass <- lapply(qc_tables(qcset), function(tbl) {
-  if (is.data.frame(tbl) && "Sample_Name" %in% colnames(tbl)) {
-    tbl[tbl$Sample_Name %in% pass_samples, , drop = FALSE]
-  } else {
-    tbl
-  }
-})
-
-qcset_pass <- MethQcSet(
-  meta = meta_pass,
-  platform = platform(qcset),
-  beta = beta_pass,
-  detection_pval = det_pval_pass,
-  qc_tables = qc_tables_pass,
-  aggregation_status = aggregation_status(qcset),
-  qc_params = qc_params(qcset)
-)
+message("QC-clean samples: ", ncol(beta(qcset_pass)))
+head(meta(qcset_pass))
 
 x <- as.ImprintomeSet(
   qcset_pass,
@@ -426,149 +403,39 @@ print(summary(status$Angle))
 
 ## Phase 6: Visualizations
 
-```{r choose-sample}
+```{r run-visualizations, fig.width = 10, fig.height = 6}
 sample_id_1 <- colnames(beta(x))[2]
 message("Representative sample for single-sample plots: ", sample_id_1)
-```
 
-### Plot 1: Polar scatter
-
-```{r plot-polar, fig.width = 8, fig.height = 8}
-p_polar <- plot(
+x <- runImprintomeVisualizations(
   x,
-  plot_type = "polar",
-  result_name = "AnalyzeImprintStatus.selected",
-  colorColumn = "Sample_Group",
-  outFile = NULL
-)
-print(p_polar)
-```
-
-### Plot 2: Beeswarm by origin
-
-```{r plot-beeswarm-origin, fig.width = 12, fig.height = 6}
-p_beeswarm_origin <- plot(
-  x,
-  plot_type = "beeswarm_origin",
   probeset = "selected",
-  SAMPLEID = "Sample_Name",
-  outFile = NULL
-)
-print(p_beeswarm_origin)
-```
-
-### Plot 3: Mirror density
-
-```{r plot-mirror-density, fig.width = 10, fig.height = 6}
-p_mirror <- plot(
-  x,
-  plot_type = "mirror_density",
-  probeset = "selected",
-  outFile = NULL
-)
-print(p_mirror)
-```
-
-### Plot 4: Circular heatmap
-
-```{r plot-circular, fig.width = 10, fig.height = 10}
-p_circular <- plot(
-  x,
-  plot_type = "circular_heatmap",
-  probeset = "selected",
-  outFile = NULL
-)
-p_circular
-```
-
-### Plot 5: Beta heatmap by probe
-
-```{r plot-heatmap-by-probe, fig.width = 10, fig.height = 8}
-p_heatmap <- plot(
-  x,
-  plot_type = "heatmap_by_probe",
-  probeset = "selected",
-  SAMPLEID = "Sample_Name",
-  annoColumn = "Sample_Group",
-  outFile = NULL
-)
-draw(p_heatmap, merge_legend = TRUE)
-```
-
-### Plot 6: Beta heatmap by gene
-
-```{r plot-heatmap-by-gene, fig.width = 10, fig.height = 12}
-p_heatmap_by_gene <- plot(
-  x,
-  plot_type = "heatmap_by_gene",
-  probeset = "selected",
-  SAMPLEID = "Sample_Name",
-  annoColumn = "Sample_Group",
-  clusterRows = TRUE,
-  clusterColumns = TRUE,
-  outFile = NULL
-)
-print(p_heatmap_by_gene)
-```
-
-### Plot 7: Radar plot
-
-```{r plot-radar, fig.width = 8, fig.height = 8}
-p_radar <- plot(
-  x,
-  plot_type = "radar",
   sample_id = sample_id_1,
-  probeset = "selected",
-  outFile = NULL
+  prefix = "GSE110697",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
 )
-print(p_radar)
-```
 
-### Plot 8: Beeswarm by chromosome
-
-```{r plot-beeswarm-chr, fig.width = 12, fig.height = 6}
-p_beeswarm_chr <- plot(
-  x,
-  plot_type = "beeswarm_chr",
-  sample_id = sample_id_1,
-  probeset = "selected",
-  outFile = NULL
-)
-print(p_beeswarm_chr)
-```
-
-### Plot 9: Rainfall plot
-
-```{r plot-rainfall, fig.width = 12, fig.height = 6}
-p_rainfall <- plot(
-  x,
-  plot_type = "rainfall",
-  sample_id = sample_id_1,
-  probeset = "classifier3",
-  outFile = NULL
-)
-print(p_rainfall)
-```
-
-### Store generated plots
-
-```{r store-plots}
-plot_list <- plots(x)
-new_plots <- list(
-  "polar.selected" = p_polar,
-  "beeswarm_origin.selected" = p_beeswarm_origin,
-  "mirror_density.selected" = p_mirror,
-  "circular.selected" = p_circular,
-  "heatmap.selected" = p_heatmap,
-  "heatmap_by_gene.selected" = p_heatmap_by_gene,
-  "radar.sample1" = p_radar,
-  "beeswarm_chr.sample1" = p_beeswarm_chr,
-  "rainfall.sample1" = p_rainfall
-)
-new_plots <- new_plots[!vapply(new_plots, is.null, logical(1))]
-plot_list[names(new_plots)] <- new_plots
-plots(x) <- plot_list
+attr(x, "visualization_manifest")
 names(plots(x))
+```
+
+### Display selected stored plots
+
+```{r display-stored-plots, fig.width = 10, fig.height = 6}
+if (!is.null(plots(x)[["polar.selected"]])) {
+  print(plots(x)[["polar.selected"]])
+}
+
+if (!is.null(plots(x)[["beeswarm_origin.selected"]])) {
+  print(plots(x)[["beeswarm_origin.selected"]])
+}
+
+rainfall_name <- grep("^rainfall\\.", names(plots(x)), value = TRUE)[1]
+if (!is.na(rainfall_name)) {
+  print(plots(x)[[rainfall_name]])
+}
 ```
 
 ---
@@ -661,7 +528,7 @@ message("6. Use pair_summary to inspect primary/xenograft concordance by matched
 manifest <- export(
   x,
   outdir = "GSE110697_imprintome_output",
-  result_names = "AnalyzeImprintStatus.selected",
+  prefix = "GSE110697",
   save_plots = TRUE,
   plot_device = "pdf",
   overwrite = TRUE
@@ -670,7 +537,7 @@ manifest <- export(
 head(manifest)
 ```
 
-`export()` writes `results(x)` and optionally `plots(x)`. Save extra summary tables only when you need custom reporting beyond the export manifest.
+`export()` writes the full `ImprintomeSet` object as `<prefix>_imprintomeSet.rds`, plus `results(x)` and optionally `plots(x)`. Save extra summary tables only when you need custom reporting beyond the export manifest.
 
 ---
 
