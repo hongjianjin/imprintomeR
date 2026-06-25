@@ -119,7 +119,7 @@ testthat::local_edition(1)
   dir.create(file.path(tmp_wd, "inst", "extdata"), recursive = TRUE, showWarnings = FALSE)
 
   d <- .make_plot_fixture()
-  saveRDS(list(selected = d$probeset, classifier3 = d$probeset),
+  saveRDS(list(selected = d$probeset, NanoImprint = d$probeset),
           file.path(tmp_wd, "inst", "extdata", "probesets_hg19.rds"))
 
   setwd(tmp_wd)

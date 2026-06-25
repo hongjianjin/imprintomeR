@@ -135,7 +135,7 @@ AnalyzeImprintStatus0 <- function(betaFile,  metaFile,
 
 
 AnalyzeImprintStatusV2 <- function(betaFile, 
-                                 metaFile, probeset = c("classifier2","selected","chr11p15"),
+                                 metaFile, probeset = c("selected", "chr11p15"),
                                  ids_cutoff = 0.2, prefix=NULL) {
    suppressMessages(suppressWarnings(library(dplyr)))  
 
@@ -569,7 +569,7 @@ BetaRidgeline <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL, 
 # 04/09/2025, 16:30:09 
 
 
-Build_CDF_classfier <-function(dataset, probeset="classifier2", p=0.7, ntree = 100, retrain_gini=0.5, outPrefix=NULL){
+Build_CDF_classfier <-function(dataset, probeset="selected", p=0.7, ntree = 100, retrain_gini=0.5, outPrefix=NULL){
   # Install and load necessary packages
    if (!requireNamespace("randomForest", quietly = TRUE)) install.packages("randomForest")
    suppressMessages(suppressWarnings(library(randomForest)))
@@ -667,7 +667,7 @@ Build_CDF_classfier <-function(dataset, probeset="classifier2", p=0.7, ntree = 1
 
 #================================================================
 
-Build_classfier_v6 <-function(dataset, probeset="classifier", p=0.7, ntree = 100, mtry = 2,outPrefix=NULL){
+Build_classfier_v6 <-function(dataset, probeset="selected", p=0.7, ntree = 100, mtry = 2,outPrefix=NULL){
   # Install and load necessary packages
    if (!requireNamespace("randomForest", quietly = TRUE)) install.packages("randomForest")
    suppressMessages(suppressWarnings(library(randomForest)))
@@ -745,7 +745,7 @@ Build_classfier_v6 <-function(dataset, probeset="classifier", p=0.7, ntree = 100
 }
 #================================================================
 
-Build_ML_classfier <-function(metaFile, betaFile, mdlFile="GSE64244_rf.model.rds",probeset="classifier"){
+Build_ML_classfier <-function(metaFile, betaFile, mdlFile="GSE64244_rf.model.rds",probeset="selected"){
     model_path <- "/research/rgs01/home/clusterHome/hjin/projects/imprintomeR_dev/selected/"
     if (!requireNamespace("caret", quietly = TRUE)) install.packages("caret")
     library(caret)
@@ -876,7 +876,7 @@ Build_Model_PCA <- function(data,p=0.8, model="rf",outPrefix="test"){
 # started: 06/16/2025,11:59:11 
 ###############################  
 
-Build_PCA_classfier <-function(dataset, probeset="classifier2", p=0.7, ntree = 100, retrain_gini=0.5, outPrefix=NULL){
+Build_PCA_classfier <-function(dataset, probeset="selected", p=0.7, ntree = 100, retrain_gini=0.5, outPrefix=NULL){
   # Install and load necessary packages
    if (!requireNamespace("randomForest", quietly = TRUE)) install.packages("randomForest")
    suppressMessages(suppressWarnings(library(randomForest)))
@@ -1081,7 +1081,7 @@ Calc_Area_Ecdf_sep <- function(beta_group1, beta_group2){
 
 #================================================================
 
-Calc_CDF_Stat <- function(betaFile,metaFile,prefix=NULL,SAMPLEID="Sample_Name", probeset="classifier2"){
+Calc_CDF_Stat <- function(betaFile,metaFile,prefix=NULL,SAMPLEID="Sample_Name", probeset="selected"){
   input <- LoadMetaBeta(metaFile, betaFile, probeset = NULL)
   meta <- input[["meta"]]
   beta0 <- input[["beta"]]
@@ -1209,7 +1209,7 @@ Calc_CDF_Stat <- function(betaFile,metaFile,prefix=NULL,SAMPLEID="Sample_Name", 
 
 
 
-Calc_CDF_Stat_sep <- function(betaFile,metaFile,prefix=NULL,SAMPLEID="Sample_Name", probeset="classifier2"){
+Calc_CDF_Stat_sep <- function(betaFile,metaFile,prefix=NULL,SAMPLEID="Sample_Name", probeset="selected"){
   input <- LoadMetaBeta(metaFile, betaFile, probeset = NULL)
   meta <- input[["meta"]]
   beta0 <- input[["beta"]]
@@ -1431,7 +1431,7 @@ Calc_KS  <- function(data1,data2) {
 }
 #================================================================
 
-Calc_Stat_Chr_v6 <- function(beta,probeset="classifier", chrs=NULL, low_cutoff=0.3, high_cutoff=0.7){
+Calc_Stat_Chr_v6 <- function(beta,probeset="selected", chrs=NULL, low_cutoff=0.3, high_cutoff=0.7){
   probesets_all <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
   probeset <- probesets_all[[probeset]]
   common_probes <- intersect(probeset$NAME, rownames(beta))
@@ -1567,7 +1567,7 @@ Calc_Wasserstein  <- function(data1,data2) {
 }
 
 
-CalcImprintMed <- function(betaFile, metaFile, probeset = "classifier2",prefix=NULL) {
+CalcImprintMed <- function(betaFile, metaFile, probeset = "selected",prefix=NULL) {
    
   input <- LoadMetaBeta(metaFile, betaFile, probeset = NULL)
   beta <- input[["beta"]]
@@ -2380,7 +2380,7 @@ DETECT_LOH_BATCH <- function(metaFile,betaFile, normal_id=NULL, het_threshold = 
 #================================================================
 
 
-DETECT_LOH_ICR <- function(beta, meta, chr="all", group="ORIGIN", mosaic_threshold = 0.1, hom_threshold = 0.2,prefix=NULL,probeset="classifier2"){
+DETECT_LOH_ICR <- function(beta, meta, chr="all", group="ORIGIN", mosaic_threshold = 0.1, hom_threshold = 0.2,prefix=NULL,probeset="selected"){
   if(!is.null(probeset)){
   suppressMessages(suppressWarnings(library(ggplot2)))
   suppressMessages(suppressWarnings(library("ggridges")))
@@ -2973,7 +2973,7 @@ Imprintome_Classifier <- function(betaFile, metaFile, probeset = "selected",pref
 ##################################################################
 # 02/07/2025, 11:49:11 
 
-Imprintome_Classifier_v3 <- function(betaFile, metaFile, probeset = "classifier2",prefix=NULL,low_cutoff=0.3, high_cutoff=0.7 ) {
+Imprintome_Classifier_v3 <- function(betaFile, metaFile, probeset = "selected",prefix=NULL,low_cutoff=0.3, high_cutoff=0.7 ) {
   input <- LoadMetaBeta(metaFile, betaFile, probeset = NULL)
   beta <- input[["beta"]]
   meta <- input[["meta"]]
@@ -3170,7 +3170,7 @@ Imprintome_Classifier2 <- function(betaFile, metaFile, probeset = "selected",pre
 # 03/23/2025, 20:17:45 
 ##################################################################
 
-Impute_chr_dataset_v6 <- function(metaFile=NULL, betaFile=NULL,outPrefix=NULL,probeset="classifier"){
+Impute_chr_dataset_v6 <- function(metaFile=NULL, betaFile=NULL,outPrefix=NULL,probeset="selected"){
    # 1. chr7- mUPD+pUPD + UPD_chr7
    # 2. chr11 - mUPD+pUPD + UPD_chr11
    # 3. chr20 ...
@@ -4133,7 +4133,7 @@ Predict_UPD_CDF_stat <-  function(data,meta,SAMPLEID="ID2",mdlFile="all4sets_cla
   suppressMessages(suppressWarnings(library(randomForest)))   
   outPrefix <- tools::file_path_sans_ext(outFile)
   if(!file.exists(mdlFile)){
-    model_path <- "/research/rgs01/home/clusterHome/hjin/projects/imprintomeR_dev/final2025/selected2"
+    model_path <- "/research/rgs01/home/clusterHome/hjin/projects/imprintomeR_dev/final2025/selected"
     rdsFile <- paste0(model_path,"/",mdlFile)  
   }else{
     rdsFile <- mdlFile
@@ -4266,7 +4266,7 @@ Predict_UPD_chr_v6 <-  function(meta, beta,mdlFile="final_std1_selected_v6_chr_r
     sink(logFile)      
     for(chr in chrs){
       cat("\n [",chr,"]")
-      stat <- Calc_Stat_Chr_v6(beta,probeset="classifier", chrs=chr)
+      stat <- Calc_Stat_Chr_v6(beta,probeset="selected", chrs=chr)
       SaveTable(stat, sheetName=chr,file=outXlsx, rowNames=T,append=T)
       dfTest <- as.data.frame(stat)
       model1 <- models[[chr]]
@@ -4344,7 +4344,7 @@ Predict_UPD_PCA <-  function(data,meta,SAMPLEID="ID2",mdlFile="final_std3_classi
     rdsFile <- mdlFile
   }else{
     if(!file.exists(mdlFile)){
-      model_path <- "/research/rgs01/home/clusterHome/hjin/projects/imprintomeR_dev/final2025/selected2/PCA_classifier2"
+      model_path <- "/research/rgs01/home/clusterHome/hjin/projects/imprintomeR_dev/final2025/selected/PCA_selected"
       rdsFile <- paste0(model_path,"/",mdlFile)  
     }
     if(!file.exists(mdlFile)){
@@ -4505,7 +4505,7 @@ Probeset_Imprinting_Source <- function( probeset="selected"){
 
 # ================================================================
 
-Probeset_Imprinting_Source2 <- function( probeset="classifier"){
+Probeset_Imprinting_Source2 <- function( probeset="selected"){
    # cd /home/hjin/projects/imprintomeR_dev/selected/
     cat("\nINFO: Determine probeset's imprinting source \n")  
     metaFile1 <- "/home/hjin/projects/imprintomeR_dev/selected/golden_std_wb_meta.txt"
@@ -4513,7 +4513,7 @@ Probeset_Imprinting_Source2 <- function( probeset="classifier"){
     control1 <- LoadMetaBeta(metaFile1, betaFile1, probeset =probeset)
    beta1 <- control1[["beta"]]
    meta1 <- control1[["meta"]]
-   probesets1 <-  control1[["classifier"]]
+   probesets1 <-  control1[["selected"]]
    beta_grp1 <- CalcAvgByGrp(beta1, meta1) 
    max_indices1 <- max.col(beta_grp1) 
 
@@ -4621,9 +4621,9 @@ Run_MethylToSNP <- function(){
   x <- data.frame(n_LOH_in_ACT,n_Het_in_germline)
   x1 <- x[x$n_Het_in_germline>0 & (x$n_LOH_in_ACT > x$n_Het_in_germline),]
   probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
-  classifier2 <- probesets[["classifier2"]]
+  selected_probeset <- probesets[["selected"]]
 
-  probes <- intersect(classifier2$NAME,rownames(x1))
+  probes <- intersect(selected_probeset$NAME,rownames(x1))
   print(length(probes))  # 
 
   #================================================================
@@ -4681,7 +4681,7 @@ Run_MethylToSNP <- function(){
 #  05/14/2025,13:10:37 
 ##################################################################
 
-RunEnricment <- function(beta, meta, probeset="classifier2", prefix=NULL, method="singscore",gmtFile=NULL){
+RunEnricment <- function(beta, meta, probeset="selected", prefix=NULL, method="singscore",gmtFile=NULL){
   if (!is.null(gmtFile)){
     gmt <-  ReadGmtToList(gmtFile)
     if(!all(c("paternal","maternal")) %in% names(gmt)){
@@ -4790,7 +4790,7 @@ RunFgsea <- function(beta, gmt, ncores=10, nrow_imputed_norm=10000,nPerm=5000,ve
 
 #================================================================
 
-RunPSEA <- function(beta, meta, probeset="classifier2", prefix=NULL,nrow_imputed_norm=10000, method="singscore",gmtFile=NULL){
+RunPSEA <- function(beta, meta, probeset="selected", prefix=NULL,nrow_imputed_norm=10000, method="singscore",gmtFile=NULL){
   if (!is.null(gmtFile)){
     gmt <-  ReadGmtToList(gmtFile)
     if(!all(c("paternal","maternal")) %in% names(gmt)){

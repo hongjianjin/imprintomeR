@@ -8,7 +8,7 @@ Beeplot_chr_vs_other_single(
   input,
   chrs = "chr1,chr11",
   prefix = NULL,
-  probeset = "classifier2"
+  probeset = "selected"
 )
 }
 \arguments{

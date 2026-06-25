@@ -2113,7 +2113,7 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
 #' @return A data frame with metrics, directional interpretations, and mutation calls.
 #'
 
-PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probeset=c("classifier2","classifier3","selected","signature_hc"), outFile=NULL) {
+PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probeset=c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15"), outFile=NULL) {
   library(ggplot2)
   suppressMessages(suppressWarnings(library("dplyr")))
   library(stringr)
@@ -2493,7 +2493,7 @@ PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, a
 
 #================================================================
 
-BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, probeset="classifier2") {
+BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, probeset="selected") {
   suppressMessages(suppressWarnings({
     library(ggplot2)
     library(dplyr)
@@ -2981,7 +2981,7 @@ Beeplot_chr_vs_other <- function(dat, meta, group.by = "chr", color.by = "CATEGO
 #' @param probeset Probeset name in `inst/extdata/probesets_hg19.rds`.
 #'
 #' @return `NULL`, writing plots to files as side effects.
-Beeplot_chr_vs_other_single <- function(input, chrs = "chr1,chr11", prefix = NULL, probeset = "classifier2") {
+Beeplot_chr_vs_other_single <- function(input, chrs = "chr1,chr11", prefix = NULL, probeset = "selected") {
   probeset_name <- probeset
   probesets <- readRDS("inst/extdata/probesets_hg19.rds")
   probeset <- probesets[[probeset_name]]

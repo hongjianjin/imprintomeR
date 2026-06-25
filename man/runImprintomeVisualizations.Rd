@@ -19,7 +19,7 @@ runImprintomeVisualizations(
   annoColumn = "Sample_Group",
   sectionColumn = "Sample_Group",
   colorColumn = "Sample_Group",
-  rainfall_probeset = "classifier3",
+  rainfall_probeset = "selected",
   chr = NULL,
   plot_device = "pdf",
   verbose = TRUE,

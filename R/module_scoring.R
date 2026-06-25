@@ -284,7 +284,7 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
 #================================================================
 
 #' @export
-Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("classifier2","classifier3","selected","signature_hc"), min_probes = 10, ids_cutoff=0.2) {
+Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15"), min_probes = 10, ids_cutoff=0.2) {
   suppressMessages(suppressWarnings(library("dplyr")))
   library(stringr)
   probeset <- match.arg(probeset)
@@ -403,7 +403,7 @@ Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("classifier2","cl
 #' @export
 Survey_Global_Imprinting_Batch <- function(betaFile, metaFile = NULL,
                                           subset = "all", 
-                                          probeset = c("classifier2", "classifier3", "selected", "signature_hc"), 
+                                          probeset = c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15"), 
                                           min_probes = 10, 
                                           ids_cutoff = 0.2) {
   

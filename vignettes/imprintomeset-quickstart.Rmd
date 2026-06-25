@@ -226,9 +226,9 @@ You can run additional probesets and keep all outputs in the same object.
 ```{r, eval = FALSE}
 x <- runImprintome(
   x,
-  probeset = "classifier3",
+  probeset = "NanoImprint",
   ids_cutoff = 0.2,
-  result_name = "AnalyzeImprintStatus.classifier3"
+  result_name = "AnalyzeImprintStatus.NanoImprint"
 )
 ```
 

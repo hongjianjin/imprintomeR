@@ -590,7 +590,7 @@ p_rainfall <- plot(
   x,
   plot_type = "rainfall",
   sample_id = sample_id1,
-  probeset = "classifier3",
+  probeset = "selected",
   outFile = paste0("plot_rainfall_", sample_id1, ".pdf")
 )
 

@@ -116,8 +116,8 @@ library(imprintomeR)
 
 # Run analysis on one or more probesets
 x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
-x <- runImprintome(x, probeset = "classifier3", ids_cutoff = 0.2,
-                   result_name = "AnalyzeImprintStatus.classifier3")
+x <- runImprintome(x, probeset = "NanoImprint", ids_cutoff = 0.2,
+                   result_name = "AnalyzeImprintStatus.NanoImprint")
 
 names(results(x))
 ```
@@ -443,7 +443,7 @@ p_rain <- plot(
   x,
   plot_type = "rainfall",
   sample_id = sample_id1,
-  probeset = "classifier3",
+  probeset = "selected",
   outFile = outFile
 )
 ```
@@ -452,7 +452,7 @@ p_rain <- plot(
 
 ```{r, eval = FALSE}
 probesets <- readRDS(system.file("extdata", "probesets_hg19.rds", package = "imprintomeR"))
-ps <- probesets[["classifier2"]]
+ps <- probesets[["selected"]]
 common_probes <- intersect(ps$NAME, rownames(beta_x))
 
 dat_chr <- beta_x[common_probes, , drop = FALSE]
@@ -475,7 +475,7 @@ imprintomeR:::Beeplot_chr_vs_other_single(
   input = list(beta = beta_x, meta = meta_x),
   chrs = "chr1,chr11,chr20",
   prefix = "chr_vs_other_batch",
-  probeset = "classifier2"
+  probeset = "selected"
 )
 ```
 

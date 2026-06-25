@@ -8,7 +8,7 @@ PlotRainfall(
   beta,
   sampleID,
   title = "Imprinting Rainfall Plot",
-  probeset = c("classifier2", "classifier3", "selected", "signature_hc"),
+  probeset = c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15"),
   outFile = NULL
 )
 }

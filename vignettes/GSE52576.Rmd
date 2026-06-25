@@ -432,7 +432,7 @@ x <- runImprintomeVisualizations(
   x,
   plot_types = "rainfall",
   sample_id = sample_id_1,
-  rainfall_probeset = "classifier3",
+  rainfall_probeset = "selected",
   prefix = "GSE52576_rainfall",
   store_plots = TRUE,
   save_plots = FALSE,

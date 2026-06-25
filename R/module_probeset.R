@@ -1,4 +1,4 @@
-﻿# Auto-refactored from utilities2.R
+# Auto-refactored from utilities2.R
 # Module: probeset
 
 #' @export
@@ -198,8 +198,8 @@ SubsetBeta_By_Probeset <- function(beta, probeset=probeset_options, prefix=NULL)
       rownames(probesets) <- probesets$NAME
       cat("\n\t[SubsetBeta] subset by probeset [query:", length(probesets$NAME))
     } else if (probeset %in% probeset_chrs ){  
-      cat(paste0("\n [SubsetBeta] subset probeset 'classifier3' by ",probeset,""))
-      probesets <- probesets_all[["classifier3"]]
+      cat(paste0("\n [SubsetBeta] subset probeset 'selected' by ",probeset,""))
+      probesets <- probesets_all[["selected"]]
       probesets <- probesets[probesets$CHR %in% probeset,]
     } else{
       cat("\n [SubsetBeta] ERROR:invalid probeset.")
