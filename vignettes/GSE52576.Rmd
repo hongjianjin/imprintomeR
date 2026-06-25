@@ -197,7 +197,7 @@ print(summary(x))
 ```{r run-imprintome}
 message("Running imprintome analysis...")
 x <- runImprintome(x)
-message("✓ Analysis complete")
+message("Analysis complete")
 
 # Extract results
 res <- results(x)
@@ -216,7 +216,7 @@ print(head(status,n=5))
 ```{r compute-stats}
 # Summarize by Sample_Group
 message("\nImprinting status by group:")
-print(table(status[,c("Sample_Group","Mechanism")]))
+print(table(status[, c("Sample_Group", "Status")]))
 ```
 
 ### Review key metrics
@@ -226,8 +226,8 @@ print(table(status[,c("Sample_Group","Mechanism")]))
 message("IDS (Imprinting Defect Score) distribution:")
 print(summary(status$IDS))
 
-message("\nMechanism classification:")
-print(table(status$Mechanism))
+message("\nStatus classification:")
+print(table(status$Status))
 
 message("\nAngle (parental origin deviation) distribution:")
 print(summary(status$Angle))
@@ -259,15 +259,188 @@ names(plots(x))
 
 ```{r display-stored-plots, fig.width = 10, fig.height = 6}
 if (!is.null(plots(x)[["polar.selected"]])) {
+  options(repr.plot.width = 8, repr.plot.height = 8)
   print(plots(x)[["polar.selected"]])
 }
 
 if (!is.null(plots(x)[["beeswarm_origin.selected"]])) {
+   options(repr.plot.width = 12, repr.plot.height = 6)
   print(plots(x)[["beeswarm_origin.selected"]])
 }
 
 rainfall_name <- grep("^rainfall\\.", names(plots(x)), value = TRUE)[1]
 if (!is.na(rainfall_name)) {
+    options(repr.plot.width = 12, repr.plot.height = 6)
+  print(plots(x)[[rainfall_name]])
+}
+```
+
+### Visualizations by plot_type
+
+The workflow helper can also run one plot backend at a time by setting `plot_types` explicitly.
+
+#### Plot 1: Polar scatter
+
+```{r plot-polar, fig.width = 8, fig.height = 8}
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "polar",
+  probeset = "selected",
+  result_name = "AnalyzeImprintStatus.selected",
+  colorColumn = "Sample_Group",
+  prefix = "GSE52576_polar",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+options(repr.plot.width = 8, repr.plot.height = 8)
+print(plots(x)[["polar.selected"]])
+```
+
+#### Plot 2: Beeswarm by origin
+
+```{r plot-beeswarm-origin, fig.width = 12, fig.height = 6}
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "beeswarm_origin",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  prefix = "GSE52576_beeswarm_origin",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+options(repr.plot.width = 12, repr.plot.height = 6)
+print(plots(x)[["beeswarm_origin.selected"]])
+```
+
+#### Plot 3: Mirror density
+
+```{r plot-mirror-density, fig.width = 10, fig.height = 6}
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "mirror_density",
+  probeset = "selected",
+  prefix = "GSE52576_mirror_density",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+options(repr.plot.width = 10, repr.plot.height = 6)
+print(plots(x)[["mirror_density.selected"]])
+```
+
+#### Plot 4: Circular heatmap
+
+```{r plot-circular, fig.width = 10, fig.height = 10}
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "circular_heatmap",
+  probeset = "selected",
+  sectionColumn = "Sample_Group",
+  prefix = "GSE52576_circular_heatmap",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+options(repr.plot.width = 10, repr.plot.height = 10)
+print(plots(x)[["circular.selected"]])
+```
+
+#### Plot 5: Beta heatmap by probe
+
+```{r plot-heatmap-by-probe, fig.width = 10, fig.height = 8}
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "heatmap_by_probe",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  annoColumn = "Sample_Group",
+  prefix = "GSE52576_heatmap_by_probe",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+options(repr.plot.width = 10, repr.plot.height = 8)
+print(plots(x)[["heatmap.selected"]])
+```
+
+#### Plot 6: Beta heatmap by gene
+
+```{r plot-heatmap-by-gene, fig.width = 10, fig.height = 12}
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "heatmap_by_gene",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  annoColumn = "Sample_Group",
+  clusterRows = TRUE,
+  clusterColumns = TRUE,
+  prefix = "GSE52576_heatmap_by_gene",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+options(repr.plot.width = 10, repr.plot.height = 12)
+print(plots(x)[["heatmap_by_gene.selected"]])
+```
+
+#### Plot 7: Radar plot
+
+```{r plot-radar, fig.width = 10, fig.height = 10}
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "radar",
+  probeset = "selected",
+  sample_id = sample_id_1,
+  prefix = "GSE52576_radar",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+radar_name <- grep("^radar\\.", names(plots(x)), value = TRUE)[1]
+if (!is.na(radar_name)) {
+  options(repr.plot.width = 12, repr.plot.height = 12)
+  print(plots(x)[[radar_name]])
+}
+```
+
+#### Plot 8: Beeswarm by chromosome
+
+```{r plot-beeswarm-chr, fig.width = 12, fig.height = 6}
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "beeswarm_chr",
+  probeset = "selected",
+  sample_id = sample_id_1,
+  prefix = "GSE52576_beeswarm_chr",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+beeswarm_chr_name <- grep("^beeswarm_chr\\.", names(plots(x)), value = TRUE)[1]
+if (!is.na(beeswarm_chr_name)) {
+  options(repr.plot.width = 12, repr.plot.height = 6)
+  print(plots(x)[[beeswarm_chr_name]])
+}
+```
+
+#### Plot 9: Rainfall plot
+
+```{r plot-rainfall, fig.width = 12, fig.height = 6}
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "rainfall",
+  sample_id = sample_id_1,
+  rainfall_probeset = "classifier3",
+  prefix = "GSE52576_rainfall",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+rainfall_name <- grep("^rainfall\\.", names(plots(x)), value = TRUE)[1]
+if (!is.na(rainfall_name)) {
+  options(repr.plot.width = 12, repr.plot.height = 6)
   print(plots(x)[[rainfall_name]])
 }
 ```
@@ -279,57 +452,69 @@ if (!is.na(rainfall_name)) {
 ### Summary statistics
 
 ```{r interpret-summary}
-# Overall imprinting status
-normal_pct <- sum(res$status$Mechanism == "NORMAL") / nrow(res$status) * 100
+res <- results(x)
+status <- res$AnalyzeImprintStatus.selected
+normal_n <- sum(status$Status %in% "Normal", na.rm = TRUE)
+total_n <- nrow(status)
+normal_pct <- normal_n / total_n * 100
 abnormal_pct <- 100 - normal_pct
 
 message("=== OVERALL IMPRINTING SUMMARY ===")
-message(sprintf("Normal imprinting:    %6.1f%% (%d/%d samples)",
-                normal_pct, sum(res$status$Mechanism == "NORMAL"), nrow(res$status)))
-message(sprintf("Abnormal imprinting:  %6.1f%% (%d/%d samples)",
-                abnormal_pct, nrow(res$status) - sum(res$status$Mechanism == "NORMAL"),
-                nrow(res$status)))
+message(sprintf("Normal imprinting:   %6.1f%% (%d/%d samples)",
+                normal_pct, normal_n, total_n))
+message(sprintf("Altered imprinting:  %6.1f%% (%d/%d samples)",
+                abnormal_pct, total_n - normal_n, total_n))
 
-# By sample group
 message("\n=== BY SAMPLE GROUP ===")
-for (group in unique(meta(x)$Sample_Group)) {
-  idx <- meta(x)$Sample_Group == group
-  n <- sum(idx)
-  normal <- sum(res$status$Mechanism[idx] == "NORMAL")
-  message(sprintf("%20s: %d samples, %d normal (%.1f%%)",
-                  group, n, normal, 100*normal/n))
+if ("Sample_Group" %in% colnames(status)) {
+  for (group in unique(status$Sample_Group)) {
+    idx <- status$Sample_Group == group
+    n <- sum(idx, na.rm = TRUE)
+    normal <- sum(status$Status[idx] == "Normal", na.rm = TRUE)
+    message(sprintf("%20s: %d samples, %d normal (%.1f%%)",
+                    group, n, normal, 100 * normal / n))
+  }
+} else {
+  message("Sample_Group column not available in status table.")
 }
 ```
 
-### Identify samples with aberrant imprinting
+### Identify samples with altered imprinting
 
 ```{r identify-abnormal}
-abnormal <- res$status %>% filter(Mechanism != "NORMAL")
+abnormal <- status %>% filter(!Status %in% "Normal")
+sample_col <- intersect(c("Sample_Name", "Sample_ID"), colnames(status))[1]
 
 if (nrow(abnormal) > 0) {
-  message("=== ABERRANT IMPRINTING SAMPLES ===")
+  message("=== ALTERED IMPRINTING SAMPLES ===")
   message("Sample count: ", nrow(abnormal))
-  print(abnormal %>% select(Sample_ID, Mechanism, IDS, Angle) %>% head(n = 10))
+  cols_to_show <- c(sample_col, intersect("Sample_Group", colnames(abnormal)),
+                    "Status", "IDS", "Angle")
+  print(abnormal %>% select(all_of(cols_to_show)) %>% head(n = 12))
 } else {
-  message("✓ All samples show normal imprinting patterns")
+  message("All samples show normal imprinting patterns by the selected IDS cutoff.")
 }
 ```
 
 ### Phenotype-imprinting associations
 
 ```{r phenotype-associations}
-# Add phenotype info to results for cross-reference
-res_annotated <- res$status %>%
-  mutate(
-    Sample_Name = Sample_ID,
-    Sample_Group = meta(x)$Sample_Group[match(Sample_ID, meta(x)$Sample_Name)]
-  )
-
-# Compare disease status vs imprinting
-if (length(unique(res_annotated$Sample_Group)) > 1) {
-  message("Cross-tabulation: Sample_Group vs Imprinting Mechanism")
-  tbl <- table(res_annotated$Sample_Group, res_annotated$Mechanism)
+if ("Sample_Group" %in% colnames(status) && length(unique(status$Sample_Group)) > 1) {
+  message("Cross-tabulation: Sample_Group vs Imprinting Status")
+  tbl <- table(status$Sample_Group, status$Status)
   print(tbl)
+
+  group_summary <- status %>%
+    group_by(Sample_Group, Status) %>%
+    summarise(
+      n = n(),
+      median_IDS = median(IDS, na.rm = TRUE),
+      median_Angle = median(Angle, na.rm = TRUE),
+      .groups = "drop"
+    )
+  print(group_summary)
+} else {
+  message("Sample_Group is unavailable or has one level; skipping group cross-tabulation.")
 }
 ```
 
@@ -337,83 +522,34 @@ if (length(unique(res_annotated$Sample_Group)) > 1) {
 
 ```{r key-findings}
 message("=== KEY BIOLOGICAL INSIGHTS ===")
-message("1. Dataset: GSE52576 (methylation study of imprinting disorders)")
-message("2. Platform: Illumina 450K methylation array")
-message("3. Samples analyzed: ", nrow(res$status))
-message("4. Geographic distribution: IDS range [",
-        round(min(res$status$IDS), 3), ", ",
-        round(max(res$status$IDS), 3), "]")
-message("5. Most common mechanism: ",
-        names(sort(table(res$status$Mechanism), decreasing = TRUE))[1])
-message("\n→ See plots above for detailed visualization of these patterns")
+message("1. Dataset: GSE52576, methylation study of imprinting disorders")
+message("2. Platform: Illumina HumanMethylation450K")
+message("3. Samples analyzed: ", total_n)
+message("4. IDS range: [",
+        round(min(status$IDS, na.rm = TRUE), 3), ", ",
+        round(max(status$IDS, na.rm = TRUE), 3), "]")
+message("5. Most common imprinting status: ",
+        names(sort(table(status$Status), decreasing = TRUE))[1])
+message("6. Compare Sample_Group summaries above to relate imprinting status to phenotype groups.")
 ```
-
 ---
 
-## Phase 6: Export & Save Results
+## Phase 6: Export Results
 
-### Export to Excel workbooks
-
-```{r export-xlsx}
-# Define output directory
-outdir <- "GSE52576_output"
-dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
-
-# Export ImprintomeSet results
-export(
+```{r export-results, eval = FALSE}
+manifest <- export(
   x,
-  outdir = outdir,
-  format = c("xlsx", "rds"),
-  prefix = "GSE52576"
+  outdir = "GSE52576_imprintome_output",
+  prefix = "GSE52576",
+  save_plots = TRUE,
+  plot_device = "pdf",
+  overwrite = TRUE
 )
 
-message("✓ Results exported to: ", outdir)
-message("  - GSE52576_*_main.xlsx (primary results)")
-message("  - GSE52576_*_extra.xlsx (supplementary data)")
-message("  - GSE52576_imprintomeset.rds (full object)")
+head(manifest)
 ```
 
-### Export results to TSV
-
-```{r export-txt}
-# Write results table
-results_file <- file.path(outdir, "GSE52576_imprintome_results.txt")
-write.table(
-  res$status,
-  file = results_file,
-  sep = "\t",
-  quote = FALSE,
-  row.names = FALSE,
-  col.names = TRUE
-)
-
-message("✓ Results table: ", results_file)
-
-# Write summary statistics
-summary_file <- file.path(outdir, "GSE52576_summary_statistics.txt")
-write.table(
-  stat_summary,
-  file = summary_file,
-  sep = "\t",
-  quote = FALSE,
-  row.names = FALSE,
-  col.names = TRUE
-)
-
-message("✓ Summary statistics: ", summary_file)
-```
-
-### List all output files
-
-```{r list-outputs}
-output_files <- list.files(outdir, full.names = FALSE)
-message("=== OUTPUT FILES ===")
-message("Directory: ", outdir)
-for (f in sort(output_files)) {
-  fsize <- file.size(file.path(outdir, f))
-  message(sprintf("  %-40s %8.1f KB", f, fsize / 1024))
-}
-```
+`export()` writes the full `ImprintomeSet` object as `<prefix>_imprintomeSet.rds`, plus `results(x)` and optionally `plots(x)`. Save extra summary tables only when you need custom reporting beyond the export manifest.
 
 ---
 

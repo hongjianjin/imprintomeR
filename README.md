@@ -465,6 +465,8 @@ s$plots
 
 ### Standard workflow plots
 
+`plot_types = "default"` runs the standard workflow set: `polar`, `beeswarm_origin`, `mirror_density`, `heatmap_by_probe`, `heatmap_by_gene`, `radar`, `beeswarm_chr`, and `rainfall`. `circular_heatmap` is available when requested explicitly, or with `plot_types = "all"`.
+
 ```r
 sample_id1 <- colnames(beta(x))[2]
 
@@ -482,7 +484,7 @@ attr(x, "visualization_manifest")
 names(plots(x))
 ```
 
-Use `save_plots = TRUE` with `outdir = "plots"` to write plot files while storing successful plot objects.
+Use `save_plots = TRUE` with `outdir = "plots"` to write plot files during generation while storing successful plot objects.
 
 ### Example plots
 

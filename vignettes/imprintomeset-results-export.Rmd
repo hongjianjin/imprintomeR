@@ -78,10 +78,13 @@ if (qcset@platform == "EPICv2") {
   qcset <- aggregate_probes(qcset)
 }
 
+# Keep only PASS samples before conversion
+qcset_pass <- subsetMethQC(qcset, final_qc = "PASS")
+
 # Convert the QC-clean MethQcSet to ImprintomeSet
 probesets <- readRDS(system.file("extdata", "probesets_hg19.rds", package = "imprintomeR"))
 x <- as.ImprintomeSet(
-  qcset,
+  qcset_pass,
   probeset = probesets[["selected"]],
   genome = "hg19"
 )
@@ -140,7 +143,7 @@ Available `plot_type` values are:
 - `beeswarm_origin`
 - `beeswarm_chr`
 - `violin`
-- `heatmap`
+- `heatmap_by_probe`
 - `circular_heatmap`
 - `cor_heatmap`
 - `rainfall`
@@ -176,21 +179,20 @@ p_polar_s4 <- plot(
 )
 ```
 
-### 2.3 Compact All-Plot-Type Demo
+### 2.3 Compact Workflow Plot Demo
 
-Use `runImprintomeVisualizations()` when you want a compact all-plot workflow. It stores successful plots in `plots(x)` and records skipped plots in `attr(x, "visualization_manifest")`.
+Use `runImprintomeVisualizations()` when you want a compact plot workflow. `plot_types = "default"` stores the standard workflow plots in `plots(x)` and records skipped plots in `attr(x, "visualization_manifest")`. The default set is `polar`, `beeswarm_origin`, `mirror_density`, `heatmap_by_probe`, `heatmap_by_gene`, `radar`, `beeswarm_chr`, and `rainfall`; request `circular_heatmap` explicitly or use `plot_types = "all"` when needed.
 
 ```{r, eval = FALSE}
 sample_id1 <- colnames(beta(x))[2]
 
 x <- runImprintomeVisualizations(
   x,
-  plot_types = "all",
+  plot_types = "default",
   probeset = "selected",
   sample_id = sample_id1,
   prefix = "demo",
-  outdir = "demo_plots",
-  save_plots = TRUE,
+  save_plots = FALSE,
   store_plots = TRUE
 )
 
@@ -479,7 +481,7 @@ imprintomeR:::Beeplot_chr_vs_other_single(
 
 ## 7. Persist Plot Objects Inside ImprintomeSet
 
-`runImprintomeVisualizations()` stores successful plots in `plots(x)` when `store_plots = TRUE`, so the object can be exported later with `export(x, save_plots = TRUE)`.
+`runImprintomeVisualizations()` stores successful plots in `plots(x)` when `store_plots = TRUE`, so the object can be exported later with `export(x, save_plots = TRUE)`. `plot_types = "default"` excludes `circular_heatmap`; add it explicitly when you want that direct-draw plot stored too.
 
 ```{r, eval = FALSE}
 x <- runImprintomeVisualizations(
@@ -497,6 +499,18 @@ names(plots(x))
 # Access stored plot objects
 plots(x)[["polar.selected"]]
 plots(x)[["beeswarm_origin.selected"]]
+
+# Store circular heatmap explicitly when needed
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "circular_heatmap",
+  probeset = "selected",
+  sample_id = colnames(beta(x))[2],
+  prefix = "imprintomeset_results_export_circular",
+  store_plots = TRUE,
+  save_plots = FALSE
+)
+plots(x)[["circular.selected"]]
 ```
 
 ## 8. Summarize and Export
@@ -520,7 +534,7 @@ manifest <- export(
 head(manifest)
 ```
 
-`export()` writes the full `ImprintomeSet` object as `<prefix>_imprintomeSet.rds`, result tables, and stored plot objects. QC tables remain available through `qc(x)` and `summarize(x)$qc`.
+`export()` writes the full `ImprintomeSet` object as `<prefix>_imprintomeSet.rds`, result tables, and stored plot objects. Plot files are prefixed as `<prefix>_plot_<plot_name>.pdf` when `plot_device = "pdf"` and the stored object can be rendered as a plot file. Unknown plot object types fall back to RDS. QC tables remain available through `qc(x)` and `summarize(x)$qc`.
 
 **For MethQcSet export**, the output includes a `summary.txt` file with an automatically-generated "Notes" section:
 

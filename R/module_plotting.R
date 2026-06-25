@@ -1267,7 +1267,6 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
    outFile = NULL, imgSizeFactor=0.5) {
   suppressMessages(library(circlize))
   suppressMessages(library(ComplexHeatmap))
-  suppressMessages(library(edgeR))
   suppressMessages(library(RColorBrewer))
   resolved <- .resolve_beta_meta_inputs(beta, meta, require_meta = TRUE)
   beta <- resolved$beta
@@ -1449,7 +1448,6 @@ BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
                               outFile = NULL, imgSizeFactor = 0.5) {
   suppressMessages(library(circlize))
   suppressMessages(library(ComplexHeatmap))
-  suppressMessages(library(edgeR))
   suppressMessages(library(RColorBrewer))
   suppressMessages(library(dplyr))
   suppressMessages(library(stringr))

@@ -175,9 +175,12 @@ if (qcset@platform == "EPICv2") {
   qcset <- aggregate_probes(qcset)   # idempotent — safe to call again
 }
 
+# Keep PASS samples before conversion
+qcset_pass <- subsetMethQC(qcset, final_qc = "PASS")
+
 # Convert MethQcSet to ImprintomeSet
 x <- as.ImprintomeSet(
-  qcset,
+  qcset_pass,
   probeset = probesets[["selected"]],
   genome = "hg19"
 )
@@ -274,12 +277,12 @@ genome(x) <- "hg38"
 
 ## 7. Plot with ImprintomeSet Dispatcher
 
-Use `runImprintomeVisualizations()` to generate the standard workflow plots, store successful plot objects in `plots(x)`, and optionally save files. The helper uses the same object-first `plot()` dispatcher underneath, so individual plot calls remain available when you need a custom figure.
+Use `runImprintomeVisualizations()` to generate workflow plots, store successful plot objects in `plots(x)`, and optionally save files. The helper uses the same object-first `plot()` dispatcher underneath, so individual plot calls remain available when you need a custom figure.
 
 Supported workflow plot sets:
 
-- `plot_types = "default"`: polar, beeswarm by origin, mirror density, probe/gene heatmaps, radar, chromosome beeswarm, and rainfall
-- `plot_types = "all"`: all supported non-auto plot backends, including violin and correlation heatmap
+- `plot_types = "default"`: polar, beeswarm by origin, mirror density, probe/gene heatmaps, radar, chromosome beeswarm, and rainfall. `circular_heatmap` is not included in default.
+- `plot_types = "all"`: all supported non-auto plot backends, including violin, circular heatmap, and correlation heatmap
 - `plot_types = c(...)`: any explicit subset of supported plot types
 
 ```{r, eval = FALSE}
@@ -309,7 +312,22 @@ p_chr_from_object <- plots(x)[[grep("^beeswarm_chr\\.", names(plots(x)), value =
 p_chr_from_object
 ```
 
-### 7.2 Save Plot Files During Generation
+### 7.2 Store Circular Heatmap Explicitly
+
+```{r, eval = FALSE}
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "circular_heatmap",
+  probeset = "selected",
+  sample_id = sample_id1,
+  prefix = "imprintomeset_quickstart_circular",
+  store_plots = TRUE,
+  save_plots = FALSE
+)
+plots(x)[["circular.selected"]]
+```
+
+### 7.3 Save Plot Files During Generation
 
 ```{r, eval = FALSE}
 x <- runImprintomeVisualizations(
@@ -339,7 +357,7 @@ manifest <- export(
 head(manifest)
 ```
 
-`export()` writes the full `ImprintomeSet` object as `<prefix>_imprintomeSet.rds`, plus `results(x)` and optionally `plots(x)`.
+`export()` writes the full `ImprintomeSet` object as `<prefix>_imprintomeSet.rds`, result tables, and stored plot objects. Plot files are prefixed as `<prefix>_plot_<plot_name>.pdf` when `plot_device = "pdf"` and the stored object can be rendered as a plot file; unknown plot object types fall back to RDS.
 
 **For QC preprocessing (MethQcSet)**, the export includes `summary.txt` with a "Notes" section documenting any optional sheets not created due to missing underlying data. Check it to understand data availability:
 
