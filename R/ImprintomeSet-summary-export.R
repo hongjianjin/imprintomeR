@@ -123,8 +123,10 @@ methods::setMethod(
 #' @param plot_names Character vector of plot names to export when `save_plots=TRUE`.
 #'   `NULL` means all stored plots.
 #' @param plot_device Graphics device for ggplot export (`"pdf"` or `"png"`).
-#' @param width Plot width in inches.
-#' @param height Plot height in inches.
+#' @param width Plot width in inches. `NULL` uses plot-specific defaults
+#'   (`12` for radar plots, otherwise `8`).
+#' @param height Plot height in inches. `NULL` uses plot-specific defaults
+#'   (`12` for radar plots, otherwise `6`).
 #' @param overwrite Logical; overwrite existing files.
 #' @param ... Reserved for future extensions.
 #'
@@ -141,7 +143,7 @@ if (!methods::isGeneric("export")) {
   methods::setGeneric(
     "export",
     function(x, outdir, result_names = NULL, save_plots = FALSE, plot_names = NULL,
-             plot_device = "pdf", width = 8, height = 6, overwrite = TRUE, prefix = "imprintome", ...) {
+             plot_device = "pdf", width = NULL, height = NULL, overwrite = TRUE, prefix = "imprintome", ...) {
       standardGeneric("export")
     }
   )
@@ -153,7 +155,7 @@ methods::setMethod(
   "export",
   signature(x = "ImprintomeSet"),
   function(x, outdir, result_names = NULL, save_plots = FALSE, plot_names = NULL,
-           plot_device = "pdf", width = 8, height = 6, overwrite = TRUE, prefix = "imprintome", ...) {
+           plot_device = "pdf", width = NULL, height = NULL, overwrite = TRUE, prefix = "imprintome", ...) {
     methods::validObject(x)
 
     if (!dir.exists(outdir)) {
@@ -258,16 +260,25 @@ methods::setMethod(
           stop("plot_device must be one of: pdf, png")
         }
 
+        plot_dims <- function(plot_name) {
+          is_radar <- grepl("(^|[_.-])radar([_.-]|$)", plot_name, ignore.case = TRUE)
+          c(
+            width = if (is.null(width)) if (is_radar) 12 else 8 else as.numeric(width)[1],
+            height = if (is.null(height)) if (is_radar) 12 else 6 else as.numeric(height)[1]
+          )
+        }
+
         for (nm in plot_names) {
           pobj <- p_list[[nm]]
           safe_nm <- sanitize_name(nm)
+          dims <- plot_dims(nm)
 
           if (inherits(pobj, "ggplot") || inherits(pobj, "patchwork")) {
             fpath <- file.path(outdir, paste0(safe_prefix, "_plot_", safe_nm, ".", plot_device))
             if (!overwrite && file.exists(fpath)) {
               status <- "skipped_exists"
             } else {
-              ggplot2::ggsave(filename = fpath, plot = pobj, width = width, height = height, units = "in", limitsize = TRUE)
+              ggplot2::ggsave(filename = fpath, plot = pobj, width = dims[["width"]], height = dims[["height"]], units = "in", limitsize = TRUE)
               status <- "written"
             }
           } else if (inherits(pobj, "imprintome_plot_file") && is.raw(pobj$bytes)) {
@@ -285,9 +296,9 @@ methods::setMethod(
               status <- "skipped_exists"
             } else {
               if (identical(plot_device, "pdf")) {
-                grDevices::pdf(fpath, width = width, height = height)
+                grDevices::pdf(fpath, width = dims[["width"]], height = dims[["height"]])
               } else {
-                grDevices::png(fpath, width = width, height = height, units = "in", res = 300)
+                grDevices::png(fpath, width = dims[["width"]], height = dims[["height"]], units = "in", res = 300)
               }
               tryCatch(
                 ComplexHeatmap::draw(pobj, merge_legend = TRUE),
@@ -300,7 +311,7 @@ methods::setMethod(
             if (!overwrite && file.exists(fpath)) {
               status <- "skipped_exists"
             } else {
-              grDevices::pdf(fpath, width = width, height = height)
+              grDevices::pdf(fpath, width = dims[["width"]], height = dims[["height"]])
               tryCatch(
                 grDevices::replayPlot(pobj),
                 finally = grDevices::dev.off()

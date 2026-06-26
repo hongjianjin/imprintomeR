@@ -12,8 +12,8 @@
   save_plots = FALSE,
   plot_names = NULL,
   plot_device = "pdf",
-  width = 8,
-  height = 6,
+  width = NULL,
+  height = NULL,
   overwrite = TRUE,
   prefix = "imprintome",
   ...
@@ -34,9 +34,11 @@
 
 \item{plot_device}{Graphics device for ggplot export (\code{"pdf"} or \code{"png"}).}
 
-\item{width}{Plot width in inches.}
+\item{width}{Plot width in inches. \code{NULL} uses plot-specific defaults
+(\code{12} for radar plots, otherwise \code{8}).}
 
-\item{height}{Plot height in inches.}
+\item{height}{Plot height in inches. \code{NULL} uses plot-specific defaults
+(\code{12} for radar plots, otherwise \code{6}).}
 
 \item{overwrite}{Logical; overwrite existing files.}
 

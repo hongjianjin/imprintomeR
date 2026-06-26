@@ -314,6 +314,39 @@ test_that("export writes file-backed stored plots as plot files", {
   expect_true(file.size(plot_file) > 0)
   expect_true(any(manifest$category == "plots" & manifest$file == plot_file))
 })
+
+
+test_that("export uses 12 x 12 inch default for stored radar PDFs", {
+  skip_if_not_installed("ggplot2")
+
+  d <- make_synthetic_imprintome_inputs()
+  x <- ImprintomeSet(
+    beta = d$beta,
+    meta = d$meta,
+    probeset = d$probeset,
+    genome = "hg19",
+    assay = "EPICv1"
+  )
+
+  p_list <- plots(x)
+  p_list[["radar.selected"]] <- ggplot2::ggplot(
+    data.frame(x = 1:3, y = 1:3),
+    ggplot2::aes(x, y)
+  ) + ggplot2::geom_point()
+  plots(x) <- p_list
+
+  outdir <- tempfile("imprintome_export_radar_")
+  on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  export(x, outdir = outdir, prefix = "demo", save_plots = TRUE, plot_names = "radar.selected")
+  plot_file <- file.path(outdir, "demo_plot_radar.selected.pdf")
+  pdf_text <- rawToChar(readBin(plot_file, what = "raw", n = file.info(plot_file)$size), multiple = TRUE)
+  pdf_text <- paste(pdf_text, collapse = "")
+
+  expect_true(file.exists(plot_file))
+  expect_match(pdf_text, "/MediaBox \\[0 0 864 864\\]", fixed = FALSE)
+})
+
 test_that("Meth_QC returns deterministic tabular QC outputs", {
   with_synthetic_probeset_fixture({
     d <- make_synthetic_imprintome_inputs()
