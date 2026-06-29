@@ -51,6 +51,7 @@ For more details on data file management, see `data-raw/README.md`.
 - [Export Results](#export-results)
 - [Testing](#testing)
 - [Vignettes](#vignettes)
+- [AI Agent Skill](#ai-agent-skill)
 
 ## Architecture: Preprocessing-First Workflow
 
@@ -732,4 +733,24 @@ Detailed workflows and visualization tutorials are available in the package vign
 - [imprintomeR_cli_README.md](vignettes/imprintomeR_cli_README.md) - Command-line QC and imprintome analysis workflows
 - [GSE52567.ipynb](vignettes/GSE52567.ipynb) - GitHub-renderable notebook for a public GEO workflow
 - [GSE240091.ipynb](vignettes/GSE240091.ipynb) - GitHub-renderable notebook for QC and imprintomeR workflow on a public GEO cohort
+
+## AI Agent Skill
+
+This repository includes an optional Codex-style AI agent skill for working with imprintomeR package workflows:
+
+- [skills/imprintomer/SKILL.md](skills/imprintomer/SKILL.md)
+- [skills/imprintomer/README.md](skills/imprintomer/README.md)
+
+To install it locally:
+
+```bash
+mkdir -p ~/.codex/skills
+cp -r skills/imprintomer ~/.codex/skills/
+```
+
+Then ask an AI agent:
+
+```text
+Use $imprintomer to create an imprintomeR workflow from IDAT files.
+```
 
