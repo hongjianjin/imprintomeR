@@ -57,6 +57,10 @@ For more details on data file management, see `data-raw/README.md`.
 
 Raw methylation arrays often come from mixed platforms (450K, EPICv1, EPICv2). The **MethQcSet** container isolates QC processing for a single platform, preventing silent data corruption from cross-platform merging.
 
+<p align="center">
+  <img src="images/Figure1_workflow.png" alt="imprintomeR workflow" width="720" />
+</p>
+
 ```
 Metadata + IDAT Files (mixed platforms)
     ↓
