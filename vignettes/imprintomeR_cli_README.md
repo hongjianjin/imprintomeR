@@ -117,7 +117,7 @@ The complete QC object is saved as `{platform}_qcset.rds`, for example:
 qc_results/epic/epic_qcset.rds
 ```
 
-`run_meth_QC.R` reuses this cached RDS only when it is a `MethQcSet`, the platform matches, and the cached `Sample_Name` set matches the current metadata. PNG QC plots can be regenerated from cache, but default density-report PDFs require raw IDAT reload; remove the cached RDS to force a full rerun when density-report PDFs are needed.
+`run_meth_QC.R` reuses this cached RDS only when it is a `MethQcSet`, the platform matches, and the cached `Sample_Name` set matches the current metadata. PNG QC plots can be regenerated from cache, but default density-report PDFs require raw IDAT reload; remove the cached RDS to force a full rerun when density-report PDFs are needed. If the script warns that `runMethQC()` does not support density-report output, reinstall/update `imprintomeR` so the loaded package version matches the CLI script.
 
 ## Step 2: Imprintome Analysis CLI
 

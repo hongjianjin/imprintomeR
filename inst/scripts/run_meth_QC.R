@@ -410,15 +410,27 @@ tryCatch({
         dir.create(platform_outdir, recursive = TRUE, showWarnings = FALSE)
     }
 
-    # Run QC
+    # Run QC. Keep compatibility with older installed imprintomeR versions
+    # whose runMethQC() did not yet expose save_qc_report/outdir/prefix.
     qcset <- tryCatch({
         suppressMessages({
-            runMethQC(meta_subset,
-                      platform = platform,
-                      pcutoff = args$pcutoff,
-                      save_qc_report = !isTRUE(args$`no-qc-report`),
-                      outdir = platform_outdir,
-                      prefix = tolower(platform))
+            run_args <- list(
+                meta = meta_subset,
+                platform = platform,
+                pcutoff = args$pcutoff
+            )
+            runmethqc_args <- names(formals(runMethQC))
+            if (all(c("save_qc_report", "outdir", "prefix") %in% runmethqc_args)) {
+                run_args$save_qc_report <- !isTRUE(args$`no-qc-report`)
+                run_args$outdir <- platform_outdir
+                run_args$prefix <- tolower(platform)
+            } else if (!isTRUE(args$`no-qc-report`)) {
+                .log_message(
+                    "The loaded imprintomeR::runMethQC() does not support density-report output yet; reinstall/update imprintomeR to generate *_QC_densityPlot_*.pdf files.",
+                    level = "WARN"
+                )
+            }
+            do.call(runMethQC, run_args)
         })
     }, error = function(e) {
         stop("QC processing failed for platform ", platform, ": ",
