@@ -4,7 +4,15 @@
 \alias{runMethQC}
 \title{Load IDAT Files, Run Quality Control, and Create a MethQcSet}
 \usage{
-runMethQC(meta, platform = NA, pcutoff = 0.05, ...)
+runMethQC(
+  meta,
+  platform = NA,
+  pcutoff = 0.05,
+  save_qc_report = TRUE,
+  outdir = ".",
+  prefix = NULL,
+  ...
+)
 }
 \arguments{
 \item{meta}{A \code{data.frame} with columns:
@@ -32,6 +40,13 @@ run \code{check_platform(meta)} first.}
 
 \item{pcutoff}{Numeric. Maximum mean detection p-value to pass QC (default: 0.05).}
 
+\item{save_qc_report}{Logical. If \code{TRUE}, write \code{minfi::qcReport()}
+density-report PDFs for all, PASS, and FAIL samples. Default: \code{TRUE}.}
+
+\item{outdir}{Directory for QC density-report PDFs. Default: \code{"."}.}
+
+\item{prefix}{Filename prefix for QC density-report PDFs. If \code{NULL},
+the resolved platform name is used.}
 
 \item{...}{Additional arguments passed to \code{minfi::read.metharray.exp()}.}
 }
@@ -54,6 +69,11 @@ object, and computes QC metrics. Returns a fully populated \code{MethQcSet}.
 # Case 1: Known single-platform cohort
 meta <- read.table("meta.tsv", header = TRUE, sep = "\t")
 qcset <- runMethQC(meta, platform = "EPIC")
+
+# Default minfi density-report PDFs:
+qcset <- runMethQC(meta, platform = "EPIC",
+                   outdir = "qc_output",
+                   prefix = "epic")
 
 # Case 2: Platform unknown - detect first, then run QC
 meta <- check_platform(meta)

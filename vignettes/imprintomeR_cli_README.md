@@ -42,7 +42,7 @@ Rscript inst/scripts/run_imprintomeR.R \
 
 ## Step 1: Methylation QC CLI
 
-`run_meth_QC.R` processes IDAT files and exports a `MethQcSet` object plus QC tables and plots.
+`run_meth_QC.R` processes IDAT files and exports a `MethQcSet` object plus QC tables and plots. By default, it also writes minfi density-report PDFs for all, PASS, and FAIL samples.
 
 ### Inputs
 
@@ -82,6 +82,7 @@ Rscript inst/scripts/run_meth_QC.R \
 | `--icutoff` / `-i` | 11 | Reference line for intensity plots only. Low intensity no longer fails `Final.QC`. |
 | `--plot-types` | intensity,qc_bar | QC plots: `intensity`, `detection_pval`, `qc_bar`, or `all`. |
 | `--no-qc-plots` | FALSE | Suppress QC plot generation. |
+| `--no-qc-report` | FALSE | Suppress default `{platform}_QC_densityPlot_all/pass/fail.pdf` files from `minfi::qcReport()`. |
 | `--skip-ewastools` | FALSE | Skip optional ewastools control metrics. |
 | `--verbose` / `-v` | FALSE | Print detailed progress messages. |
 
@@ -100,6 +101,9 @@ qc_results/
 |   +-- epic_qc_matrix.txt
 |   +-- epic_qc_statistics.txt
 |   +-- epic_summary.txt
+|   +-- epic_QC_densityPlot_all.pdf        # default
+|   +-- epic_QC_densityPlot_pass.pdf       # default
+|   +-- epic_QC_densityPlot_fail.pdf       # default, if FAIL samples exist
 |   +-- plots/
 |       +-- qc_intensity.png
 |       +-- qc_detection_pval.png
@@ -113,7 +117,7 @@ The complete QC object is saved as `{platform}_qcset.rds`, for example:
 qc_results/epic/epic_qcset.rds
 ```
 
-`run_meth_QC.R` reuses this cached RDS only when it is a `MethQcSet`, the platform matches, and the cached `Sample_Name` set matches the current metadata.
+`run_meth_QC.R` reuses this cached RDS only when it is a `MethQcSet`, the platform matches, and the cached `Sample_Name` set matches the current metadata. PNG QC plots can be regenerated from cache, but default density-report PDFs require raw IDAT reload; remove the cached RDS to force a full rerun when density-report PDFs are needed.
 
 ## Step 2: Imprintome Analysis CLI
 

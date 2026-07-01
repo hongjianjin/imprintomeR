@@ -204,6 +204,11 @@ check_platform <- function(meta, max_retries = 5) {
 #'       `Platform` column in meta is ignored.}
 #'   }
 #' @param pcutoff Numeric. Maximum mean detection p-value to pass QC (default: 0.05).
+#' @param save_qc_report Logical. If `TRUE`, write `minfi::qcReport()`
+#'   density-report PDFs for all, PASS, and FAIL samples. Default: `TRUE`.
+#' @param outdir Directory for QC density-report PDFs. Default: `"."`.
+#' @param prefix Filename prefix for QC density-report PDFs. If `NULL`,
+#'   the resolved platform name is used.
 #' @param ... Additional arguments passed to `minfi::read.metharray.exp()`.
 #'
 #' @return A `MethQcSet` object with:
@@ -220,6 +225,11 @@ check_platform <- function(meta, max_retries = 5) {
 #' meta <- read.table("meta.tsv", header = TRUE, sep = "\t")
 #' qcset <- runMethQC(meta, platform = "EPIC")
 #'
+#' # Default minfi density-report PDFs:
+#' qcset <- runMethQC(meta, platform = "EPIC",
+#'                    outdir = "qc_output",
+#'                    prefix = "epic")
+#'
 #' # Case 2: Platform unknown - detect first, then run QC
 #' meta <- check_platform(meta)
 #' table(meta$Platform)  # inspect
@@ -235,7 +245,8 @@ check_platform <- function(meta, max_retries = 5) {
 #'   this function; [MethQcSet-class] for the returned object.
 #'
 #' @export
-runMethQC <- function(meta, platform = NA, pcutoff = 0.05, ...) {
+runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
+                      save_qc_report = TRUE, outdir = ".", prefix = NULL, ...) {
   if (!is.data.frame(meta)) stop("meta must be a data.frame.")
 
   # ------------------------------------------------------------------
@@ -402,11 +413,131 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05, ...) {
     })
   }
 
+  # ------------------------------------------------------------------
+  # Step 9: minfi density-report PDFs
+  # ------------------------------------------------------------------
+  if (isTRUE(save_qc_report)) {
+    report_prefix <- prefix
+    if (is.null(report_prefix) || !nzchar(as.character(report_prefix)[1])) {
+      report_prefix <- tolower(as.character(resolved_platform))
+    }
+    report_prefix <- as.character(report_prefix)[1]
+    report_df <- .write_methqc_density_reports(
+      rgSet = rgSet,
+      meta = meta,
+      qcm = qcset@qc_tables[["QC_matrix"]],
+      outdir = outdir,
+      prefix = report_prefix
+    )
+    qcset@qc_tables[["qc_report_files"]] <- report_df
+  }
+
   n_pass <- sum(qcset@qc_tables[["QC_matrix"]]$Final.QC == "PASS", na.rm = TRUE)
   n_fail <- sum(qcset@qc_tables[["QC_matrix"]]$Final.QC == "FAIL", na.rm = TRUE)
   message("QC complete: ", n_pass, " PASS, ", n_fail, " FAIL")
 
   qcset
+}
+
+
+# ============================================================================
+# .write_methqc_density_reports() - Internal: optional minfi qcReport PDFs
+# ============================================================================
+
+#' @keywords internal
+.write_methqc_density_reports <- function(rgSet, meta, qcm, outdir, prefix) {
+  if (!requireNamespace("minfi", quietly = TRUE)) {
+    warning("minfi is required to write QC density reports.")
+    return(data.frame(
+      report = character(0),
+      file = character(0),
+      status = character(0),
+      message = character(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  if (!dir.exists(outdir)) {
+    dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
+  }
+
+  n_samples <- ncol(rgSet)
+  sample_names <- if ("Sample_Name" %in% colnames(meta)) {
+    as.character(meta$Sample_Name)
+  } else if ("SAMPLE_NAME" %in% colnames(meta)) {
+    as.character(meta$SAMPLE_NAME)
+  } else {
+    colnames(rgSet)
+  }
+  if (length(sample_names) != n_samples) sample_names <- colnames(rgSet)
+
+  sample_groups <- if ("Sample_Group" %in% colnames(meta)) {
+    as.character(meta$Sample_Group)
+  } else {
+    rep("All", n_samples)
+  }
+  if (length(sample_groups) != n_samples) sample_groups <- rep("All", n_samples)
+
+  write_one <- function(report, idx) {
+    out_file <- file.path(outdir, paste0(prefix, "_QC_densityPlot_", report, ".pdf"))
+    if (length(idx) == 0) {
+      msg <- paste0("No ", report, " samples; skipped.")
+      message(msg)
+      return(data.frame(
+        report = report,
+        file = out_file,
+        status = "skipped",
+        message = msg,
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    tryCatch({
+      minfi::qcReport(
+        rgSet[, idx],
+        sampNames = sample_names[idx],
+        sampGroups = sample_groups[idx],
+        pdf = out_file
+      )
+      data.frame(
+        report = report,
+        file = out_file,
+        status = "saved",
+        message = "saved",
+        stringsAsFactors = FALSE
+      )
+    }, error = function(e) {
+      msg <- conditionMessage(e)
+      warning("QC density report skipped for ", report, ": ", msg)
+      data.frame(
+        report = report,
+        file = out_file,
+        status = "failed",
+        message = msg,
+        stringsAsFactors = FALSE
+      )
+    })
+  }
+
+  idx_all <- seq_len(n_samples)
+  if (is.data.frame(qcm) && all(c("Sample_Name", "Final.QC") %in% colnames(qcm))) {
+    pass_names <- as.character(qcm$Sample_Name[qcm$Final.QC == "PASS"])
+    fail_names <- as.character(qcm$Sample_Name[qcm$Final.QC == "FAIL"])
+    idx_pass <- match(pass_names, sample_names)
+    idx_fail <- match(fail_names, sample_names)
+    idx_pass <- idx_pass[!is.na(idx_pass)]
+    idx_fail <- idx_fail[!is.na(idx_fail)]
+  } else {
+    warning("QC_matrix with Sample_Name and Final.QC not found; writing all-sample QC density report only.")
+    idx_pass <- integer(0)
+    idx_fail <- integer(0)
+  }
+
+  do.call(rbind, list(
+    write_one("all", idx_all),
+    write_one("pass", idx_pass),
+    write_one("fail", idx_fail)
+  ))
 }
 
 # ============================================================================

@@ -20,7 +20,8 @@ methods::setGeneric("export", function(x, ...) standardGeneric("export"))
 #' @slot beta Matrix of beta values (rows = probes, columns = samples).
 #' @slot detection_pval Matrix or NULL. Detection p-values, same dims/order as beta.
 #' @slot qc_tables Named list of QC result data.frames. Canonical keys (populated by `runMethQC()`):
-#'   `QC_matrix`, `ctrl_metrics`, `recall_rate`, `contamination`, `predUniqDonor_ID`, `cutoffs`.
+#'   `QC_matrix`, `ctrl_metrics`, `recall_rate`, `contamination`, `predUniqDonor_ID`,
+#'   `cutoffs`, and optional `qc_report_files`.
 #' @slot aggregation_status Character scalar: "none", "epicv2_aggregated", or other flag.
 #' @slot qc_params Named list of QC parameters used (pcutoff, method, etc.).
 #' @slot statistics data.frame or NULL. Per-group QC statistics (GROUP, Total, PASS, FAIL, PASS.RATIO, FAIL.RATIO).

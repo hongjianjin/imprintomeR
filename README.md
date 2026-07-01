@@ -144,6 +144,10 @@ meta_epic <- meta[meta$Platform == "EPIC", ]
 #   SampleC        /data/idats/202301234568_R01C01        Control         F      EPIC
 qcset <- runMethQC(meta_epic)  # platform auto-resolved from meta$Platform
 
+# Density-report PDFs for all/PASS/FAIL samples are written by default
+# qcset <- runMethQC(meta_epic, outdir = "qc_output", prefix = "epic")
+# Use save_qc_report = FALSE to suppress them.
+
 # Option B: platform already known
 # qcset <- runMethQC(meta, platform = "EPIC")
 
@@ -180,6 +184,7 @@ Key MethQcSet features:
 
 - **Platform validation**: Prevents mixing 450K, EPICv1, EPICv2
 - **QC metrics**: Detection p-values, intensity summaries (mMed/uMed/aveMed merged into `QC_matrix`), probe coverage
+- **Minfi density reports**: `runMethQC(..., outdir = "qc_output", prefix = "epic")` writes `{prefix}_QC_densityPlot_all/pass/fail.pdf` by default; use `save_qc_report = FALSE` to suppress them
 - **Canonical `qc_tables` keys** (populated by `runMethQC()`):
   - `QC_matrix` — per-sample detection stats, intensity, predictedSex, `Final.QC`
   - `recall_rate` — per-probe % detected across all / PASS / FAIL samples

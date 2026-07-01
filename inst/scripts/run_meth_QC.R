@@ -10,6 +10,7 @@
 #'   - Per-platform QC processing with configurable thresholds
 #'   - Export to Excel (color-coded pass/fail), RDS (full MethQcSet), summary report
 #'   - Optional QC visualization (intensity, detection p-value, QC bar plots)
+#'   - minfi qcReport density PDFs for all/PASS/FAIL samples
 #'   - Comprehensive error handling and logging
 #'
 #' Author: Generated for imprintomeR package
@@ -45,6 +46,9 @@ option_list <- list(
 
     make_option(c("--no-qc-plots"), action = "store_true", default = FALSE,
         help = "Suppress all QC plot generation"),
+
+    make_option(c("--no-qc-report"), action = "store_true", default = FALSE,
+        help = "Suppress minfi qcReport density PDFs for all/PASS/FAIL samples"),
 
     make_option(c("--skip-ewastools"), action = "store_true", default = FALSE,
         help = "Skip ewastools control metrics (if not installed)"),
@@ -411,7 +415,10 @@ tryCatch({
         suppressMessages({
             runMethQC(meta_subset,
                       platform = platform,
-                      pcutoff = args$pcutoff)
+                      pcutoff = args$pcutoff,
+                      save_qc_report = !isTRUE(args$`no-qc-report`),
+                      outdir = platform_outdir,
+                      prefix = tolower(platform))
         })
     }, error = function(e) {
         stop("QC processing failed for platform ", platform, ": ",
@@ -565,6 +572,13 @@ tryCatch({
 
                 if (args$verbose) {
                     .log_message(paste0("  Skipped QC processing (using cached results)"))
+                }
+
+                if (!isTRUE(args$`no-qc-report`)) {
+                    .log_message(
+                        "QC density reports require raw IDAT reload and are not regenerated from cached MethQcSet; remove the cached RDS to rerun QC and create them.",
+                        level = "WARN"
+                    )
                 }
 
                 # Still generate plots even if QC was skipped

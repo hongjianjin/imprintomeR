@@ -24,7 +24,8 @@ in the analysis workflow and serves as the preprocessing/QC container.
 \item{\code{detection_pval}}{Matrix or NULL. Detection p-values, same dims/order as beta.}
 
 \item{\code{qc_tables}}{Named list of QC result data.frames. Canonical keys (populated by \code{runMethQC()}):
-\code{QC_matrix}, \code{ctrl_metrics}, \code{recall_rate}, \code{contamination}, \code{predUniqDonor_ID}, \code{cutoffs}.}
+\code{QC_matrix}, \code{ctrl_metrics}, \code{recall_rate}, \code{contamination}, \code{predUniqDonor_ID},
+\code{cutoffs}, and optional \code{qc_report_files}.}
 
 \item{\code{aggregation_status}}{Character scalar: "none", "epicv2_aggregated", or other flag.}
 
