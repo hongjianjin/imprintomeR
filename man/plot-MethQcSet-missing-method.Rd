@@ -12,8 +12,8 @@
 \item{y}{Ignored (for generic compatibility).}
 
 \item{type}{Character scalar. One of \code{"qc_bar"} (default), \code{"intensity"},
-\code{"detection_pval"}, \code{"probe_coverage"}, \code{"predicted_sex"}, \code{"ctrl_metrics"},
-\code{"ctrl_metrics_detail"}.}
+\code{"detection_pval"}, \code{"probe_coverage"}, \code{"predicted_sex"}, \code{"beta_density"},
+\code{"ctrl_metrics"}, \code{"ctrl_metrics_detail"}.}
 
 \item{icutoff}{Numeric. log2 intensity cutoff reference line for \code{"intensity"} plot (default 11).}
 
@@ -21,7 +21,9 @@
 
 \item{outFile}{Optional file path to save the plot (format inferred from extension: pdf/png/svg).}
 
-\item{...}{Additional arguments forwarded to \code{ggplot2::ggsave()}.}
+\item{...}{Additional arguments forwarded to \code{ggplot2::ggsave()}. For
+\code{type = "beta_density"}, supported arguments include \code{sample_set}
+(\code{"all"}, \code{"pass"}, or \code{"fail"}), \code{group_col}, \code{max_points}, and \code{adjust}.}
 }
 \value{
 A ggplot object. Also written to \code{outFile} when provided.
@@ -40,6 +42,10 @@ Generate QC-stage visualizations from stored QC tables.
 \item{\code{probe_coverage}}{Per-sample percent of probes detected (dP < 0.05), colored by
 \code{Final.QC}, with a reference line at 95\%.}
 \item{\code{predicted_sex}}{Bar chart of predicted sex counts from \code{QC_matrix$predictedSex}.}
+\item{\code{beta_density}}{Processed beta-value density curves per sample, optionally
+restricted to all, PASS, or FAIL samples via \code{sample_set}. This plot is generated
+from the cached \code{MethQcSet} beta matrix and is complementary to raw
+\code{minfi::qcReport()} density output.}
 \item{\code{ctrl_metrics}}{Per-sample dot chart of ewastools \code{CtrlMetrics.QC} from \code{ctrl_metrics}.
 Returns \code{NULL} silently if \code{ctrl_metrics} is absent.}
 \item{\code{ctrl_metrics_detail}}{One jitter-dot plot per ewastools control metric

@@ -10,7 +10,7 @@
 #'   - Per-platform QC processing with configurable thresholds
 #'   - Export to Excel (color-coded pass/fail), RDS (full MethQcSet), summary report
 #'   - Optional QC visualization (intensity, detection p-value, QC bar plots)
-#'   - minfi qcReport density PDFs for all/PASS/FAIL samples
+#'   - beta-density and minfi qcReport density PDFs for all/PASS/FAIL samples
 #'   - Comprehensive error handling and logging
 #'
 #' Author: Generated for imprintomeR package
@@ -41,20 +41,20 @@ option_list <- list(
     make_option(c("--platform"), type = "character", default = NA,
         help = "Override platform detection (EPIC, EPICv2, 450K). If NA, auto-detect from IDAT files [default: auto-detect]"),
 
-    make_option(c("--plot-types"), type = "character", default = NA,
-        help = "QC plot types to generate: 'intensity', 'detection_pval', 'qc_bar', or 'all'. [default: intensity,qc_bar]"),
+    make_option(c("--plot-types"), type = "character", default = "intensity,detection_pval,probe_coverage,beta_density",
+        help = "QC plot types to generate: 'intensity', 'detection_pval', 'probe_coverage', 'qc_bar', 'beta_density', or 'all'. [default: intensity,detection_pval,probe_coverage,beta_density]"),
 
     make_option(c("--no-qc-plots"), action = "store_true", default = FALSE,
-        help = "Suppress all QC plot generation"),
+        help = "Suppress all QC plot generation [default: %default]"),
 
     make_option(c("--no-qc-report"), action = "store_true", default = FALSE,
-        help = "Suppress minfi qcReport density PDFs for all/PASS/FAIL samples"),
+        help = "Suppress default QC report PDFs from runMethQC(): intensity, detection p-value, probe coverage, beta-density, and minfi density"),
 
     make_option(c("--skip-ewastools"), action = "store_true", default = FALSE,
-        help = "Skip ewastools control metrics (if not installed)"),
+        help = "Skip ewastools control metrics (if not installed) [default: %default]"),
 
     make_option(c("-v", "--verbose"), action = "store_true", default = FALSE,
-        help = "Enable verbose logging (timestamps, platform summaries)")
+        help = "Enable verbose logging (timestamps, platform summaries) [default: %default]")
 )
 
 parser <- OptionParser(
@@ -365,7 +365,13 @@ tryCatch({
 # ============================================================================
 
 .expected_qc_rds <- function(platform_outdir, platform) {
-    file.path(platform_outdir, paste0(tolower(platform), "_qcset.rds"))
+    prefix <- tolower(platform)
+    new_file <- file.path(platform_outdir, "data", paste0(prefix, "_qcset.rds"))
+    old_file <- file.path(platform_outdir, paste0(prefix, "_qcset.rds"))
+
+    if (file.exists(new_file)) return(new_file)
+    if (file.exists(old_file)) return(old_file)
+    new_file
 }
 
 .is_valid_cached_qcset <- function(qcset, meta_subset, expected_platform, verbose = FALSE) {
@@ -424,9 +430,12 @@ tryCatch({
                 run_args$save_qc_report <- !isTRUE(args$`no-qc-report`)
                 run_args$outdir <- platform_outdir
                 run_args$prefix <- tolower(platform)
+                if ("plot_types" %in% runmethqc_args) {
+                    run_args$plot_types <- args$`plot-types`
+                }
             } else if (!isTRUE(args$`no-qc-report`)) {
                 .log_message(
-                    "The loaded imprintomeR::runMethQC() does not support density-report output yet; reinstall/update imprintomeR to generate *_QC_densityPlot_*.pdf files.",
+                    "The loaded imprintomeR::runMethQC() does not support density-report output yet; reinstall/update imprintomeR to generate *_QC_betaDensity_*.pdf and *_QC_minfiDensity_*.pdf files.",
                     level = "WARN"
                 )
             }
@@ -465,7 +474,7 @@ tryCatch({
 
     # Normalize plot_types input
     if (tolower(plot_types) == "all") {
-        plot_types <- c("intensity", "detection_pval", "qc_bar")
+        plot_types <- c("intensity", "detection_pval", "probe_coverage", "qc_bar", "beta_density")
     } else {
         plot_types <- strsplit(plot_types, ",")[[1]]
         plot_types <- trimws(tolower(plot_types))
@@ -496,8 +505,14 @@ tryCatch({
                     plot(qcset, type = "intensity", icutoff = icutoff)
                 } else if (ptype == "detection_pval") {
                     plot(qcset, type = "detection_pval", pcutoff = pcutoff)
+                } else if (ptype == "probe_coverage") {
+                    plot(qcset, type = "probe_coverage")
                 } else if (ptype == "qc_bar") {
                     plot(qcset, type = "qc_bar")
+                } else if (ptype == "beta_density") {
+                    plot(qcset, type = "beta_density", sample_set = "all")
+                } else {
+                    stop("Unknown QC plot type: ", ptype)
                 }
                 # Print the ggplot object to the PNG device
                 if (!is.null(p)) {
@@ -536,6 +551,46 @@ tryCatch({
             })
         })
     }
+}
+
+
+.generate_beta_density_reports <- function(qcset, platform_outdir, prefix, verbose = FALSE) {
+    writer <- tryCatch({
+        getFromNamespace(".write_methqc_beta_density_reports", "imprintomeR")
+    }, error = function(e) NULL)
+
+    if (is.null(writer)) {
+        .log_message(
+            "Package-native beta-density reports are unavailable in the loaded imprintomeR; reinstall/update imprintomeR to generate *_QC_betaDensity_*.pdf files.",
+            level = "WARN"
+        )
+        return(invisible(NULL))
+    }
+
+    plots_outdir <- file.path(platform_outdir, "plots")
+    if (!dir.exists(plots_outdir)) {
+        dir.create(plots_outdir, recursive = TRUE, showWarnings = FALSE)
+    }
+
+    if (verbose) {
+        .log_message(paste0("Generating beta-density QC reports in: ", plots_outdir))
+    }
+
+    report_df <- tryCatch({
+        writer(qcset, outdir = plots_outdir, prefix = prefix)
+    }, error = function(e) {
+        .log_message(paste0("Beta-density report generation failed: ", conditionMessage(e)), level = "WARN")
+        NULL
+    })
+
+    if (!is.null(report_df) && verbose) {
+        saved <- report_df$file[report_df$status == "saved"]
+        if (length(saved) > 0) {
+            .log_message(paste0("  Saved beta-density reports: ", paste(basename(saved), collapse = ", ")))
+        }
+    }
+
+    invisible(report_df)
 }
 
 # Partition metadata by platform and run QC
@@ -588,15 +643,21 @@ tryCatch({
 
                 if (!isTRUE(args$`no-qc-report`)) {
                     .log_message(
-                        "QC density reports require raw IDAT reload and are not regenerated from cached MethQcSet; remove the cached RDS to rerun QC and create them.",
+                        "Raw minfi density reports require IDAT reload and are not regenerated from cached MethQcSet; remove the cached RDS to rerun QC and create *_QC_minfiDensity_*.pdf files.",
                         level = "WARN"
+                    )
+                    .generate_beta_density_reports(
+                        result$qcset,
+                        result$outdir,
+                        prefix = tolower(plat),
+                        verbose = args$verbose
                     )
                 }
 
                 # Still generate plots even if QC was skipped
                 if (!args$`no-qc-plots`) {
                     plot_types_to_use <- if (is.na(args$`plot-types`)) {
-                        "intensity,qc_bar"
+                        "intensity,detection_pval,probe_coverage,beta_density"
                     } else {
                         args$`plot-types`
                     }
@@ -627,7 +688,7 @@ tryCatch({
         if (!args$`no-qc-plots`) {
             # Use specified plot types, or default to smart defaults
             plot_types_to_use <- if (is.na(args$`plot-types`)) {
-                "intensity,qc_bar"  # Smart defaults: intensity + QC pass/fail bar
+                "intensity,detection_pval,probe_coverage,beta_density"
             } else {
                 args$`plot-types`
             }

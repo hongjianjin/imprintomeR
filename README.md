@@ -144,9 +144,13 @@ meta_epic <- meta[meta$Platform == "EPIC", ]
 #   SampleC        /data/idats/202301234568_R01C01        Control         F      EPIC
 qcset <- runMethQC(meta_epic)  # platform auto-resolved from meta$Platform
 
-# Density-report PDFs for all/PASS/FAIL samples are written by default
+# QC plot/report PDFs are written by default:
+#   epic_QC_detection_pval.pdf and epic_QC_probe_coverage.pdf in qc_output/
+#   epic_QC_minfiDensity_all.pdf in qc_output/ (raw minfi RGChannelSet)
+#   epic_QC_intensity.pdf, epic_QC_betaDensity_all/pass/fail.pdf,
+#     and epic_QC_minfiDensity_pass/fail.pdf in qc_output/plots/
 # qcset <- runMethQC(meta_epic, outdir = "qc_output", prefix = "epic")
-# Use save_qc_report = FALSE to suppress them.
+# Use save_qc_report = FALSE to suppress default QC plot/report PDFs.
 
 # Option B: platform already known
 # qcset <- runMethQC(meta, platform = "EPIC")
@@ -167,6 +171,8 @@ p_int  <- plot(qcset, type = "intensity",        icutoff = 11,
                outFile = "qc_intensity.pdf")                                       # mMed vs uMed scatter
 p_dp   <- plot(qcset, type = "detection_pval",   pcutoff = 0.05,
                outFile = "qc_aveDetPval.pdf")                                    # avg detection p-val per sample
+p_den  <- plot(qcset, type = "beta_density",      sample_set = "all",
+               outFile = "qc_beta_density_all.pdf")                              # beta-value density per sample
 p_cov  <- plot(qcset, type = "probe_coverage",   outFile = "qc_probe_coverage.pdf") # % probes detected per sample
 p_sex  <- plot(qcset, type = "predicted_sex",    outFile = "qc_predicted_sex.pdf")  # predicted sex distribution
 p_ctrl <- plot(qcset, type = "ctrl_metrics",         outFile = "qc_ctrl_matrix_summary.pdf")   # ewastools scores (if available)
@@ -184,7 +190,7 @@ Key MethQcSet features:
 
 - **Platform validation**: Prevents mixing 450K, EPICv1, EPICv2
 - **QC metrics**: Detection p-values, intensity summaries (mMed/uMed/aveMed merged into `QC_matrix`), probe coverage
-- **Minfi density reports**: `runMethQC(..., outdir = "qc_output", prefix = "epic")` writes `{prefix}_QC_densityPlot_all/pass/fail.pdf` by default; use `save_qc_report = FALSE` to suppress them
+- **Default QC plot/report PDFs**: `runMethQC(..., outdir = "qc_output", prefix = "epic")` writes root-level review PDFs (`{prefix}_QC_detection_pval.pdf`, `{prefix}_QC_probe_coverage.pdf`, `{prefix}_QC_minfiDensity_all.pdf`) plus secondary report PDFs in `plots/` (`{prefix}_QC_intensity.pdf`, `{prefix}_QC_betaDensity_all/pass/fail.pdf`, `{prefix}_QC_minfiDensity_pass/fail.pdf`); use `save_qc_report = FALSE` to suppress them
 - **Canonical `qc_tables` keys** (populated by `runMethQC()`):
   - `QC_matrix` — per-sample detection stats, intensity, predictedSex, `Final.QC`
   - `recall_rate` — per-probe % detected across all / PASS / FAIL samples
@@ -634,19 +640,19 @@ export(
 - `Ctrl_matrix` — Control probe metrics (if ewastools available)
 - `statistics` — Per-Sample_Group summary table (Total, PASS, FAIL, pass/fail ratios)
 
-**{prefix}_qc_table_extra.xlsx** (supplementary technical results):
+**QC_tables/{prefix}_qc_table_extra.xlsx** (supplementary technical results):
 - `QC_metrics` — QC decision thresholds (criteria, cutoff values, Final.QC status)
 - `contamination` — SNP agreement matrix for sample swap detection (if available)
 - `recall_rate` — Per-probe detection statistics across cohort (if available)
 - `predUniqDonor_ID` — Predicted unique donors per sample group (if available)
 
 **Additional output:**
-- `{prefix}_qcset.rds` — Full MethQcSet object (if format includes "rds")
-- `{prefix}_beta.txt` — Beta values, tab-delimited (if format includes "txt")
-- `{prefix}_meta.txt` — Metadata, tab-delimited (if format includes "txt")
-- `{prefix}_qc_matrix.txt` — QC metrics table, tab-delimited (primary txt file)
-- `{prefix}_qc_statistics.txt` — Statistics summary, tab-delimited (primary txt file)
-- `{prefix}_qc_*.txt` — Individual QC tables, tab-delimited (supplementary files)
+- `data/{prefix}_qcset.rds` — Full MethQcSet object (if format includes "rds")
+- `data/{prefix}_beta.txt` — Beta values, tab-delimited (if format includes "txt")
+- `data/{prefix}_meta.txt` — Metadata, tab-delimited (if format includes "txt")
+- `QC_tables/{prefix}_qc_matrix.txt` — QC metrics table, tab-delimited (primary txt file)
+- `QC_tables/{prefix}_qc_statistics.txt` — Statistics summary, tab-delimited (primary txt file)
+- `QC_tables/{prefix}_qc_*.txt` — Individual QC tables, tab-delimited (supplementary files)
 - `{prefix}_summary.txt` — Summary report with optional Notes section
 
 **Statistics Sheet (automatic computation on export):**
@@ -722,7 +728,7 @@ if (qcset@platform == "EPICv2") {
 export(qcset, outdir = "your_qc_output", format = c("xlsx", "rds"))
 
 # Phase 2: Analysis
-qcset <- readRDS("your_qc_output/*_qcset.rds")
+qcset <- readRDS("your_qc_output/*/data/*_qcset.rds")
 x <- as.ImprintomeSet(qcset, probeset = probesets[["selected"]])
 x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
 

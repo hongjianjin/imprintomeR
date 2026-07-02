@@ -236,8 +236,9 @@ qc_summarize <- function(x, ...) {
 #'
 #' @details
 #' **xlsx output (recommended):**
-#' QC results are written into **two separate workbooks** (`{prefix}_qc_table_main.xlsx`
-#' and `{prefix}_qc_table_extra.xlsx`) for organized reporting:
+#' QC results are written into organized output locations. Root-level files include
+#' `{prefix}_qc_table_main.xlsx` and `{prefix}_summary.txt`; supplementary tables go
+#' under `QC_tables/`, and large data objects go under `data/`:
 #'
 #' **{prefix}_qc_table_main.xlsx** (primary QC results):
 #'   - `metadata` sheet: Sample metadata augmented with Platform and Final.QC columns.
@@ -245,19 +246,19 @@ qc_summarize <- function(x, ...) {
 #'   - `Ctrl_matrix` sheet: ewastools control metric scores (if available).
 #'   - `statistics` sheet: Per-Sample_Group summary (Total, PASS, FAIL, and ratios).
 #'
-#' **{prefix}_qc_table_extra.xlsx** (supplementary/technical results):
+#' **QC_tables/{prefix}_qc_table_extra.xlsx** (supplementary/technical results):
 #'   - `QC_metrics` sheet: Cutoff thresholds and decision rules (filtered to: criteria, cutoff, Final.QC).
 #'   - `contamination` sheet: SNP agreement matrix for sample swap detection (if available).
 #'   - `recall_rate` sheet: Per-probe detection statistics across cohort (if available).
 #'   - `predUniqDonor_ID` sheet: Predicted unique donors per Sample_Group (if available).
 #'
-#' Beta values are excluded from xlsx (too large) and written as rds only.
+#' Beta values are excluded from xlsx (too large); they are retained in the RDS object and optionally written as `data/{prefix}_beta.txt` when `format = "txt"`.
 #'
 #' **rds output:**
-#' Entire MethQcSet object is saved as `{prefix}_qcset.rds` for programmatic access.
+#' Entire MethQcSet object is saved as `data/{prefix}_qcset.rds` for programmatic access.
 #'
 #' **txt output:**
-#' Tab-delimited `.txt` files for beta, metadata, and each QC table separately.
+#' Tab-delimited beta/metadata files are written to `data/`; QC table text files are written to `QC_tables/`.
 #'
 #' @export
 methods::setMethod("export", "MethQcSet", function(x, outdir, format = c("xlsx", "rds"),
@@ -269,16 +270,25 @@ methods::setMethod("export", "MethQcSet", function(x, outdir, format = c("xlsx",
     dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
   }
 
+  data_dir <- file.path(outdir, "data")
+  qc_tables_dir <- file.path(outdir, "QC_tables")
+  if (!dir.exists(data_dir)) {
+    dir.create(data_dir, recursive = TRUE, showWarnings = FALSE)
+  }
+  if (!dir.exists(qc_tables_dir)) {
+    dir.create(qc_tables_dir, recursive = TRUE, showWarnings = FALSE)
+  }
+
   written_files <- character()
 
   # =========================================================================
   # RDS: save entire MethQcSet object (NOT individual components)
   # =========================================================================
   if ("rds" %in% format) {
-    outfile <- file.path(outdir, paste0(prefix, "_qcset.rds"))
+    outfile <- file.path(data_dir, paste0(prefix, "_qcset.rds"))
     saveRDS(x, outfile)
     written_files <- c(written_files, outfile)
-    message("rds: wrote MethQcSet to ", basename(outfile))
+    message("rds: wrote MethQcSet to ", file.path("data", basename(outfile)))
   }
 
   # =========================================================================
@@ -412,7 +422,7 @@ if ("xlsx" %in% format) {
     # FILE 2: qc_table_extra.xlsx
     # Sheets: QC_metrics (filtered cutoffs), contamination, recall_rate, predUniqDonor_ID
     # ===================================================================
-    outfile_extra <- file.path(outdir, paste0(prefix, "_qc_table_extra.xlsx"))
+    outfile_extra <- file.path(qc_tables_dir, paste0(prefix, "_qc_table_extra.xlsx"))
 
     if (file.exists(outfile_extra)) {
       file.remove(outfile_extra)
@@ -483,25 +493,25 @@ if ("xlsx" %in% format) {
     # Beta matrix
     beta_df <- as.data.frame(x@beta)
     beta_df <- cbind(TargetID = rownames(x@beta), beta_df)
-    outfile <- file.path(outdir, paste0(prefix, "_beta.txt"))
+    outfile <- file.path(data_dir, paste0(prefix, "_beta.txt"))
     write.table(beta_df, outfile, sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
     written_files <- c(written_files, outfile)
 
     # Metadata
-    outfile <- file.path(outdir, paste0(prefix, "_meta.txt"))
+    outfile <- file.path(data_dir, paste0(prefix, "_meta.txt"))
     write.table(.normalize_methqc_sample_name(x@meta), outfile, sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
     written_files <- c(written_files, outfile)
 
     # Explicitly export QC_matrix as qc_matrix.txt (primary file)
     if (!is.null(qcm) && nrow(qcm) > 0) {
-      outfile <- file.path(outdir, paste0(prefix, "_qc_matrix.txt"))
+      outfile <- file.path(qc_tables_dir, paste0(prefix, "_qc_matrix.txt"))
       write.table(qcm, outfile, sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
       written_files <- c(written_files, outfile)
     }
 
     # Explicitly export statistics as qc_statistics.txt (primary file)
     if (!is.null(x@statistics) && nrow(x@statistics) > 0) {
-      outfile <- file.path(outdir, paste0(prefix, "_qc_statistics.txt"))
+      outfile <- file.path(qc_tables_dir, paste0(prefix, "_qc_statistics.txt"))
       write.table(x@statistics, outfile, sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
       written_files <- c(written_files, outfile)
     }
@@ -511,7 +521,7 @@ if ("xlsx" %in% format) {
       if (qc_name == "QC_matrix") next  # Skip — already explicitly exported as qc_matrix.txt
       qc_table <- .canonicalize_methqc_sample_col(x@qc_tables[[qc_name]])
       if (!is.data.frame(qc_table)) next
-      outfile <- file.path(outdir, paste0(prefix, "_qc_", qc_name, ".txt"))
+      outfile <- file.path(qc_tables_dir, paste0(prefix, "_qc_", qc_name, ".txt"))
       write.table(qc_table, outfile, sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
       written_files <- c(written_files, outfile)
     }
@@ -559,7 +569,7 @@ if ("xlsx" %in% format) {
     }
     summary_txt <- paste0(summary_txt, "  Sheets: ", paste(main_sheets, collapse = ", "), "\n")
 
-    summary_txt <- paste0(summary_txt, "\n{prefix}_qc_table_extra.xlsx (Supplementary Results):\n")
+    summary_txt <- paste0(summary_txt, "\nQC_tables/{prefix}_qc_table_extra.xlsx (Supplementary Results):\n")
     extra_sheets <- character()
     if ("cutoffs" %in% names(x@qc_tables)) {
       extra_sheets <- c(extra_sheets, "QC_metrics")
@@ -582,14 +592,14 @@ if ("xlsx" %in% format) {
 
   if ("txt" %in% format) {
     summary_txt <- paste0(summary_txt, "\nTab-delimited Text Files:\n")
-    summary_txt <- paste0(summary_txt, "  Primary: {prefix}_qc_matrix.txt, {prefix}_qc_statistics.txt\n")
-    summary_txt <- paste0(summary_txt, "  Standard: {prefix}_beta.txt, {prefix}_meta.txt\n")
-    summary_txt <- paste0(summary_txt, "  Supplementary: {prefix}_qc_*.txt for each QC table\n")
+    summary_txt <- paste0(summary_txt, "  Primary: QC_tables/{prefix}_qc_matrix.txt, QC_tables/{prefix}_qc_statistics.txt\n")
+    summary_txt <- paste0(summary_txt, "  Standard: data/{prefix}_beta.txt, data/{prefix}_meta.txt\n")
+    summary_txt <- paste0(summary_txt, "  Supplementary: QC_tables/{prefix}_qc_*.txt for each QC table\n")
   }
 
   if ("rds" %in% format) {
     summary_txt <- paste0(summary_txt, "\nBinary RDS Archive:\n")
-    summary_txt <- paste0(summary_txt, "  {prefix}_qcset.rds (complete MethQcSet object)\n")
+    summary_txt <- paste0(summary_txt, "  data/{prefix}_qcset.rds (complete MethQcSet object)\n")
   }
 
   # Build Note section for missing sheets (sheets mentioned in export docs but not in object)
@@ -642,6 +652,255 @@ if ("xlsx" %in% format) {
   invisible(written_files)
 })
 
+
+# ============================================================================
+# .prepare_methqc_beta_density_data() - Internal beta-density helper
+# ============================================================================
+
+#' @keywords internal
+.prepare_methqc_beta_density_data <- function(x, sample_set = c("all", "pass", "fail"),
+                                              group_col = "Sample_Group", max_points = Inf,
+                                              adjust = 1) {
+  sample_set <- match.arg(sample_set)
+  beta_mat <- beta(x)
+  if (!is.matrix(beta_mat) || nrow(beta_mat) == 0L || ncol(beta_mat) == 0L) {
+    stop("MethQcSet beta matrix is empty.")
+  }
+
+  meta_x <- .normalize_methqc_sample_name(meta(x))
+  sample_names <- colnames(beta_mat)
+  qcm <- .canonicalize_methqc_sample_col(x@qc_tables[["QC_matrix"]])
+
+  selected <- sample_names
+  if (sample_set %in% c("pass", "fail")) {
+    if (is.null(qcm) || !all(c("Sample_Name", "Final.QC") %in% colnames(qcm))) {
+      message("QC_matrix with Sample_Name and Final.QC not found; no ", sample_set, " beta-density plot created.")
+      return(NULL)
+    }
+    wanted <- if (sample_set == "pass") "PASS" else "FAIL"
+    selected <- as.character(qcm$Sample_Name[qcm$Final.QC == wanted])
+    selected <- intersect(selected, sample_names)
+    if (length(selected) == 0L) {
+      message("No ", wanted, " samples for beta-density plot; skipped.")
+      return(NULL)
+    }
+  }
+
+  sample_info <- data.frame(Sample_Name = selected, stringsAsFactors = FALSE)
+  if (group_col %in% colnames(meta_x)) {
+    idx <- match(sample_info$Sample_Name, as.character(meta_x$Sample_Name))
+    sample_info$Sample_Group <- as.character(meta_x[[group_col]][idx])
+  } else {
+    sample_info$Sample_Group <- "All"
+  }
+  sample_info$Sample_Group[is.na(sample_info$Sample_Group) | !nzchar(sample_info$Sample_Group)] <- "Unknown"
+
+  if (!is.null(qcm) && all(c("Sample_Name", "Final.QC") %in% colnames(qcm))) {
+    idx_qc <- match(sample_info$Sample_Name, as.character(qcm$Sample_Name))
+    sample_info$Final.QC <- as.character(qcm$Final.QC[idx_qc])
+  } else {
+    sample_info$Final.QC <- NA_character_
+  }
+
+  density_list <- lapply(sample_info$Sample_Name, function(sid) {
+    vals <- beta_mat[, sid]
+    vals <- vals[is.finite(vals)]
+    vals <- vals[vals >= 0 & vals <= 1]
+    if (length(vals) < 2L) return(NULL)
+    if (is.finite(max_points) && length(vals) > max_points) {
+      vals <- vals[seq(1L, length(vals), length.out = max_points)]
+    }
+    den <- stats::density(vals, from = 0, to = 1, n = 512, adjust = adjust, na.rm = TRUE)
+    info <- sample_info[sample_info$Sample_Name == sid, , drop = FALSE][1, ]
+    data.frame(
+      Sample_Name = sid,
+      Sample_Group = info$Sample_Group,
+      Final.QC = info$Final.QC,
+      beta = den$x,
+      density = den$y,
+      stringsAsFactors = FALSE
+    )
+  })
+  density_list <- density_list[!vapply(density_list, is.null, logical(1))]
+  if (length(density_list) == 0L) return(NULL)
+  do.call(rbind, density_list)
+}
+
+#' @keywords internal
+.write_methqc_beta_density_reports <- function(x, outdir, prefix, group_col = "Sample_Group",
+                                               max_points = Inf, width = 8, height = 6) {
+  if (!dir.exists(outdir)) {
+    dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
+  }
+
+  write_one <- function(sample_set) {
+    out_file <- file.path(outdir, paste0(prefix, "_QC_betaDensity_", sample_set, ".pdf"))
+    p <- plot(
+      x,
+      type = "beta_density",
+      sample_set = sample_set,
+      group_col = group_col,
+      max_points = max_points,
+      outFile = NULL
+    )
+    if (is.null(p)) {
+      return(data.frame(
+        report_type = "beta_density",
+        report = sample_set,
+        file = out_file,
+        status = "skipped",
+        message = paste0("No ", sample_set, " beta-density plot created."),
+        stringsAsFactors = FALSE
+      ))
+    }
+    tryCatch({
+      ggplot2::ggsave(filename = out_file, plot = p, width = width, height = height, units = "in", limitsize = TRUE)
+      data.frame(
+        report_type = "beta_density",
+        report = sample_set,
+        file = out_file,
+        status = "saved",
+        message = "saved",
+        stringsAsFactors = FALSE
+      )
+    }, error = function(e) {
+      data.frame(
+        report_type = "beta_density",
+        report = sample_set,
+        file = out_file,
+        status = "failed",
+        message = conditionMessage(e),
+        stringsAsFactors = FALSE
+      )
+    })
+  }
+
+  do.call(rbind, lapply(c("all", "pass", "fail"), write_one))
+}
+
+.methqc_default_plot_types <- function() {
+  c("intensity", "detection_pval", "probe_coverage", "beta_density")
+}
+
+.normalize_methqc_plot_types <- function(plot_types) {
+  if (is.null(plot_types) || length(plot_types) == 0L) {
+    return(character(0))
+  }
+
+  plot_types <- unlist(strsplit(as.character(plot_types), ",", fixed = TRUE))
+  plot_types <- unique(tolower(trimws(plot_types)))
+  plot_types <- plot_types[nzchar(plot_types)]
+
+  if (length(plot_types) == 0L || any(plot_types %in% c("none", "false"))) {
+    return(character(0))
+  }
+  if (any(plot_types == "default")) {
+    plot_types <- .methqc_default_plot_types()
+  }
+  if (any(plot_types == "all")) {
+    plot_types <- c(
+      "intensity", "detection_pval", "qc_bar", "beta_density",
+      "probe_coverage", "predicted_sex", "ctrl_metrics"
+    )
+  }
+
+  valid_types <- c(
+    "intensity", "detection_pval", "qc_bar", "beta_density",
+    "probe_coverage", "predicted_sex", "ctrl_metrics"
+  )
+  invalid <- setdiff(plot_types, valid_types)
+  if (length(invalid) > 0L) {
+    warning("Unsupported MethQcSet plot type(s) skipped: ", paste(invalid, collapse = ", "))
+  }
+  intersect(plot_types, valid_types)
+}
+
+#' @keywords internal
+.write_methqc_qc_plot_reports <- function(x, outdir, prefix,
+                                          plot_types = .methqc_default_plot_types(),
+                                          pcutoff = 0.05, icutoff = 11,
+                                          width = 8, height = 6) {
+  plot_types <- .normalize_methqc_plot_types(plot_types)
+  if (length(plot_types) == 0L) {
+    return(data.frame(
+      report_type = character(0),
+      report = character(0),
+      file = character(0),
+      status = character(0),
+      message = character(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+  if (!dir.exists(outdir)) {
+    dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
+  }
+
+  write_one <- function(ptype) {
+    if (identical(ptype, "beta_density")) {
+      return(.write_methqc_beta_density_reports(
+        x = x,
+        outdir = outdir,
+        prefix = prefix,
+        width = width,
+        height = height
+      ))
+    }
+
+    out_file <- file.path(outdir, paste0(prefix, "_QC_", ptype, ".pdf"))
+    plot_error <- NULL
+    p <- tryCatch({
+      plot(
+        x,
+        type = ptype,
+        pcutoff = pcutoff,
+        icutoff = icutoff,
+        outFile = NULL
+      )
+    }, error = function(e) {
+      plot_error <<- conditionMessage(e)
+      NULL
+    })
+
+    if (is.null(p)) {
+      msg <- plot_error
+      if (is.null(msg)) {
+        msg <- paste0("No ", ptype, " plot created.")
+      }
+      return(data.frame(
+        report_type = "qc_plot",
+        report = ptype,
+        file = out_file,
+        status = "skipped",
+        message = msg,
+        stringsAsFactors = FALSE
+      ))
+    }
+
+    tryCatch({
+      ggplot2::ggsave(filename = out_file, plot = p, width = width, height = height, units = "in", limitsize = TRUE)
+      data.frame(
+        report_type = "qc_plot",
+        report = ptype,
+        file = out_file,
+        status = "saved",
+        message = "saved",
+        stringsAsFactors = FALSE
+      )
+    }, error = function(e) {
+      data.frame(
+        report_type = "qc_plot",
+        report = ptype,
+        file = out_file,
+        status = "failed",
+        message = conditionMessage(e),
+        stringsAsFactors = FALSE
+      )
+    })
+  }
+
+  do.call(rbind, lapply(plot_types, write_one))
+}
+
 # ============================================================================
 # plot() - QC-stage visualization
 # ============================================================================
@@ -657,12 +916,14 @@ if (!methods::isGeneric("plot")) {
 #' @param x A `MethQcSet` object.
 #' @param y Ignored (for generic compatibility).
 #' @param type Character scalar. One of `"qc_bar"` (default), `"intensity"`,
-#'   `"detection_pval"`, `"probe_coverage"`, `"predicted_sex"`, `"ctrl_metrics"`,
-#'   `"ctrl_metrics_detail"`.
+#'   `"detection_pval"`, `"beta_density"`, `"probe_coverage"`, `"predicted_sex"`,
+#'   `"ctrl_metrics"`, `"ctrl_metrics_detail"`.
 #' @param icutoff Numeric. log2 intensity cutoff reference line for `"intensity"` plot (default 11).
 #' @param pcutoff Numeric. Detection p-value cutoff reference line for `"detection_pval"` plot (default 0.05).
 #' @param outFile Optional file path to save the plot (format inferred from extension: pdf/png/svg).
-#' @param ... Additional arguments forwarded to `ggplot2::ggsave()`.
+#' @param ... Additional arguments forwarded to `ggplot2::ggsave()`. For
+#'   `type = "beta_density"`, supported arguments include `sample_set` (`"all"`,
+#'   `"pass"`, or `"fail"`), `group_col`, `max_points`, and `adjust`.
 #'
 #' @return A ggplot object. Also written to `outFile` when provided.
 #'
@@ -677,6 +938,10 @@ if (!methods::isGeneric("plot")) {
 #'   \item{`probe_coverage`}{Per-sample percent of probes detected (dP < 0.05), colored by
 #'     `Final.QC`, with a reference line at 95%.}
 #'   \item{`predicted_sex`}{Bar chart of predicted sex counts from `QC_matrix$predictedSex`.}
+#'   \item{`beta_density`}{Processed beta-value density curves per sample, optionally
+#'     restricted to all, PASS, or FAIL samples via `sample_set`. This plot is
+#'     generated from the cached `MethQcSet` beta matrix and is complementary to
+#'     raw `minfi::qcReport()` density output.}
 #'   \item{`ctrl_metrics`}{Per-sample dot chart of ewastools `CtrlMetrics.QC` from `ctrl_metrics`.
 #'     Returns `NULL` silently if `ctrl_metrics` is absent.}
 #'   \item{`ctrl_metrics_detail`}{One jitter-dot plot per ewastools control metric
@@ -835,6 +1100,46 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
                      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold"))
 
   # =========================================================================
+  # beta_density: processed beta-value density curves per sample
+  # =========================================================================
+  } else if (type == "beta_density") {
+    dots <- list(...)
+    sample_set <- if (!is.null(dots$sample_set)) dots$sample_set else "all"
+    group_col <- if (!is.null(dots$group_col)) dots$group_col else "Sample_Group"
+    max_points <- if (!is.null(dots$max_points)) dots$max_points else Inf
+    adjust <- if (!is.null(dots$adjust)) dots$adjust else 1
+
+    density_df <- .prepare_methqc_beta_density_data(
+      x,
+      sample_set = sample_set,
+      group_col = group_col,
+      max_points = max_points,
+      adjust = adjust
+    )
+    if (is.null(density_df) || nrow(density_df) == 0L) return(NULL)
+
+    sample_set <- match.arg(sample_set, c("all", "pass", "fail"))
+    title_label <- switch(sample_set, all = "All Samples", pass = "PASS Samples", fail = "FAIL Samples")
+    plot_obj <- ggplot2::ggplot(
+      density_df,
+      ggplot2::aes(x = beta, y = density, group = Sample_Name, color = Sample_Group)
+    ) +
+      ggplot2::geom_line(alpha = 0.45, linewidth = 0.35) +
+      ggplot2::scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+      ggplot2::theme_classic(base_size = 12) +
+      ggplot2::labs(
+        title = paste0("Beta Density QC - ", title_label, " - ", x@platform),
+        subtitle = "Processed beta-value distributions from MethQcSet",
+        x = "Beta value",
+        y = "Density",
+        color = group_col
+      ) +
+      ggplot2::theme(
+        plot.title = ggplot2::element_text(hjust = 0.5, face = "bold"),
+        legend.position = "right"
+      )
+
+  # =========================================================================
   # predicted_sex: bar chart of predicted sex counts
   # =========================================================================
   } else if (type == "predicted_sex") {
@@ -976,7 +1281,7 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
 
   } else {
     stop("Unknown plot type '", type, "'. Choose from: qc_bar, intensity, detection_pval, ",
-         "probe_coverage, predicted_sex, ctrl_metrics, ctrl_metrics_detail.")
+         "probe_coverage, predicted_sex, beta_density, ctrl_metrics, ctrl_metrics_detail.")
   }
 
   # =========================================================================
@@ -990,12 +1295,18 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
         n_samples <- nrow(qcm)
         plot_width <- max(5, 2 + n_samples * 0.15)
       }
-      
-      if (!is.null(plot_width)) {
-        ggplot2::ggsave(filename = outFile, plot = plot_obj, width = plot_width, height = 5, ...)
-      } else {
-        ggplot2::ggsave(filename = outFile, plot = plot_obj, ...)
+
+      save_args <- list(...)
+      if (type == "beta_density") {
+        save_args[c("sample_set", "group_col", "max_points", "adjust")] <- NULL
       }
+      save_args$filename <- outFile
+      save_args$plot <- plot_obj
+      if (!is.null(plot_width)) {
+        save_args$width <- plot_width
+        save_args$height <- 5
+      }
+      do.call(ggplot2::ggsave, save_args)
       message("Plot saved to ", outFile)
     }, error = function(e) {
       warning("Could not save plot: ", conditionMessage(e))

@@ -26,10 +26,10 @@ Write QC tables, beta values, and metadata to disk in various formats.
 }
 \details{
 \strong{xlsx output (recommended):}
-QC results are written into \strong{two separate workbooks} (\verb{\{prefix\}_qc_table_main.xlsx}
-and \verb{\{prefix\}_qc_table_extra.xlsx}) for organized reporting:
-
-\strong{{prefix}_qc_table_main.xlsx} (primary QC results):
+QC results are written into organized output locations. Root-level files include
+\verb{\{prefix\}_qc_table_main.xlsx} and \verb{\{prefix\}_summary.txt}; supplementary tables go
+under \code{QC_tables/}, and large data objects go under \code{data/}:
+\verb{\{prefix\}_qc_table_main.xlsx} (primary QC results):
 \itemize{
 \item \code{metadata} sheet: Sample metadata augmented with Platform and Final.QC columns.
 \item \code{QC_matrix} sheet: Per-sample QC metrics (intensity, detection p-val, coverage, sex, etc.).
@@ -37,7 +37,7 @@ and \verb{\{prefix\}_qc_table_extra.xlsx}) for organized reporting:
 \item \code{statistics} sheet: Per-Sample_Group summary (Total, PASS, FAIL, and ratios).
 }
 
-\strong{{prefix}_qc_table_extra.xlsx} (supplementary/technical results):
+\verb{QC_tables/\{prefix\}_qc_table_extra.xlsx} (supplementary/technical results):
 \itemize{
 \item \code{QC_metrics} sheet: Cutoff thresholds and decision rules (filtered to: criteria, cutoff, Final.QC).
 \item \code{contamination} sheet: SNP agreement matrix for sample swap detection (if available).
@@ -45,11 +45,11 @@ and \verb{\{prefix\}_qc_table_extra.xlsx}) for organized reporting:
 \item \code{predUniqDonor_ID} sheet: Predicted unique donors per Sample_Group (if available).
 }
 
-Beta values are excluded from xlsx (too large) and written as rds only.
+Beta values are excluded from xlsx (too large); they are retained in the RDS object and optionally written as \verb{data/\{prefix\}_beta.txt} when \code{format = "txt"}.
 
 \strong{rds output:}
-Entire MethQcSet object is saved as \verb{\{prefix\}_qcset.rds} for programmatic access.
+Entire MethQcSet object is saved as \verb{data/\{prefix\}_qcset.rds} for programmatic access.
 
 \strong{txt output:}
-Tab-delimited \code{.txt} files for beta, metadata, and each QC table separately.
+Tab-delimited beta/metadata files are written to \code{data/}; QC table text files are written to \code{QC_tables/}.
 }

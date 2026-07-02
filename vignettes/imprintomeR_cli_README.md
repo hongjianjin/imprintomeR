@@ -32,7 +32,7 @@ Rscript inst/scripts/run_meth_QC.R \
   -v
 
 Rscript inst/scripts/run_imprintomeR.R \
-  -r qc_results/epic/epic_qcset.rds \
+  -r qc_results/epic/data/epic_qcset.rds \
   -o imprintome_results \
   --prefix GSE240091 \
   --probeset selected \
@@ -42,7 +42,7 @@ Rscript inst/scripts/run_imprintomeR.R \
 
 ## Step 1: Methylation QC CLI
 
-`run_meth_QC.R` processes IDAT files and exports a `MethQcSet` object plus QC tables and plots. By default, it also writes minfi density-report PDFs for all, PASS, and FAIL samples.
+`run_meth_QC.R` processes IDAT files and exports a `MethQcSet` object plus QC tables and plots. By default, it also writes beta-density PDFs from the `MethQcSet` beta matrix and raw minfi density PDFs from `minfi::qcReport()` for all, PASS, and FAIL samples.
 
 ### Inputs
 
@@ -80,9 +80,9 @@ Rscript inst/scripts/run_meth_QC.R \
 | `--platform` | auto-detect | Override platform detection: EPIC, EPICv2, 450K, or 27K. |
 | `--pcutoff` / `-p` | 0.05 | Detection p-value threshold used for `Final.QC`. |
 | `--icutoff` / `-i` | 11 | Reference line for intensity plots only. Low intensity no longer fails `Final.QC`. |
-| `--plot-types` | intensity,qc_bar | QC plots: `intensity`, `detection_pval`, `qc_bar`, or `all`. |
+| `--plot-types` | intensity,detection_pval,probe_coverage,beta_density | QC plots: `intensity`, `detection_pval`, `probe_coverage`, `qc_bar`, `beta_density`, or `all`. |
 | `--no-qc-plots` | FALSE | Suppress QC plot generation. |
-| `--no-qc-report` | FALSE | Suppress default `{platform}_QC_densityPlot_all/pass/fail.pdf` files from `minfi::qcReport()`. |
+| `--no-qc-report` | FALSE | Suppress default QC report PDFs: root review PDFs plus secondary reports in `plots/`. |
 | `--skip-ewastools` | FALSE | Skip optional ewastools control metrics. |
 | `--verbose` / `-v` | FALSE | Print detailed progress messages. |
 
@@ -93,31 +93,46 @@ For an EPIC run, the output directory typically contains:
 ```text
 qc_results/
 +-- epic/
-|   +-- epic_qc_table_main.xlsx
-|   +-- epic_qc_table_extra.xlsx
-|   +-- epic_qcset.rds
-|   +-- epic_beta.txt
-|   +-- epic_meta.txt
-|   +-- epic_qc_matrix.txt
-|   +-- epic_qc_statistics.txt
 |   +-- epic_summary.txt
-|   +-- epic_QC_densityPlot_all.pdf        # default
-|   +-- epic_QC_densityPlot_pass.pdf       # default
-|   +-- epic_QC_densityPlot_fail.pdf       # default, if FAIL samples exist
+|   +-- epic_qc_table_main.xlsx
+|   +-- epic_QC_detection_pval.pdf         # default root review plot
+|   +-- epic_QC_probe_coverage.pdf         # default root review plot
+|   +-- epic_QC_minfiDensity_all.pdf       # default root minfi density report
+|   +-- data/
+|   |   +-- epic_qcset.rds
+|   |   +-- epic_beta.txt
+|   |   +-- epic_meta.txt
+|   +-- QC_tables/
+|   |   +-- epic_qc_table_extra.xlsx
+|   |   +-- epic_qc_matrix.txt
+|   |   +-- epic_qc_statistics.txt
+|   |   +-- epic_qc_recall_rate.txt
+|   |   +-- epic_qc_cutoffs.txt
+|   |   +-- epic_qc_ctrl_metrics.txt
+|   |   +-- epic_qc_contamination.txt
+|   |   +-- epic_qc_predUniqDonor_ID.txt
+|   |   +-- epic_qc_qc_report_files.txt
 |   +-- plots/
+|       +-- epic_QC_intensity.pdf
+|       +-- epic_QC_betaDensity_all.pdf    # cache-friendly
+|       +-- epic_QC_betaDensity_pass.pdf   # cache-friendly
+|       +-- epic_QC_betaDensity_fail.pdf   # if FAIL samples exist
+|       +-- epic_QC_minfiDensity_pass.pdf  # fresh IDAT QC only
+|       +-- epic_QC_minfiDensity_fail.pdf  # fresh IDAT QC only, if FAIL samples exist
 |       +-- qc_intensity.png
 |       +-- qc_detection_pval.png
-|       +-- qc_qc_bar.png
+|       +-- qc_probe_coverage.png
+|       +-- qc_beta_density.png
 +-- run_meth_QC.log
 ```
 
-The complete QC object is saved as `{platform}_qcset.rds`, for example:
+The complete QC object is saved as `data/{platform}_qcset.rds`, for example:
 
 ```text
-qc_results/epic/epic_qcset.rds
+qc_results/epic/data/epic_qcset.rds
 ```
 
-`run_meth_QC.R` reuses this cached RDS only when it is a `MethQcSet`, the platform matches, and the cached `Sample_Name` set matches the current metadata. PNG QC plots can be regenerated from cache, but default density-report PDFs require raw IDAT reload; remove the cached RDS to force a full rerun when density-report PDFs are needed. If the script warns that `runMethQC()` does not support density-report output, reinstall/update `imprintomeR` so the loaded package version matches the CLI script.
+`run_meth_QC.R` reuses this cached RDS only when it is a `MethQcSet`, the platform matches, and the cached `Sample_Name` set matches the current metadata. PNG QC plots and beta-density PDFs can be regenerated from cache. Raw minfi density PDFs require IDAT reload; remove the cached RDS to force a full rerun when `{platform}_QC_minfiDensity_*.pdf` files are needed. If the script warns that `runMethQC()` does not support density-report output, reinstall/update `imprintomeR` so the loaded package version matches the CLI script.
 
 ## Step 2: Imprintome Analysis CLI
 
@@ -127,7 +142,7 @@ qc_results/epic/epic_qcset.rds
 
 ```bash
 Rscript inst/scripts/run_imprintomeR.R \
-  -r qc_results/epic/epic_qcset.rds \
+  -r qc_results/epic/data/epic_qcset.rds \
   -o imprintome_results \
   --prefix GSE240091 \
   --probeset selected \
@@ -188,7 +203,7 @@ The beta matrix should have probes as rows and samples as columns. Metadata shou
 
 ```bash
 Rscript inst/scripts/run_imprintomeR.R \
-  -r qc_results/epic/epic_qcset.rds \
+  -r qc_results/epic/data/epic_qcset.rds \
   -o imprintome_results \
   --prefix GSE240091 \
   --plot-types circular_heatmap
@@ -254,7 +269,7 @@ Rscript inst/scripts/run_meth_QC.R \
   -v
 
 Rscript inst/scripts/run_imprintomeR.R \
-  -r GSE240091_qc/epic/epic_qcset.rds \
+  -r GSE240091_qc/epic/data/epic_qcset.rds \
   -o GSE240091_imprintome \
   --prefix GSE240091 \
   --probeset selected \
@@ -269,7 +284,7 @@ QC_SCRIPT=$(Rscript -e 'cat(system.file("scripts/run_meth_QC.R", package="imprin
 IMP_SCRIPT=$(Rscript -e 'cat(system.file("scripts/run_imprintomeR.R", package="imprintomeR"))')
 
 Rscript "$QC_SCRIPT" -m metadata.tsv -b /data/idats -o qc_results -v
-Rscript "$IMP_SCRIPT" -r qc_results/epic/epic_qcset.rds -o imprintome_results --prefix GSE240091 -v
+Rscript "$IMP_SCRIPT" -r qc_results/epic/data/epic_qcset.rds -o imprintome_results --prefix GSE240091 -v
 ```
 
 ## Troubleshooting
@@ -305,7 +320,7 @@ Some plots require enough samples, enough probes, or metadata columns such as `S
 After QC:
 
 ```text
-qc_results/<platform>/<platform>_qcset.rds
+qc_results/<platform>/data/<platform>_qcset.rds
 qc_results/<platform>/<platform>_qc_table_main.xlsx
 qc_results/<platform>/plots/
 ```

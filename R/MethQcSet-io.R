@@ -204,10 +204,15 @@ check_platform <- function(meta, max_retries = 5) {
 #'       `Platform` column in meta is ignored.}
 #'   }
 #' @param pcutoff Numeric. Maximum mean detection p-value to pass QC (default: 0.05).
-#' @param save_qc_report Logical. If `TRUE`, write `minfi::qcReport()`
-#'   density-report PDFs for all, PASS, and FAIL samples. Default: `TRUE`.
-#' @param outdir Directory for QC density-report PDFs. Default: `"."`.
-#' @param prefix Filename prefix for QC density-report PDFs. If `NULL`,
+#' @param save_qc_report Logical. If `TRUE`, write package-native QC plot PDFs
+#'   and density-report PDFs. Default: `TRUE`.
+#' @param plot_types Character vector or comma-separated string of package-native
+#'   QC plot types to write when `save_qc_report = TRUE`. The default is
+#'   `c("intensity", "detection_pval", "probe_coverage", "beta_density")`; beta density writes
+#'   all, PASS, and FAIL sample PDFs. Use `NULL`, `character(0)`, or `"none"`
+#'   to skip package-native QC plot PDFs.
+#' @param outdir Directory for QC plot/report PDFs. Default: `"."`.
+#' @param prefix Filename prefix for QC plot/report PDFs. If `NULL`,
 #'   the resolved platform name is used.
 #' @param ... Additional arguments passed to `minfi::read.metharray.exp()`.
 #'
@@ -225,7 +230,12 @@ check_platform <- function(meta, max_retries = 5) {
 #' meta <- read.table("meta.tsv", header = TRUE, sep = "\t")
 #' qcset <- runMethQC(meta, platform = "EPIC")
 #'
-#' # Default minfi density-report PDFs:
+#' # Default QC plot/report PDFs:
+#' #   epic_QC_detection_pval.pdf, epic_QC_probe_coverage.pdf
+#' #   epic_QC_minfiDensity_all.pdf
+#' #   plots/epic_QC_intensity.pdf
+#' #   plots/epic_QC_betaDensity_all/pass/fail.pdf
+#' #   plots/epic_QC_minfiDensity_pass/fail.pdf
 #' qcset <- runMethQC(meta, platform = "EPIC",
 #'                    outdir = "qc_output",
 #'                    prefix = "epic")
@@ -246,7 +256,9 @@ check_platform <- function(meta, max_retries = 5) {
 #'
 #' @export
 runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
-                      save_qc_report = TRUE, outdir = ".", prefix = NULL, ...) {
+                      save_qc_report = TRUE,
+                      plot_types = c("intensity", "detection_pval", "probe_coverage", "beta_density"),
+                      outdir = ".", prefix = NULL, ...) {
   if (!is.data.frame(meta)) stop("meta must be a data.frame.")
 
   # ------------------------------------------------------------------
@@ -414,7 +426,7 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
   }
 
   # ------------------------------------------------------------------
-  # Step 9: minfi density-report PDFs
+  # Step 9: default package QC plots and minfi density-report PDFs
   # ------------------------------------------------------------------
   if (isTRUE(save_qc_report)) {
     report_prefix <- prefix
@@ -422,14 +434,61 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
       report_prefix <- tolower(as.character(resolved_platform))
     }
     report_prefix <- as.character(report_prefix)[1]
-    report_df <- .write_methqc_density_reports(
+
+    plots_outdir <- file.path(outdir, "plots")
+    root_plot_types <- intersect(.normalize_methqc_plot_types(plot_types), c("detection_pval", "probe_coverage"))
+    secondary_plot_types <- setdiff(.normalize_methqc_plot_types(plot_types), root_plot_types)
+
+    root_plot_report_df <- tryCatch({
+      .write_methqc_qc_plot_reports(
+        x = qcset,
+        outdir = outdir,
+        prefix = report_prefix,
+        plot_types = root_plot_types,
+        pcutoff = pcutoff
+      )
+    }, error = function(e) {
+      warning("Primary QC plot reports skipped: ", conditionMessage(e))
+      data.frame(
+        report_type = "qc_plot",
+        report = as.character(root_plot_types),
+        file = NA_character_,
+        status = "failed",
+        message = conditionMessage(e),
+        stringsAsFactors = FALSE
+      )
+    })
+
+    secondary_plot_report_df <- tryCatch({
+      .write_methqc_qc_plot_reports(
+        x = qcset,
+        outdir = plots_outdir,
+        prefix = report_prefix,
+        plot_types = secondary_plot_types,
+        pcutoff = pcutoff
+      )
+    }, error = function(e) {
+      warning("Secondary QC plot reports skipped: ", conditionMessage(e))
+      data.frame(
+        report_type = "qc_plot",
+        report = as.character(secondary_plot_types),
+        file = NA_character_,
+        status = "failed",
+        message = conditionMessage(e),
+        stringsAsFactors = FALSE
+      )
+    })
+    plot_report_df <- rbind(root_plot_report_df, secondary_plot_report_df)
+
+    minfi_report_df <- .write_methqc_density_reports(
       rgSet = rgSet,
       meta = meta,
       qcm = qcset@qc_tables[["QC_matrix"]],
       outdir = outdir,
-      prefix = report_prefix
+      prefix = report_prefix,
+      secondary_outdir = plots_outdir
     )
-    qcset@qc_tables[["qc_report_files"]] <- report_df
+    qcset@qc_tables[["qc_report_files"]] <- rbind(plot_report_df, minfi_report_df)
   }
 
   n_pass <- sum(qcset@qc_tables[["QC_matrix"]]$Final.QC == "PASS", na.rm = TRUE)
@@ -441,14 +500,15 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
 
 
 # ============================================================================
-# .write_methqc_density_reports() - Internal: optional minfi qcReport PDFs
+# .write_methqc_density_reports() - Internal: minfi qcReport PDFs
 # ============================================================================
 
 #' @keywords internal
-.write_methqc_density_reports <- function(rgSet, meta, qcm, outdir, prefix) {
+.write_methqc_density_reports <- function(rgSet, meta, qcm, outdir, prefix, secondary_outdir = NULL) {
   if (!requireNamespace("minfi", quietly = TRUE)) {
     warning("minfi is required to write QC density reports.")
     return(data.frame(
+      report_type = character(0),
       report = character(0),
       file = character(0),
       status = character(0),
@@ -459,6 +519,12 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
 
   if (!dir.exists(outdir)) {
     dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
+  }
+  if (is.null(secondary_outdir)) {
+    secondary_outdir <- outdir
+  }
+  if (!dir.exists(secondary_outdir)) {
+    dir.create(secondary_outdir, recursive = TRUE, showWarnings = FALSE)
   }
 
   n_samples <- ncol(rgSet)
@@ -479,11 +545,13 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
   if (length(sample_groups) != n_samples) sample_groups <- rep("All", n_samples)
 
   write_one <- function(report, idx) {
-    out_file <- file.path(outdir, paste0(prefix, "_QC_densityPlot_", report, ".pdf"))
+    report_outdir <- if (identical(report, "all")) outdir else secondary_outdir
+    out_file <- file.path(report_outdir, paste0(prefix, "_QC_minfiDensity_", report, ".pdf"))
     if (length(idx) == 0) {
       msg <- paste0("No ", report, " samples; skipped.")
       message(msg)
       return(data.frame(
+        report_type = "minfi_density",
         report = report,
         file = out_file,
         status = "skipped",
@@ -500,6 +568,7 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
         pdf = out_file
       )
       data.frame(
+        report_type = "minfi_density",
         report = report,
         file = out_file,
         status = "saved",
@@ -510,6 +579,7 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
       msg <- conditionMessage(e)
       warning("QC density report skipped for ", report, ": ", msg)
       data.frame(
+        report_type = "minfi_density",
         report = report,
         file = out_file,
         status = "failed",
