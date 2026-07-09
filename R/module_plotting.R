@@ -1904,6 +1904,31 @@ VennDiagram <- function(vennList,setNames=NULL, style="venn", prefix=NULL){
 ##################################################################
 #================================================================
 
+.imprint_get_nonempty_legend_grob <- function(plot_obj) {
+  gt <- ggplot2::ggplotGrob(plot_obj)
+  guide_idx <- which(grepl("^guide-box", gt$layout$name))
+  if (length(guide_idx) == 0L) {
+    return(NULL)
+  }
+
+  for (idx in guide_idx) {
+    guide <- gt$grobs[[idx]]
+    if (inherits(guide, "zeroGrob")) {
+      next
+    }
+    if (!is.null(guide$grobs) && length(guide$grobs) > 0L) {
+      non_empty_children <- vapply(guide$grobs, function(child) !inherits(child, "zeroGrob"), logical(1))
+      if (any(non_empty_children)) {
+        return(guide)
+      }
+    }
+  }
+
+  NULL
+}
+
+#================================================================
+
 #' Plot Imprintome Polar Coordinates
 #'
 #' @param data Data frame containing `Angle` and `IDS` plus grouping columns.
@@ -2062,7 +2087,7 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
             legend.title = element_text(size = legend.text.size + 1)
           ) +
           guides(fill = guide_legend(ncol = legend.ncol, byrow = TRUE))
-        legend_grob <- suppressWarnings(cowplot::get_legend(pg_with_legend))
+        legend_grob <- .imprint_get_nonempty_legend_grob(pg_with_legend)
 
         pdf_opened <- FALSE
         grDevices::pdf(outFile, width = plotWidth, height = plotHeight)
@@ -2072,6 +2097,8 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
         if (!is.null(legend_grob)) {
           grid::grid.newpage()
           grid::grid.draw(legend_grob)
+        } else {
+          warning("Could not extract a non-empty polar legend; saving plot page without legend page.", call. = FALSE)
         }
         grDevices::dev.off()
         pdf_opened <- FALSE
