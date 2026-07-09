@@ -24,8 +24,10 @@
 \item \code{title}: plot title (default \code{"ImprintomeR:Polar"}).
 \item \code{palette}: palette passed to \code{PlotPolar()} (default \code{"default"}).
 \item \code{alpha}: point alpha passed to \code{PlotPolar()} (default \code{0.5}).
+\item \code{legend.position}, \code{legend.nrow}, \code{legend.ncol}, \code{legend.page}, \code{legend.page.threshold}, \code{legend.text.size}: optional polar legend controls passed to \code{PlotPolar()}; crowded PDF legends can be written to a separate legend-only page with \code{legend.page = TRUE} or \code{legend.page = "auto"}.
 \item \code{SAMPLEID}: metadata column used for sample labels in selected plot types
 (default \code{"Sample_Name"}).
+\item \code{max_samples}: maximum number of samples shown by \code{plot_type = "beeswarm_origin"} (default \code{100}; use \code{Inf} to plot all).
 \item \code{probeset}: probeset name used by \code{"mirror_density"}, \code{"beeswarm"},
 \code{"violin"}, \code{"heatmap_by_probe"}, \code{"heatmap_by_gene"}, \verb{"circular_heatmap",}
 \code{"cor_heatmap"}, \code{"rainfall"}, and \code{"radar"} (default \code{"selected"}).

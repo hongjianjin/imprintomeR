@@ -9,8 +9,15 @@ PlotPolar(
   outFile = NULL,
   colorColumn = "Sample_Group",
   title = "ImprintomeR:Polar",
+  subtitle = NULL,
   palette = "default",
-  alpha = 0.5
+  alpha = 0.8,
+  legend.position = "auto",
+  legend.nrow = NULL,
+  legend.ncol = NULL,
+  legend.page = "auto",
+  legend.page.threshold = 16,
+  legend.text.size = 8
 )
 }
 \arguments{
@@ -22,9 +29,23 @@ PlotPolar(
 
 \item{title}{Plot title.}
 
+\item{subtitle}{Optional plot subtitle.}
+
 \item{palette}{Palette name passed to \code{GetColors()}.}
 
 \item{alpha}{Point alpha.}
+
+\item{legend.position}{Legend position. Use \code{"auto"} to place small legends at the bottom and large legends on a separate PDF page when exporting.}
+
+\item{legend.nrow}{Number of legend rows for bottom legends. \code{NULL} uses an automatic value based on the number of groups.}
+
+\item{legend.ncol}{Number of legend columns for separate legend pages. \code{NULL} uses an automatic value based on the number of groups.}
+
+\item{legend.page}{Logical or \code{"auto"}; when saving a PDF, write crowded legends to a second legend-only page.}
+
+\item{legend.page.threshold}{Number of groups above which \code{"auto"} uses a separate legend page for PDF export.}
+
+\item{legend.text.size}{Legend text size.}
 }
 \value{
 A ggplot object.

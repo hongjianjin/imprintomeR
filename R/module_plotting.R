@@ -1912,9 +1912,23 @@ VennDiagram <- function(vennList,setNames=NULL, style="venn", prefix=NULL){
 #' @param title Plot title.
 #' @param palette Palette name passed to `GetColors()`.
 #' @param alpha Point alpha.
+#' @param legend.position Legend position. Use "auto" to place small legends
+#'   at the bottom and large legends on a separate PDF page when exporting.
+#' @param legend.nrow Number of legend rows for bottom legends. NULL uses an
+#'   automatic value based on the number of groups.
+#' @param legend.ncol Number of legend columns for separate legend pages.
+#'   NULL uses an automatic value based on the number of groups.
+#' @param legend.page Logical or "auto"; when saving a PDF, write crowded
+#'   legends to a second legend-only page.
+#' @param legend.page.threshold Number of groups above which "auto" uses a
+#'   separate legend page for PDF export.
+#' @param legend.text.size Legend text size.
 #'
 #' @return A ggplot object.
-PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="ImprintomeR:Polar", subtitle=NULL, palette="default", alpha=0.8) {
+PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="ImprintomeR:Polar", subtitle=NULL,
+                      palette="default", alpha=0.8, legend.position="auto", legend.nrow=NULL,
+                      legend.ncol=NULL, legend.page="auto", legend.page.threshold=16,
+                      legend.text.size=8) {
   library(ggplot2)
   options(bitmapType = "cairo")
 
@@ -1952,6 +1966,30 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
   uniqCombs <- data.frame(COLOR = unname(group_colors), GROUP = names(group_colors), stringsAsFactors = FALSE)
   # sort chr1, chr2...
   data[,colorColumn] <- factor( data[,colorColumn], levels=stringr::str_sort( unique(data[,colorColumn]), numeric = TRUE) )
+
+  legend.position <- match.arg(as.character(legend.position)[1], c("auto", "bottom", "right", "none"))
+  if (is.character(legend.page)) {
+    legend.page <- match.arg(as.character(legend.page)[1], c("auto", "TRUE", "FALSE", "true", "false"))
+  }
+  use_legend_page <- FALSE
+  if (is.character(legend.page) && identical(tolower(legend.page), "auto")) {
+    use_legend_page <- !is.null(outFile) && grepl("\\.pdf$", outFile, ignore.case = TRUE) &&
+      legend.position %in% c("auto", "bottom") && n_groups > legend.page.threshold
+  } else {
+    use_legend_page <- isTRUE(as.logical(legend.page))
+  }
+
+  resolved_legend_position <- legend.position
+  if (identical(resolved_legend_position, "auto")) {
+    resolved_legend_position <- if (isTRUE(use_legend_page)) "none" else "bottom"
+  }
+
+  if (is.null(legend.nrow) && identical(resolved_legend_position, "bottom")) {
+    legend.nrow <- max(1L, ceiling(n_groups / 8L))
+  }
+  if (is.null(legend.ncol)) {
+    legend.ncol <- max(1L, min(4L, ceiling(n_groups / 12L)))
+  }
 
   dotSize <-  max(3, 8/log10(nrow(data)+10)) # 4/log10(nrow(data)+10)
   imgSize <-  ifelse(nrow(data) >1000, 12, 8)
@@ -2000,13 +2038,46 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
       subtitle = subtitle,
       x = NULL, y = NULL
     )+
-    theme( legend.position = "bottom"  ) +
-    guides( fill = guide_legend(nrow = 2))
+    theme(
+      legend.position = resolved_legend_position,
+      legend.text = element_text(size = legend.text.size),
+      legend.title = element_text(size = legend.text.size + 1),
+      legend.box.margin = margin(4, 4, 4, 4)
+    )
+
+    if (identical(resolved_legend_position, "bottom")) {
+      pg <- pg + guides(fill = guide_legend(nrow = legend.nrow, byrow = TRUE))
+    } else if (identical(resolved_legend_position, "right")) {
+      pg <- pg + guides(fill = guide_legend(ncol = 1, byrow = TRUE))
+    }
 
     if(!is.null(outFile)){
       plotWidth <- 8
       plotHeight <- 8
-      .imprint_save_plot(pg, outFile = outFile, width = plotWidth, height = plotHeight, units = "in", limitsize = TRUE)
+      if (isTRUE(use_legend_page)) {
+        pg_with_legend <- pg +
+          theme(
+            legend.position = "bottom",
+            legend.text = element_text(size = legend.text.size),
+            legend.title = element_text(size = legend.text.size + 1)
+          ) +
+          guides(fill = guide_legend(ncol = legend.ncol, byrow = TRUE))
+        legend_grob <- suppressWarnings(cowplot::get_legend(pg_with_legend))
+
+        pdf_opened <- FALSE
+        grDevices::pdf(outFile, width = plotWidth, height = plotHeight)
+        pdf_opened <- TRUE
+        on.exit(if (isTRUE(pdf_opened)) grDevices::dev.off(), add = TRUE)
+        print(pg + theme(legend.position = "none"))
+        if (!is.null(legend_grob)) {
+          grid::grid.newpage()
+          grid::grid.draw(legend_grob)
+        }
+        grDevices::dev.off()
+        pdf_opened <- FALSE
+      } else {
+        .imprint_save_plot(pg, outFile = outFile, width = plotWidth, height = plotHeight, units = "in", limitsize = TRUE)
+      }
     }
     return(pg)
 }

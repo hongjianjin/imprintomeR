@@ -18,8 +18,14 @@
 #'   - `title`: plot title (default `"ImprintomeR:Polar"`).
 #'   - `palette`: palette passed to `PlotPolar()` (default `"default"`).
 #'   - `alpha`: point alpha passed to `PlotPolar()` (default `0.5`).
+#'   - `legend.position`, `legend.nrow`, `legend.ncol`, `legend.page`,
+#'     `legend.page.threshold`, `legend.text.size`: optional polar legend controls
+#'     passed to `PlotPolar()`; crowded PDF legends can be written to a
+#'     separate legend-only page with `legend.page = TRUE` or `legend.page = "auto"`.
 #'   - `SAMPLEID`: metadata column used for sample labels in selected plot types
 #'     (default `"Sample_Name"`).
+#'   - `max_samples`: maximum number of samples shown by
+#'     `plot_type = "beeswarm_origin"` (default `100`; use `Inf` to plot all).
 #'   - `probeset`: probeset name used by `"mirror_density"`, `"beeswarm"`,
 #'     `"violin"`, `"heatmap_by_probe"`, `"heatmap_by_gene"`, `"circular_heatmap",`
 #'     `"cor_heatmap"`, `"rainfall"`, and `"radar"` (default `"selected"`).
@@ -165,7 +171,7 @@ if (!methods::isGeneric("plot")) {
 
 .imprint_beeswarm_origin <- function(beta_x, meta_x, SAMPLEID, probeset_name, alpha = 0.5,
                                      outFile = NULL, width = NULL, height = NULL,
-                                     title = "ImprintomeR: Beeswarm Origin") {
+                                     title = "ImprintomeR: Beeswarm Origin", max_samples = 100) {
   if (!is.data.frame(meta_x) || !all(c("Sample_Name", SAMPLEID) %in% colnames(meta_x))) {
     stop("plot_type='beeswarm_origin' requires meta(x) with Sample_Name and ", SAMPLEID, " columns.")
   }
@@ -179,6 +185,20 @@ if (!methods::isGeneric("plot")) {
   valid_ids <- intersect(as.character(meta_x$Sample_Name), colnames(beta_x))
   if (length(valid_ids) == 0L) {
     stop("plot_type='beeswarm_origin' requires overlapping sample IDs between beta(x) and meta(x)$Sample_Name.")
+  }
+
+  n_valid_ids <- length(valid_ids)
+  max_samples <- as.numeric(max_samples)[1]
+  if (is.na(max_samples) || max_samples <= 0) {
+    max_samples <- Inf
+  }
+  if (is.finite(max_samples) && n_valid_ids > max_samples) {
+    max_samples <- as.integer(max_samples)
+    valid_ids <- valid_ids[seq_len(max_samples)]
+    message(
+      "plot_type='beeswarm_origin' uses the first ", max_samples,
+      " of ", n_valid_ids, " matched samples. Set max_samples = Inf to plot all samples."
+    )
   }
 
   meta_sub <- meta_x[match(valid_ids, as.character(meta_x$Sample_Name)), , drop = FALSE]
@@ -397,10 +417,17 @@ methods::setMethod(
     title <- .imprint_get_arg_chr(args, "title", default_title)
     palette <- .imprint_get_arg_chr(args, "palette", "default")
     alpha <- if (!is.null(args$alpha)) as.numeric(args$alpha)[1] else 0.5
+    legend.position <- .imprint_get_arg_chr(args, "legend.position", "auto")
+    legend.nrow <- if (!is.null(args$legend.nrow)) as.integer(args$legend.nrow)[1] else NULL
+    legend.ncol <- if (!is.null(args$legend.ncol)) as.integer(args$legend.ncol)[1] else NULL
+    legend.page <- if (!is.null(args$legend.page)) args$legend.page[[1]] else "auto"
+    legend.page.threshold <- if (!is.null(args$legend.page.threshold)) as.numeric(args$legend.page.threshold)[1] else 16
+    legend.text.size <- if (!is.null(args$legend.text.size)) as.numeric(args$legend.text.size)[1] else 8
     outFile <- .imprint_get_arg_chr(args, "outFile", NULL)
     width <- if (!is.null(args$width)) as.numeric(args$width)[1] else 10
     height <- if (!is.null(args$height)) as.numeric(args$height)[1] else 10
     SAMPLEID <- .imprint_get_arg_chr(args, "SAMPLEID", "Sample_Name")
+    max_samples <- if (!is.null(args$max_samples)) as.numeric(args$max_samples)[1] else 100
 
     sample_id <- .imprint_get_arg_chr(args, "sample_id", NULL)
     chr_focus <- .imprint_get_arg_chr(args, "chr", NULL)
@@ -485,7 +512,13 @@ methods::setMethod(
           colorColumn = colorColumn,
           title = title,
           palette = palette,
-          alpha = alpha
+          alpha = alpha,
+          legend.position = legend.position,
+          legend.nrow = legend.nrow,
+          legend.ncol = legend.ncol,
+          legend.page = legend.page,
+          legend.page.threshold = legend.page.threshold,
+          legend.text.size = legend.text.size
         )
       )
     }
@@ -511,7 +544,13 @@ methods::setMethod(
           title = title,
           subtitle = paste0("Probeset: ", probeset_name),
           palette = palette,
-          alpha = alpha
+          alpha = alpha,
+          legend.position = legend.position,
+          legend.nrow = legend.nrow,
+          legend.ncol = legend.ncol,
+          legend.page = legend.page,
+          legend.page.threshold = legend.page.threshold,
+          legend.text.size = legend.text.size
         )
       )
     }
@@ -555,7 +594,8 @@ methods::setMethod(
           outFile = outFile,
           width = width,
           height = height,
-          title = title
+          title = title,
+          max_samples = max_samples
         )
       )
     }
