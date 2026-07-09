@@ -2086,7 +2086,7 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
 
 MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
                                   probeset = probeset_options,
-                                  outFile = NULL ) {
+                                  outFile = NULL, max_samples = 100 ) {
     library(ggplot2)
     suppressMessages(suppressWarnings(library(dplyr)))
     library(tidyr)
@@ -2113,6 +2113,20 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
       cat("\nERROR: beta column does not match meta$Sample_Name. \n")
       return(NULL)
     }
+    n_valid_ids <- length(validIds)
+    max_samples <- as.numeric(max_samples)[1]
+    if (is.na(max_samples) || max_samples <= 0) {
+      max_samples <- Inf
+    }
+    if (is.finite(max_samples) && n_valid_ids > max_samples) {
+      max_samples <- as.integer(max_samples)
+      validIds <- validIds[seq_len(max_samples)]
+      message(
+        "plot_type='mirror_density' uses the first ", max_samples,
+        " of ", n_valid_ids, " matched samples. Set max_samples = Inf to plot all samples."
+      )
+    }
+
     meta <- meta[meta$Sample_Name %in% validIds, , drop = FALSE]
     beta <- beta[, validIds, drop = FALSE]
     meta$SAMPLEID <- meta[,SAMPLEID]

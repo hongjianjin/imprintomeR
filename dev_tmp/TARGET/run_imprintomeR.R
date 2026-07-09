@@ -43,7 +43,7 @@ option_list <- list(
         help = "Comma-separated plot types, or default/all. Supported: polar, beeswarm, beeswarm_origin, beeswarm_chr, heatmap_by_probe, heatmap_by_gene, circular_heatmap, rainfall, radar, mirror_density, violin, cor_heatmap [default: %default]"),
 
     make_option(c("--beeswarm-origin-max-samples"), type = "double", default = 100,
-        help = "Maximum samples to show in beeswarm_origin plots; use Inf to plot all [default: %default]"),
+        help = "Maximum samples to show in beeswarm_origin and mirror_density plots; use Inf to plot all [default: %default]"),
 
     make_option(c("--ids-cutoff"), type = "double", default = 0.2,
         help = "IDS cutoff threshold for plot filtering [default: %default]"),
@@ -705,9 +705,9 @@ tryCatch({
     }
 
     sample_id <- colnames(beta(imp_set))[1]
-    if (verbose && any(plot_types %in% c("default", "all", "beeswarm_origin"))) {
+    if (verbose && any(plot_types %in% c("default", "all", "beeswarm_origin", "mirror_density"))) {
         cap_label <- if (is.infinite(beeswarm_origin_max_samples)) "all" else as.character(beeswarm_origin_max_samples)
-        .log_message(paste0("  beeswarm_origin sample display cap: ", cap_label), verbose = verbose)
+        .log_message(paste0("  beeswarm_origin/mirror_density sample display cap: ", cap_label), verbose = verbose)
     }
 
     imp_set <- tryCatch({

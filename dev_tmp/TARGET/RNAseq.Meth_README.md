@@ -16,7 +16,7 @@ Rscript /home/hjin/projects/imprintomeR1/dev_tmp/TARGET/run_imprintomeR.R \
   -v
 ```
 
-`beeswarm_origin` plots are capped at the first 100 matched samples by default to keep large TARGET cohorts responsive. Override with `--beeswarm-origin-max-samples Inf` to plot all samples or another positive number to set a different cap.
+`beeswarm_origin` and `mirror_density` plots are capped at the first 100 matched samples by default to keep large TARGET cohorts responsive. Override with `--beeswarm-origin-max-samples Inf` to plot all samples or another positive number to set a different cap.
 
 The heatmap-by-gene beta matrix used for RNA-seq integration should be exported as:
 

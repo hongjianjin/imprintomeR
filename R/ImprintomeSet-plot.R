@@ -25,7 +25,8 @@
 #'   - `SAMPLEID`: metadata column used for sample labels in selected plot types
 #'     (default `"Sample_Name"`).
 #'   - `max_samples`: maximum number of samples shown by
-#'     `plot_type = "beeswarm_origin"` (default `100`; use `Inf` to plot all).
+#'     `plot_type = "beeswarm_origin"` or `plot_type = "mirror_density"`
+#'     (default `100`; use `Inf` to plot all).
 #'   - `probeset`: probeset name used by `"mirror_density"`, `"beeswarm"`,
 #'     `"violin"`, `"heatmap_by_probe"`, `"heatmap_by_gene"`, `"circular_heatmap",`
 #'     `"cor_heatmap"`, `"rainfall"`, and `"radar"` (default `"selected"`).
@@ -562,7 +563,8 @@ methods::setMethod(
           metaFile = meta_x,
           SAMPLEID = SAMPLEID,
           probeset = probeset_name,
-          outFile = outFile
+          outFile = outFile,
+          max_samples = max_samples
         )
       )
     }
