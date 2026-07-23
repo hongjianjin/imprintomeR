@@ -274,6 +274,41 @@ manifest <- export(x, outdir = "imprintome_export", prefix = "imprintome", save_
 
 For WGBS, ONT, or other sequencing-based methylation data, summarize methylation over curated imprinted regions first, then run imprintomeR on the region-level beta table. This path bypasses `MethQcSet` because raw array IDAT QC is not applicable.
 
+### Prepare Region Beta Table
+
+Create an imprintomeR-compatible beta table with `chr`, `start`, `end`, and one column per sample. Common routes are:
+
+```bash
+# wgbstools region summary
+wgbstools beta_to_table \
+  --betas *.beta \
+  --output Rosenski_iDMRs_mean_beta.hg19.tsv \
+  Rosenski_refined_iDMRs_hg19.withCpG.bed
+
+# ONT/modkit bedMethyl files
+Rscript inst/scripts/parse_ONT_bedMethyl.R \
+  --bedmethyl "./*/*.bedmethyl.gz" \
+  --regions inst/extdata/Rosenski_refined_iDMRs_hg38.bed \
+  --outdir ont_bedmethyl_region_beta \
+  --prefix ONT_Rosenski_hg38 \
+  --jobs 8 \
+  -v
+
+# Short-read WGBS methylation calls
+Rscript inst/scripts/parse_WGBS_to_region_beta.R \
+  --input "*.cov.gz" \
+  --format bismark_coverage \
+  --genome hg38 \
+  --outdir wgbs_region_beta \
+  --prefix WGBS_Rosenski_hg38 \
+  --jobs 8 \
+  -v
+```
+
+See [wgbs-region-workflow.Rmd](vignettes/wgbs-region-workflow.Rmd) for detailed examples covering wgbstools, ONT bedMethyl, Bismark coverage/cytosine reports, `wgbstools beta2bed`, metadata creation, visualization, and export.
+
+### Run imprintomeR
+
 ```r
 library(imprintomeR)
 
@@ -320,8 +355,6 @@ Rscript inst/scripts/run_imprintomeR.R \
   --plot-types default \
   -v
 ```
-
-Region beta tables can be generated from WGBS-style text files with `inst/scripts/parse_WGBS_to_region_beta.R`, from ONT/modkit bedMethyl files with `inst/scripts/parse_ONT_bedMethyl.R`, or from wgbstools summaries such as `wgbstools beta_to_table`.
 
 ## Detailed Examples
 

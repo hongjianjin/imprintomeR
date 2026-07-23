@@ -1,6 +1,6 @@
 ---
 title: "WGBS Region-Level Imprinting Workflow"
-subtitle: "Using wgbstools beta_to_table output with Rosenski_region"
+subtitle: "Using wgbstools or ONT bedMethyl region beta output with Rosenski_region"
 author: "imprintomeR contributors"
 date: "`r Sys.Date()`"
 output:
@@ -27,21 +27,21 @@ knitr::opts_chunk$set(
 
 ## Overview
 
-This vignette demonstrates the region-level WGBS workflow added for Rosenski-style imprinting regions. It starts from a `wgbstools beta_to_table` output table rather than Illumina array beta values.
+This vignette demonstrates the region-level WGBS/ONT workflow added for Rosenski-style imprinting regions. It starts from region-level beta tables, such as `wgbstools beta_to_table` output or ONT/modkit bedMethyl summaries, rather than Illumina array beta values.
 
 You will:
 
-1. Load a region-level beta table from `wgbstools beta_to_table`
+1. Generate or load a region-level beta table from `wgbstools beta_to_table`, ONT/modkit bedMethyl files, or another supported methylation-call format
 2. Align regions to `probesets_<genome>.rds[["Rosenski_region"]]`
 3. Create a WGBS-backed `ImprintomeSet`
 4. Run `runImprintome()` with `probeset = "Rosenski_region"`
 5. Generate the region-safe default visualizations
 
-This workflow is intended for **aggregated region-level methylation values**. For CpG-level WGBS extraction, see the `wgbstools_beta_subset.py` helper workflow.
+This workflow is intended for **aggregated region-level methylation values**. For CpG-level WGBS extraction, see the `wgbstools_beta_subset.py` helper workflow. For ONT/modkit bedMethyl files, use `inst/scripts/parse_ONT_bedMethyl.R` to create the same region-level beta table format.
 
 ---
 
-## Phase 1: Prepare wgbstools Region Beta Table
+## Phase 1A: Prepare wgbstools Region Beta Table
 
 The input is the standard `wgbstools beta_to_table` table. Its first columns are genomic interval coordinates and CpG-index bounds; remaining columns are samples.
 
@@ -69,10 +69,212 @@ Expected columns:
 chr  start  end  startCpG  endCpG  sample1  sample2  ...
 ```
 
+---
+
+## Phase 1B: Parse ONT BedMethyl Files
+
+For Oxford Nanopore/modkit bedMethyl-style outputs, use `parse_ONT_bedMethyl.R` to summarize CpG-level 5mC calls over the hg38 Rosenski refined iDMR regions and create an imprintomeR-compatible region beta table.
+
+The parser:
+
+- Intersects each bedMethyl file with `Rosenski_refined_iDMRs_hg38.bed`.
+- Keeps only modified-base code `m`, corresponding to 5mC.
+- Combines modified and valid coverage counts across phased files belonging to the same sample.
+- Writes intermediate sample-region counts and a final beta matrix for `run_imprintomeR.R -B`.
+
+Input bedMethyl files should follow the common modkit/bedMethyl-style layout:
+
+```text
+chr1  10468  10469  m  80  .  10468  10469  255,0,0  80  21.25  17  63  0  2  911  11
+chr1  10468  10469  h  80  .  10468  10469  255,0,0  80   0.00   0  17  63 2  911  11
+```
+
+The default parser columns are:
+
+- column 1: chromosome
+- columns 2-3: 0-based genomic interval
+- column 4: modified-base code; only `m` is kept by default
+- column 10: valid coverage, used as `N_valid_cov`
+- column 12: modified count, used as `N_mod`
+
+Rows with other modified-base codes, such as `h`, are ignored unless `--mod-code` is changed.
+
+Example command for files one directory below the current directory:
+
+```{bash parse-ont-bedmethyl, eval = FALSE}
+Rscript /PATH/TO/imprintomeR/scripts/parse_ONT_bedMethyl.R \
+  --bedmethyl "./*/*.bedmethyl.gz" \
+  --regions /PATH/TO/imprintomeR/extdata/Rosenski_refined_iDMRs_hg38.bed \
+  --outdir ont_bedmethyl_region_beta \
+  --prefix ONT_Rosenski_hg38 \
+  --jobs 8 \
+  -v
+```
+
+`"./*/*.bedmethyl.gz"` matches phased files such as:
+
+```text
+sample1/sample1.HP1.bedmethyl.gz
+sample1/sample1.HP2.bedmethyl.gz
+sample2/sample2.HP1.bedmethyl.gz
+sample2/sample2.HP2.bedmethyl.gz
+```
+
+It also matches non-phased files when each sample has its own directory:
+
+```text
+sample1/mods.bedmethyl.gz
+sample2/mods.bedmethyl.gz
+```
+
+For generic filenames, non-phased files such as `mods.bedmethyl.gz` or `wf_mods.bedmethyl.gz` use the parent directory as `Sample_Name`. Phased file pairs such as `mods.1.bedmethyl.gz` / `mods.2.bedmethyl.gz` or `wf_mods.1.bedmethyl.gz` / `wf_mods.2.bedmethyl.gz` also use the parent directory as `Sample_Name`, so counts are combined for the same sample. Do not use `"./*/.bedmethyl.gz"` unless the files are literally named `.bedmethyl.gz`.
+
+Main outputs:
+
+- `{prefix}_sample_map.tsv`: maps input files to inferred `Sample_Name` values.
+- `{prefix}_file_region_counts.tsv`: one row per input file and region before phase/sample merging.
+- `{prefix}_sample_region_counts.tsv`: combined counts after files with the same `Sample_Name` are merged.
+- `{prefix}_beta.tsv`: final imprintomeR-compatible region beta table.
+
+The final beta table has coordinate columns followed by sample beta columns:
+
+```text
+chr  start  end  sample1  sample2  sample3
+chr11  2016392  2022700  0.519342  0.486019  0.827114
+chr11  2721224  2729557  0.504831  0.492771  0.218806
+```
+
+For ONT bedMethyl, region beta is calculated as:
+
+```text
+sum(N_mod) / sum(N_valid_cov)
+```
+
+Missing or non-numeric count values are coerced to `0` by the AWK parser. If a row has valid coverage but a missing or non-numeric methylated count, beta may be biased downward.
+
+Run the imprinting workflow with the generated hg38 beta table:
+
+```{bash run-ont-cli, eval = FALSE}
+Rscript /PATH/TO/imprintomeR/scripts/run_imprintomeR.R \
+  -B ont_bedmethyl_region_beta/ONT_Rosenski_hg38_beta.tsv \
+  -m ONT_meta.txt \
+  -o ONT_imprintome_results \
+  --prefix ONT_Rosenski_hg38 \
+  --probeset Rosenski_region \
+  --genome hg38 \
+  --plot-types default \
+  -v
+```
+
+For phased files with names that do not collapse cleanly to one sample ID, provide `--sample-map` with columns `file` and `Sample_Name`. For large cohorts, use `--jobs` to process multiple bedMethyl files in parallel on Linux/HPC; start with `--jobs 8` or `--jobs 12`, then adjust based on queue limits, I/O performance, and available CPU cores.
 
 ---
 
-## Phase 2: Load WGBS Region Beta Values
+## Phase 1C: Parse Short-Read WGBS Calls To Region Beta
+
+For short-read WGBS methylation call files, use `parse_WGBS_to_region_beta.R` to summarize CpG-level calls over Rosenski refined iDMR regions and create the same imprintomeR-compatible region beta table used by the ONT workflow.
+
+Supported input formats:
+
+- `bismark_coverage`: Bismark coverage/bedGraph-style files. The parser uses columns 1-3 as `chr/start/end`, column 5 as methylated count, and column 6 as unmethylated count.
+
+```text
+chr1  10468  10469  66.6667  8  4
+```
+
+- `bismark_cytosine`: Bismark cytosine report files. The parser converts the 1-based cytosine position to a BED interval, keeps the requested context (`CG` by default), and uses columns 4-5 as methylated/unmethylated counts.
+
+```text
+chr1  10469  +  8  4  CG  CGA
+```
+
+- `wgbstools_beta2bed`: text BED output generated from `wgbstools beta2bed`. The parser uses columns 1-3 as `chr/start/end`, column 4 as methylated count, and column 5 as total coverage.
+
+```text
+chr1  10468  10470  8  12
+```
+
+- `bed_beta`: generic BED-like CpG methylation table. Two layouts are supported: columns 4-5 as methylated count and total coverage, or column 4 as beta when no count columns are available. Count-based input is preferred.
+
+```text
+chr1  10468  10469  8  12
+chr1  10468  10469  0.6667
+```
+
+Example for Bismark coverage files:
+
+```{bash parse-bismark-coverage, eval = FALSE}
+Rscript /PATH/TO/imprintomeR/scripts/parse_WGBS_to_region_beta.R \
+  --input "*.cov.gz" \
+  --format bismark_coverage \
+  --genome hg38 \
+  --outdir wgbs_region_beta \
+  --prefix WGBS_Rosenski_hg38 \
+  --jobs 8 \
+  -v
+```
+
+Example for Bismark cytosine reports:
+
+```{bash parse-bismark-cytosine, eval = FALSE}
+Rscript /PATH/TO/imprintomeR/scripts/parse_WGBS_to_region_beta.R \
+  --input "*.CX_report.txt.gz" \
+  --format bismark_cytosine \
+  --context CG \
+  --genome hg38 \
+  --outdir wgbs_region_beta \
+  --prefix WGBS_CG_Rosenski_hg38 \
+  --jobs 8 \
+  -v
+```
+
+Example for `wgbstools beta2bed` text output:
+
+```{bash parse-wgbstools-beta2bed, eval = FALSE}
+Rscript /PATH/TO/imprintomeR/scripts/parse_WGBS_to_region_beta.R \
+  --input "*.beta.bed.gz" \
+  --format wgbstools_beta2bed \
+  --regions /PATH/TO/imprintomeR/extdata/Rosenski_refined_iDMRs_hg19.bed \
+  --outdir wgbs_region_beta \
+  --prefix WGBS_Rosenski_hg19 \
+  --jobs 8 \
+  -v
+```
+
+Main outputs:
+
+- `{prefix}_sample_map.tsv`: inferred file-to-sample mapping.
+- `{prefix}_file_region_counts.tsv`: per-file region counts.
+- `{prefix}_sample_region_counts.tsv`: combined sample-region methylated counts, total counts, beta values, and site counts.
+- `{prefix}_beta.tsv`: final imprintomeR-compatible beta table with `chr`, `start`, `end`, and sample columns.
+
+The parser calculates region beta as:
+
+```text
+sum(N_methylated) / sum(N_total)
+```
+
+This count-weighted estimate is preferred over averaging CpG beta values when CpG coverage varies across a region. Missing or non-numeric count values are coerced to `0` by the AWK parser. If a row has valid coverage but a missing or non-numeric methylated count, beta may be biased downward.
+
+Run imprintomeR with the generated beta table:
+
+```{bash run-short-read-wgbs-cli, eval = FALSE}
+Rscript /PATH/TO/imprintomeR/scripts/run_imprintomeR.R \
+  -B wgbs_region_beta/WGBS_Rosenski_hg38_beta.tsv \
+  -m WGBS_meta.txt \
+  -o WGBS_imprintome_results \
+  --prefix WGBS_Rosenski_hg38 \
+  --probeset Rosenski_region \
+  --genome hg38 \
+  --plot-types default \
+  -v
+```
+
+Use `--sample-map` with columns `file` and `Sample_Name` when filenames do not cleanly encode sample IDs.
+
+---
+
+## Phase 2: Load Region Beta Values
 
 `LoadWGBSRegionBeta()` converts each interval to a stable region ID:
 
@@ -80,7 +282,7 @@ chr  start  end  startCpG  endCpG  sample1  sample2  ...
 NAME = chr:start-end
 ```
 
-By default, it aligns the rows to `probesets_hg19.rds[["Rosenski_region"]]`; use `genome = "hg38"` for hg38 region tables.
+By default, it aligns the rows to `probesets_hg19.rds[["Rosenski_region"]]`; use `genome = "hg38"` for hg38 region tables, including ONT bedMethyl summaries produced with `Rosenski_refined_iDMRs_hg38.bed`.
 
 ```{r load-region-beta, eval = FALSE}
 beta_all <- LoadWGBSRegionBeta(beta_file, genome = "hg19")
@@ -106,7 +308,7 @@ beta_all <- LoadWGBSRegionBeta(beta_file, probeset = NULL)
 
 ## Phase 3: Create Metadata
 
-For direct WGBS analysis, metadata only needs to match the sample columns in the beta matrix. `Sample_Name` must match `colnames(beta_region)`.
+For direct WGBS/ONT analysis, metadata only needs to match the sample columns in the beta matrix. `Sample_Name` must match `colnames(beta_all)`.
 
 ```{r create-meta, eval = FALSE}
 sample_ids <- colnames(beta_all)
@@ -122,7 +324,7 @@ sample_group <- ifelse(
   )
 )
 meta_region <- data.frame(
-  Sample_Name = colnames(beta_region),
+  Sample_Name = colnames(beta_all),
   Sample_Group = sample_group,
   stringsAsFactors = FALSE
 )
@@ -134,7 +336,7 @@ meta_region
 
 ## Phase 4: Create an ImprintomeSet
 
-Region-level WGBS objects should explicitly set `genome = "hg19"` and `assay = "WGBS"`.
+Region-level sequencing objects should explicitly set the correct `genome` (`"hg19"` or `"hg38"`) and a sequencing assay label such as `"WGBS"` or `"ONT"`.
 
 ```{r create-imprintomeset, eval = FALSE}
 probesets <- readRDS(system.file(
@@ -144,7 +346,7 @@ probesets <- readRDS(system.file(
 ))
 
 x <- ImprintomeSet(
-  beta = beta_region,
+  beta = beta_all,
   meta = meta_region,
   probeset = probesets[["Rosenski_region"]],
   genome = "hg19",
@@ -179,7 +381,7 @@ status[, c(
 )]
 ```
 
-Interpretation should remain cautious because WGBS region-level beta values are not allele-specific. IDS and Angle summarize directional deviation from balanced methylation across maternal-origin and paternal-origin regions.
+Interpretation should remain cautious because region-level WGBS/ONT beta values are not allele-specific. IDS and Angle summarize directional deviation from balanced methylation across maternal-origin and paternal-origin regions.
 
 ---
 
@@ -286,7 +488,7 @@ Rosenski_iDMRs_imprintomeSet.rds
 
 ## Toy Example: Submit WGBS Summary and Run imprintomeR CLI
 
-The following example summarizes WGBS `.beta` files over the refined Rosenski iDMR regions, submits the job to LSF, runs the imprintomeR CLI on the region-level beta table, and then exports a radar plot for one selected sample.
+The following example summarizes WGBS `.beta` files over the refined Rosenski iDMR regions, submits the job to LSF, runs the imprintomeR CLI on the region-level beta table, and then exports a radar plot for one selected sample. The ONT bedMethyl path above produces the same `-B` input structure, usually with `--genome hg38`.
 
 ```{bash summarize-wgbs-regions, eval = FALSE}
 # Summarize methylation over refined Rosenski iDMR regions
@@ -337,4 +539,4 @@ x <- runImprintomeVisualizations(
 - `ORIGIN` is derived from primary germline DMR evidence in Rosenski et al. Sheet S10.
 - `Oocyte gDMR` is treated as maternal; `Sperm gDMR` is treated as paternal.
 - Secondary-only or no-primary-germline regions have `ORIGIN = NA` and do not drive maternal/paternal scoring.
-- Region-level WGBS beta values are not allele-specific; interpretation should be cautious and supported by orthogonal evidence when possible.
+- Region-level WGBS/ONT beta values are not allele-specific; interpretation should be cautious and supported by orthogonal evidence when possible.
