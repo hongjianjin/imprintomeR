@@ -1,44 +1,64 @@
 # Data Files for imprintomeR
 
-This directory contains documentation and scripts for preparing the large data files required by imprintomeR.
+This directory documents the package data resources in `inst/extdata/` and how to prepare them for release.
 
 ## Files
 
-- **download_data.R** - Documentation and scripts for preparing/downloading data files
+- **download_data.R** - helper notes and a small copy function for release assets.
 
-## Required Data Files
+## Current extdata Resources
 
-The imprintomeR package requires these annotation files:
+The package uses these annotation and example files:
 
-1. **anno.uniq_harmonized.liftover.rds** (52 MB)
-   - CpG probe annotations from Illumina EPIC/HM450K arrays
-   - Contains genomic coordinates (hg19 liftover)
-   
-2. **probesets_hg19.rds** (~82 KB)
-   - Curated ICR (Imprinted Gene Region) probeset definitions
-   - Contains chromosome, origin (maternal/paternal), and gene annotations
-   - Includes: `Jima`, `Joshi`, `Court`, `Rosenski`, `selected`, `NanoImprint`, and `chr11p15`
+1. **anno.uniq_harmonized.liftover.rds**
+   - Illumina 450K/EPIC probe annotation with hg19 coordinates.
+
+2. **probesets_hg19.rds**
+   - Curated hg19 probesets for array-based imprinting analysis.
+   - Current sets: `Jima`, `Joshi`, `Court`, `Rosenski`, `selected`, `NanoImprint`, `chr11p15`, and `Rosenski_region`.
+   - `selected` contains 606 cross-platform 450K/EPIC probes.
+   - `Rosenski_region` contains 72 refined region-level iDMRs.
+
+3. **probesets_hg38.rds**
+   - hg38 probesets for region-level WGBS/ONT workflows.
+   - Current set: `Rosenski_region`.
+
+4. **Rosenski_refined_iDMRs_hg19.bed** and **Rosenski_refined_iDMRs_hg38.bed**
+   - Refined Rosenski iDMR regions formatted for region-level methylation summaries.
+   - Used by `parse_WGBS_to_region_beta.R`, `parse_ONT_bedMethyl.R`, and `LoadWGBSRegionBeta()`.
+
+5. **Rosenski_iDMRs_mean_beta.hg19.tsv**
+   - Small example region-level beta table compatible with `LoadWGBSRegionBeta()`.
 
 ## Setup
 
-These files are managed separately from the main repository to keep it lean. When you install imprintomeR:
+For installed packages, data files should be available through:
 
-1. **Automatic** (recommended):
+```r
+system.file("extdata", "probesets_hg19.rds", package = "imprintomeR")
+system.file("extdata", "probesets_hg38.rds", package = "imprintomeR")
+```
+
+If using the on-demand download workflow, run:
+
+```r
+library(imprintomeR)
+setup_imprintome_data()
+```
+
+## Developer Notes
+
+When preparing files for a GitHub release:
+
+1. Confirm the shipped probesets and row counts:
+
    ```r
-   library(imprintomeR)
-   setup_imprintome_data()  # Downloads files if missing
+   p19 <- readRDS("inst/extdata/probesets_hg19.rds")
+   p38 <- readRDS("inst/extdata/probesets_hg38.rds")
+   data.frame(genome = "hg19", probeset = names(p19), rows = vapply(p19, nrow, integer(1)))
+   data.frame(genome = "hg38", probeset = names(p38), rows = vapply(p38, nrow, integer(1)))
    ```
 
-2. **Manual**:
-   - See `download_data.R` for instructions on where to download files
-   - Files should be placed in `inst/extdata/`
-
-## Note for Developers
-
-If preparing files for a new GitHub release:
-
-1. Prepare files using the function in `download_data.R`
-2. Upload to GitHub Releases
-3. Update URLs in `R/zzz.R` 
-
-See `download_data.R` for detailed instructions.
+2. Run `prepare_data_for_release()` from `download_data.R`.
+3. Upload the copied files as release assets.
+4. If on-demand downloads are used, update the URLs in `R/zzz.R`.
