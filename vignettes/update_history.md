@@ -6,13 +6,12 @@ This file summarizes major user-facing improvements by package version.
 
 ### Region-Level WGBS/ONT Workflow
 
-- Added support for region-summarized WGBS and ONT methylation analysis using `Rosenski_region`.
+- Added support for region-summarized WGBS and ONT methylation analysis.
 - Added `LoadWGBSRegionBeta()` to load region beta tables with `chr`, `start`, `end`, and sample beta columns.
 - Added hg19 and hg38 Rosenski refined iDMR region resources:
   - `inst/extdata/Rosenski_refined_iDMRs_hg19.bed`
   - `inst/extdata/Rosenski_refined_iDMRs_hg38.bed`
-- Added `probesets_hg38.rds` with `Rosenski_region` (72 regions) and `chr11p15_region` (8 chr11p15 regions; OSBPL5 excluded) for hg38 region-level analysis.
-- Updated `probesets_hg19.rds` to include `Rosenski_region` and `chr11p15_region` region-level signatures.
+- Added region-level `Rosenski_region` (72 refined iDMRs) and `chr11p15_region` (8 chr11p15 iDMRs; OSBPL5 excluded) signatures for both hg19 and hg38 workflows.
 
 ### New Command-Line Support
 
@@ -36,7 +35,7 @@ This file summarizes major user-facing improvements by package version.
 
 ### Region-Safe Analysis and Visualization
 
-- Updated analysis and plotting internals to work with region-level rows rather than only Illumina probe IDs.
+- Updated analysis and plotting internals to support region-level rows in addition to Illumina probe IDs.
 - For `probeset = "Rosenski_region"` or `probeset = "chr11p15_region"`, `runImprintomeVisualizations(..., plot_types = "default")` now uses the region-safe default set:
   - `polar`
   - `beeswarm_origin`
