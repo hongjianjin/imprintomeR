@@ -842,6 +842,7 @@ Detailed workflows and visualization tutorials are available in the package vign
 - `vignette("imprintomeR-workflow-basic")` - End-to-end workflow using core functions without relying on S4 objects
 - [imprintomeR_cli_README.md](vignettes/imprintomeR_cli_README.md) - Command-line QC, imprintome analysis, and WGBS/ONT region workflows
 - [wgbs-region-workflow.Rmd](vignettes/wgbs-region-workflow.Rmd) - Region-level WGBS/ONT workflow using Rosenski iDMRs
+- [update_history.md](vignettes/update_history.md) - Major improvements by package version
 - [GSE52567.ipynb](vignettes/GSE52567.ipynb) - GitHub-renderable notebook for a public GEO workflow
 - [GSE240091.ipynb](vignettes/GSE240091.ipynb) - GitHub-renderable notebook for QC and imprintomeR workflow on a public GEO cohort
 
