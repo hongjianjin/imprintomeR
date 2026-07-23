@@ -1,9 +1,9 @@
 <h1><img src="images/logo_small.png" alt="imprintomeR Logo" width="200" style="vertical-align: middle; margin-right: 10px;" />imprintomeR</h1>
 
-imprintomeR delivers comprehensive analysis and visualization of genomic imprinting from methylation array data. It enforces a robust S4 preprocessing-first workflow that integrates technical quality control (QC), computation of Imprinting Deviation Scores (IDS), and publication-quality visualizations. The package provides two formal S4 containers:
+imprintomeR delivers comprehensive analysis and visualization of genomic imprinting from methylation array data and region-summarized WGBS/ONT methylomes. It enforces a robust S4 preprocessing-first workflow for array data, supports region-based methylation input for sequencing data, and integrates technical quality control (QC), computation of Imprinting Deviation Scores (IDS), and publication-quality visualizations. The package provides two formal S4 containers:
 
 - **MethQcSet**: Single-platform QC and preprocessing
-- **ImprintomeSet**: Analysis-ready container for imprinting studies
+- **ImprintomeSet**: Analysis-ready container for array or region-level imprinting studies
 
 ## Installation
 
@@ -24,9 +24,10 @@ library(imprintomeR)
 setup_imprintome_data()  # Downloads annotation files on first use
 ```
 
-This downloads two annotation files (total ~52 MB):
-- CpG probe coordinates and annotations
-- ICR (Imprinted Gene Region) probeset definitions
+This downloads or verifies core annotation resources:
+- CpG probe coordinates and annotations for array workflows
+- hg19 probeset definitions for array workflows
+- hg19/hg38 Rosenski region definitions for WGBS/ONT region-based workflows
 
 For more details on data file management, see `data-raw/README.md`.
 
@@ -40,6 +41,7 @@ For more details on data file management, see `data-raw/README.md`.
   - [Step 2: Create Analysis Container (ImprintomeSet)](#step-2-create-analysis-container-imprintomeset)
   - [Step 3: Run Imprinting Analysis](#step-3-run-imprinting-analysis)
   - [Step 4: Summarize, Visualize, Export](#step-4-7-summarize-visualize-export)
+  - [WGBS Region-Based Workflow](#wgbs-region-based-workflow)
 - [Detailed Examples](#detailed-examples)
   - [MethQcSet: Platform-Specific Preprocessing](#methqcset-platform-specific-preprocessing)
   - [ImprintomeSet: Analysis Container](#imprintomeset-analysis-container)
@@ -55,7 +57,7 @@ For more details on data file management, see `data-raw/README.md`.
 
 ## Architecture: Preprocessing-First Workflow
 
-Raw methylation arrays often come from mixed platforms (450K, EPICv1, EPICv2). The **MethQcSet** container isolates QC processing for a single platform, preventing silent data corruption from cross-platform merging.
+Raw methylation arrays often come from mixed platforms (450K, EPICv1, EPICv2). The **MethQcSet** container isolates QC processing for a single platform, preventing silent data corruption from cross-platform merging. For WGBS/ONT data, imprintomeR uses a region-based path: methylation is first summarized over curated imprinted regions, then loaded directly into an **ImprintomeSet** with the matching genome build.
 
 <p align="center">
   <img src="images/Figure1_workflow.png" alt="imprintomeR workflow" width="720" />
@@ -267,6 +269,59 @@ p <- plot(x, plot_type = "polar", result_name = "AnalyzeImprintStatus.selected",
 
 manifest <- export(x, outdir = "imprintome_export", prefix = "imprintome", save_plots = TRUE)
 ```
+
+## WGBS Region-Based Workflow
+
+For WGBS, ONT, or other sequencing-based methylation data, summarize methylation over curated imprinted regions first, then run imprintomeR on the region-level beta table. This path bypasses `MethQcSet` because raw array IDAT QC is not applicable.
+
+```r
+library(imprintomeR)
+
+beta <- LoadWGBSRegionBeta(
+  "Rosenski_iDMRs_mean_beta.hg19.tsv",
+  probeset = "Rosenski_region",
+  genome = "hg19"
+)
+
+meta <- LoadMeta("sample_meta.tsv")
+probesets <- readRDS(system.file("extdata", "probesets_hg19.rds", package = "imprintomeR"))
+
+x <- ImprintomeSet(
+  beta = beta,
+  meta = meta,
+  probeset = probesets[["Rosenski_region"]],
+  genome = "hg19",
+  assay = "WGBS"
+)
+
+x <- runImprintome(x, probeset = "Rosenski_region")
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "default",
+  probeset = "Rosenski_region",
+  prefix = "Rosenski_WGBS",
+  save_plots = TRUE,
+  store_plots = FALSE
+)
+
+export(x, outdir = "wgbs_imprintome_results", prefix = "Rosenski_WGBS")
+```
+
+Command-line workflow:
+
+```bash
+Rscript inst/scripts/run_imprintomeR.R \
+  -B Rosenski_iDMRs_mean_beta.hg19.tsv \
+  -m sample_meta.tsv \
+  -o wgbs_imprintome_results \
+  --prefix Rosenski_WGBS \
+  --probeset Rosenski_region \
+  --genome hg19 \
+  --plot-types default \
+  -v
+```
+
+Region beta tables can be generated from WGBS-style text files with `inst/scripts/parse_WGBS_to_region_beta.R`, from ONT/modkit bedMethyl files with `inst/scripts/parse_ONT_bedMethyl.R`, or from wgbstools summaries such as `wgbstools beta_to_table`.
 
 ## Detailed Examples
 
@@ -501,7 +556,7 @@ attr(x, "visualization_manifest")
 names(plots(x))
 ```
 
-Use `save_plots = TRUE` with `outdir = "plots"` to write plot files during generation while storing successful plot objects.
+Use `save_plots = TRUE` with `outdir = "plots"` to write plot files during generation while storing successful plot objects. For `probeset = "Rosenski_region"`, the default visualization set is region-safe and focuses on `polar`, `beeswarm_origin`, `heatmap_by_gene`, and `radar`.
 
 ### Example plots
 
@@ -745,7 +800,8 @@ Detailed workflows and visualization tutorials are available in the package vign
 - `vignette("imprintomeset-quickstart")` - Quick start
 - `vignette("imprintomeset-results-export")` - Visualization and export
 - `vignette("imprintomeR-workflow-basic")` - End-to-end workflow using core functions without relying on S4 objects
-- [imprintomeR_cli_README.md](vignettes/imprintomeR_cli_README.md) - Command-line QC and imprintome analysis workflows
+- [imprintomeR_cli_README.md](vignettes/imprintomeR_cli_README.md) - Command-line QC, imprintome analysis, and WGBS/ONT region workflows
+- [wgbs-region-workflow.Rmd](vignettes/wgbs-region-workflow.Rmd) - Region-level WGBS/ONT workflow using Rosenski iDMRs
 - [GSE52567.ipynb](vignettes/GSE52567.ipynb) - GitHub-renderable notebook for a public GEO workflow
 - [GSE240091.ipynb](vignettes/GSE240091.ipynb) - GitHub-renderable notebook for QC and imprintomeR workflow on a public GEO cohort
 
