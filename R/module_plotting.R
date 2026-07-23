@@ -519,7 +519,7 @@ BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
     geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
     geom_violin(aes(x = ID, y = value, fill = GROUP), trim = FALSE, alpha = alpha) +
     theme_classic(base_size = 10) +
-    labs(y = "Methylation (Î²)", x = "ID") +
+    labs(y = "Methylation (ÃŽÂ²)", x = "ID") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
     scale_fill_manual(
       name = "GROUP",
@@ -561,7 +561,7 @@ BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
 #' @param legend Logical; include legend page in saved output.
 #'
 #' @return A patchwork/ggplot object.
-BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 1, orderByGroup=FALSE, ylab="Methylation (Î²)", xlab="ID", legend=TRUE, title="ImprintomeR: beeswarm", subtitle=NULL, width=NULL, height=NULL) {
+BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 1, orderByGroup=FALSE, ylab="Methylation (ÃŽÂ²)", xlab="ID", legend=TRUE, title="ImprintomeR: beeswarm", subtitle=NULL, width=NULL, height=NULL) {
   # https://r-charts.com/distribution/ggbeeswarm/
   suppressMessages(suppressWarnings(library(ggplot2)))
   suppressMessages(suppressWarnings(library("ggbeeswarm")))
@@ -824,7 +824,7 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
     geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
     geom_quasirandom(cex = dotSize,alpha = alpha) +
     theme_classic(base_size = 10) +
-    labs(y = "Methylation (Î²)", x = "ID", title = "ImprintomeR:beeswarm_chr", subtitle=paste0(probeset,":", chr) ) +
+    labs(y = "Methylation (ÃŽÂ²)", x = "ID", title = "ImprintomeR:beeswarm_chr", subtitle=paste0(probeset,":", chr) ) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
     scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
     scale_x_discrete(limits = orderedIDs) #  specify order on the X axis
@@ -965,7 +965,7 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
           theme_classic(base_size = 10) +
           theme(axis.text.x = element_blank(),axis.ticks.x = element_blank(),
           panel.border = element_rect(color = "grey20", fill = NA, linewidth = 0.5)) +
-          labs(y = "Methylation (Î²)", x = "GROUP", title=newIDs) +
+          labs(y = "Methylation (ÃŽÂ²)", x = "GROUP", title=newIDs) +
           scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
           theme(legend.position = "none")
 
@@ -992,7 +992,7 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
         geom_quasirandom(cex = dotSize,alpha = alpha) +
         theme_classic(base_size = 10) +
         facet_wrap(~CATEGORY, scales = "free_x") +
-        labs(y = "Methylation (Î²)", x = "ID", title = "ImprintomeR:beeswarm_origin") +
+        labs(y = "Methylation (ÃŽÂ²)", x = "ID", title = "ImprintomeR:beeswarm_origin") +
         scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
               # Optional: hide the legend since the facet labels now show the category
@@ -1445,7 +1445,8 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
 BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
                               SAMPLEID = "Sample_Name", annoColumn = "Sample_Group",
                               clusterRows = TRUE, clusterColumns = TRUE,
-                              outFile = NULL, imgSizeFactor = 0.5) {
+                              outFile = NULL, imgSizeFactor = 0.5,
+                              probeset_data = NULL) {
   suppressMessages(library(circlize))
   suppressMessages(library(ComplexHeatmap))
   suppressMessages(library(RColorBrewer))
@@ -1458,11 +1459,16 @@ BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
   meta <- resolved$meta
 
   # Load probeset and aggregate by gene
-  probesets <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
-  if (!(probeset %in% names(probesets))) {
-    stop("Unavailable probeset: ", probeset)
+  if (!is.null(probeset_data)) {
+    if (!is.data.frame(probeset_data)) stop("probeset_data must be a data.frame when supplied.")
+    probeset_df <- probeset_data
+  } else {
+    probesets <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
+    if (!(probeset %in% names(probesets))) {
+      stop("Unavailable probeset: ", probeset)
+    }
+    probeset_df <- probesets[[probeset]]
   }
-  probeset_df <- probesets[[probeset]]
   required_cols <- c("NAME", "Closest_TSS_gene_name")
   missing_cols <- setdiff(required_cols, colnames(probeset_df))
   if (length(missing_cols) > 0) {
@@ -1952,7 +1958,7 @@ VennDiagram <- function(vennList,setNames=NULL, style="venn", prefix=NULL){
 #' @return A ggplot object.
 PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="ImprintomeR:Polar", subtitle=NULL,
                       palette="default", alpha=0.8, legend.position="auto", legend.nrow=NULL,
-                      legend.ncol=NULL, legend.page="auto", legend.page.threshold=16,
+                      legend.ncol=NULL, legend.page="auto", legend.page.threshold=20,
                       legend.text.size=8) {
   library(ggplot2)
   options(bitmapType = "cairo")
@@ -1963,8 +1969,8 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
 
   # Define our 8 mechanism anchors
   mechanism_labels <- c(
-    "Pat-Gain\n(0°)", "Global-Hyper\n(45°)", "Mat-Gain\n(90°)", "Mat-Gain+Pat-Loss\n(135°)",
-    "Pat-Loss\n(180°)", "Global-Hypo\n(225°)", "Mat-Loss\n(270°)", "Pat-Gain+Mat-Loss\n(315°)"
+    "Pat-Gain\n(0Â°)", "Global-Hyper\n(45Â°)", "Mat-Gain\n(90Â°)", "Mat-Gain+Pat-Loss\n(135Â°)",
+    "Pat-Loss\n(180Â°)", "Global-Hypo\n(225Â°)", "Mat-Loss\n(270Â°)", "Pat-Gain+Mat-Loss\n(315Â°)"
   )
 
   # Calculate break points in radians (0 to 2pi)
@@ -2203,7 +2209,7 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
       labs(
         title = "Methylation Shift",
         subtitle= paste0("probeset:", probeset),
-        x = "Methylation (Î²)",
+        x = "Methylation (ÃŽÂ²)",
         y = "Density (Paternal < 0 > Maternal)"
       )
 
@@ -2589,7 +2595,7 @@ PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, a
     labs(
       title = "Global Imprinting Beta Distributions",
       subtitle = "Aggregated across all samples",
-      x = "Methylation (Î²)",
+      x = "Methylation (ÃŽÂ²)",
       y = "Chromosome"
     )
 
@@ -2674,7 +2680,7 @@ BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, pro
       title = paste("Probeset:",probeset),
       subtitle = "Aggregated Cohort Beta Values",
       x = "Allelic Origin",
-      y = "Methylation (Î²)"
+      y = "Methylation (ÃŽÂ²)"
     )
 
   # 6. Save
@@ -2885,7 +2891,7 @@ plot_imp_consistency <- function(df) {
     theme_minimal()
 }
 # Interpretation of Results:
-# 1. On the Line: The imprinting loss is "clonal"Ã¢â‚¬â€it occurred in the ancestor of all tumor cells.
+# 1. On the Line: The imprinting loss is "clonal"ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Âit occurred in the ancestor of all tumor cells.
 # 2. Far Below the Line: The sample has low deviation despite high purity. This indicates "Subclonal LOI" or "Stochastic Drift", where only some tumor cells have lost the imprint.
 # 3. Above the Line: This is mathematically impossible in a perfect model (you can't be more than 100% deviated). It usually suggests that the Global Purity estimate for that sample was too low and should be re-evaluated.
 # plot_imp_consistency(fit_data)
@@ -2994,7 +3000,7 @@ plot_list <- lapply(unique(used$ID), function(current_id) {
                  aes(ymin = after_stat(y), ymax = after_stat(y)),
                  width = 0.5, linewidth = 0.7, color="grey30") +
     # Use the ID as the title for this specific panel
-    labs(title = current_id, y = "Methylation (Î²)", x = NULL) +
+    labs(title = current_id, y = "Methylation (ÃŽÂ²)", x = NULL) +
     scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
     theme_classic(base_size = 10) +
     theme(

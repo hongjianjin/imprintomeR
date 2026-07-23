@@ -121,18 +121,20 @@ if (!methods::isGeneric("plot")) {
   beta_cols[1]
 }
 
-.imprint_subset_beta_by_probeset <- function(beta_x, probeset_name, plot_type) {
+.imprint_subset_beta_by_probeset <- function(beta_x, probeset_name, plot_type, probeset_df = NULL) {
   if (!is.character(probeset_name) || length(probeset_name) != 1L || is.na(probeset_name) || !nzchar(probeset_name)) {
     stop("plot_type='", plot_type, "' requires a non-empty 'probeset' parameter.")
   }
 
-  probesets_path <- .resolve_extdata_file("probesets_hg19.rds")
-  probesets_all <- readRDS(probesets_path)
-  if (!(probeset_name %in% names(probesets_all))) {
-    stop("plot_type='", plot_type, "' received unavailable probeset: ", probeset_name)
-  }
+  if (is.null(probeset_df)) {
+    probesets_path <- .resolve_extdata_file("probesets_hg19.rds")
+    probesets_all <- readRDS(probesets_path)
+    if (!(probeset_name %in% names(probesets_all))) {
+      stop("plot_type='", plot_type, "' received unavailable probeset: ", probeset_name)
+    }
 
-  probeset_df <- probesets_all[[probeset_name]]
+    probeset_df <- probesets_all[[probeset_name]]
+  }
   if (!is.data.frame(probeset_df) || !"NAME" %in% colnames(probeset_df)) {
     stop("Probeset annotation for '", probeset_name, "' is invalid or missing NAME column.")
   }
@@ -151,18 +153,20 @@ if (!methods::isGeneric("plot")) {
   paste0("chr", chr_vals)
 }
 
-.imprint_get_probeset_df <- function(probeset_name, plot_type, required_cols = c("NAME", "ORIGIN", "CHR")) {
+.imprint_get_probeset_df <- function(probeset_name, plot_type, required_cols = c("NAME", "ORIGIN", "CHR"), probeset_df = NULL) {
   if (!is.character(probeset_name) || length(probeset_name) != 1L || is.na(probeset_name) || !nzchar(probeset_name)) {
     stop("plot_type='", plot_type, "' requires a non-empty 'probeset' parameter.")
   }
 
-  probesets_path <- .resolve_extdata_file("probesets_hg19.rds")
-  probesets_all <- readRDS(probesets_path)
-  if (!(probeset_name %in% names(probesets_all))) {
-    stop("plot_type='", plot_type, "' received unavailable probeset: ", probeset_name)
-  }
+  if (is.null(probeset_df)) {
+    probesets_path <- .resolve_extdata_file("probesets_hg19.rds")
+    probesets_all <- readRDS(probesets_path)
+    if (!(probeset_name %in% names(probesets_all))) {
+      stop("plot_type='", plot_type, "' received unavailable probeset: ", probeset_name)
+    }
 
-  probeset_df <- probesets_all[[probeset_name]]
+    probeset_df <- probesets_all[[probeset_name]]
+  }
   missing_cols <- setdiff(required_cols, colnames(probeset_df))
   if (length(missing_cols) > 0L) {
     stop("Probeset '", probeset_name, "' is missing required columns: ", paste(missing_cols, collapse = ", "))
@@ -172,12 +176,13 @@ if (!methods::isGeneric("plot")) {
 
 .imprint_beeswarm_origin <- function(beta_x, meta_x, SAMPLEID, probeset_name, alpha = 0.5,
                                      outFile = NULL, width = NULL, height = NULL,
-                                     title = "ImprintomeR: Beeswarm Origin", max_samples = 100) {
+                                     title = "ImprintomeR: Beeswarm Origin", max_samples = 100,
+                                     probeset_df = NULL) {
   if (!is.data.frame(meta_x) || !all(c("Sample_Name", SAMPLEID) %in% colnames(meta_x))) {
     stop("plot_type='beeswarm_origin' requires meta(x) with Sample_Name and ", SAMPLEID, " columns.")
   }
 
-  probeset_df <- .imprint_get_probeset_df(probeset_name, plot_type = "beeswarm_origin")
+  probeset_df <- .imprint_get_probeset_df(probeset_name, plot_type = "beeswarm_origin", probeset_df = probeset_df)
   common_probes <- intersect(rownames(beta_x), as.character(probeset_df$NAME))
   if (length(common_probes) == 0L) {
     stop("plot_type='beeswarm_origin' found no overlapping probes between beta(x) and probeset '", probeset_name, "'.")
@@ -400,6 +405,8 @@ methods::setMethod(
     result_name <- .imprint_get_arg_chr(args, "result_name", NULL)
     colorColumn <- .imprint_get_arg_chr(args, "colorColumn", "Sample_Group")
     probeset_name <- .imprint_get_arg_chr(args, "probeset", "selected")
+    plot_probeset_df <- probeset(x)
+    if (!is.data.frame(plot_probeset_df) || !"NAME" %in% colnames(plot_probeset_df)) plot_probeset_df <- NULL
     # Determine plot-type-specific default title
     default_title <- switch(plot_type,
       "polar" = "ImprintomeR:Polar",
@@ -422,7 +429,7 @@ methods::setMethod(
     legend.nrow <- if (!is.null(args$legend.nrow)) as.integer(args$legend.nrow)[1] else NULL
     legend.ncol <- if (!is.null(args$legend.ncol)) as.integer(args$legend.ncol)[1] else NULL
     legend.page <- if (!is.null(args$legend.page)) args$legend.page[[1]] else "auto"
-    legend.page.threshold <- if (!is.null(args$legend.page.threshold)) as.numeric(args$legend.page.threshold)[1] else 16
+    legend.page.threshold <- if (!is.null(args$legend.page.threshold)) as.numeric(args$legend.page.threshold)[1] else 20
     legend.text.size <- if (!is.null(args$legend.text.size)) as.numeric(args$legend.text.size)[1] else 8
     outFile <- .imprint_get_arg_chr(args, "outFile", NULL)
     width <- if (!is.null(args$width)) as.numeric(args$width)[1] else 10
@@ -570,7 +577,7 @@ methods::setMethod(
     }
 
     if (plot_type == "beeswarm") {
-      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "beeswarm")
+      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "beeswarm", probeset_df = plot_probeset_df)
       return(
         BetaBeePlot(
           beta = beta_plot,
@@ -597,7 +604,8 @@ methods::setMethod(
           width = width,
           height = height,
           title = title,
-          max_samples = max_samples
+          max_samples = max_samples,
+          probeset_df = plot_probeset_df
         )
       )
     }
@@ -621,7 +629,7 @@ methods::setMethod(
     }
 
     if (plot_type == "violin") {
-      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "violin")
+      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "violin", probeset_df = plot_probeset_df)
       return(
         BetaVlnPlot(
           beta = beta_plot,
@@ -634,7 +642,7 @@ methods::setMethod(
     }
 
     if (plot_type == "heatmap_by_probe") {
-      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "heatmap_by_probe")
+      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "heatmap_by_probe", probeset_df = plot_probeset_df)
       return(
         BetaHeatmap(
           beta = beta_plot,
@@ -659,14 +667,15 @@ methods::setMethod(
           clusterRows = clusterRows,
           clusterColumns = clusterColumns,
           outFile = outFile,
-          imgSizeFactor = 0.5
+          imgSizeFactor = 0.5,
+          probeset_data = plot_probeset_df
         )
       )
     }
 
     if (plot_type == "circular_heatmap") {
       # Use same probeset subsetting logic as beeswarm: subset beta first, then visualize
-      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "circular_heatmap")
+      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "circular_heatmap", probeset_df = plot_probeset_df)
 
       # Check if sectionColumn exists and has meaningful values (not all "Unknown")
       effective_section_column <- sectionColumn
@@ -695,7 +704,7 @@ methods::setMethod(
     }
 
     if (plot_type == "cor_heatmap") {
-      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "cor_heatmap")
+      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "cor_heatmap", probeset_df = plot_probeset_df)
       if (is.null(prefix) || !nzchar(prefix)) {
         if (!is.null(outFile) && nzchar(outFile)) {
           prefix <- tools::file_path_sans_ext(outFile)
@@ -739,7 +748,7 @@ methods::setMethod(
         stop("plot_type='radar' requires at least one numeric sample column in beta(x).")
       }
 
-      agg <- AggregateByLocus(beta_for_radar, probeset = probeset_name)
+      agg <- AggregateByLocus(beta_for_radar, probeset = probeset_name, probeset_data = plot_probeset_df)
       if (!is.data.frame(agg) || nrow(agg) == 0L || ncol(agg) == 0L) {
         stop("plot_type='radar' could not compute aggregated loci from beta(x).")
       }

@@ -157,6 +157,7 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids) {
 #' @export
 AnalyzeImprintStatus <- function(betaFile, metaFile, 
                                  probeset = probeset_options,
+                                 probeset_data = NULL,
                                  ids_cutoff = 0.2) {
   # Support object-first usage while preserving legacy beta/meta inputs.
   if (methods::is(betaFile, "ImprintomeSet")) {
@@ -183,10 +184,20 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   input <- LoadMetaBeta(metaFile, betaFile, probeset = NULL)
   meta <- input[["meta"]]
   beta <- input[["beta"]]
-  tmp  <- SubsetBeta_By_Probeset(beta, probeset = probeset, prefix = NULL)
-  
-  probesets <- tmp[["probesets"]]
-  used <- tmp[["beta"]]
+  if (!is.null(probeset_data)) {
+    if (!is.data.frame(probeset_data) || !"NAME" %in% colnames(probeset_data)) {
+      stop("probeset_data must be a data frame containing a NAME column.")
+    }
+    probesets <- probeset_data
+    rownames(probesets) <- as.character(probesets$NAME)
+    probes <- intersect(rownames(beta), as.character(probesets$NAME))
+    probesets <- probesets[probes, , drop = FALSE]
+    used <- beta[probes, , drop = FALSE]
+  } else {
+    tmp  <- SubsetBeta_By_Probeset(beta, probeset = probeset, prefix = NULL)
+    probesets <- tmp[["probesets"]]
+    used <- tmp[["beta"]]
+  }
   used <- na.omit(used)
 
   if (is.null(used) || ncol(used) == 0) {

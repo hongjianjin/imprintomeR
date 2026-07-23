@@ -67,6 +67,7 @@ methods::setMethod(
       betaFile = beta_df,
       metaFile = meta(x),
       probeset = probeset,
+      probeset_data = probeset(x),
       ids_cutoff = ids_cutoff
     )
 

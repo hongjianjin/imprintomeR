@@ -56,7 +56,7 @@ CalcAvgByGrp <- function(dat, meta = NULL) {
 #'
 #' @return Data frame with aggregated loci as rows and samples as columns.
 #' @export
-AggregateByLocus <- function(beta, probeset="selected"){
+AggregateByLocus <- function(beta, probeset="selected", probeset_data = NULL){
   beta <- .resolve_beta_input(beta)
 
   if (!(is.data.frame(beta) || is.matrix(beta))) {
@@ -84,13 +84,20 @@ AggregateByLocus <- function(beta, probeset="selected"){
     stop("beta must include at least one numeric sample column.")
   }
 
-  probesets <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
+  if (!is.null(probeset_data)) {
+    if (!is.data.frame(probeset_data)) {
+      stop("probeset_data must be a data.frame when supplied.")
+    }
+    probeset1 <- probeset_data
+  } else {
+    probesets <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
 
-  if (!(probeset %in% names(probesets))) {
-    stop("Unavailable probeset: ", probeset)
+    if (!(probeset %in% names(probesets))) {
+      stop("Unavailable probeset: ", probeset)
+    }
+
+    probeset1 <- probesets[[probeset]]
   }
-
-  probeset1 <- probesets[[probeset]]
   required_cols <- c("NAME", "CHR", "ORIGIN", "Closest_TSS_gene_name")
   missing_cols <- setdiff(required_cols, colnames(probeset1))
   if (length(missing_cols) > 0) {

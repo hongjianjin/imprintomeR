@@ -1,0 +1,340 @@
+---
+title: "WGBS Region-Level Imprinting Workflow"
+subtitle: "Using wgbstools beta_to_table output with Rosenski_region"
+author: "imprintomeR contributors"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    fig_width: 8
+    fig_height: 6
+vignette: >
+  %\VignetteIndexEntry{WGBS Region-Level Imprinting Workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "WGBS_region_",
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Overview
+
+This vignette demonstrates the region-level WGBS workflow added for Rosenski-style imprinting regions. It starts from a `wgbstools beta_to_table` output table rather than Illumina array beta values.
+
+You will:
+
+1. Load a region-level beta table from `wgbstools beta_to_table`
+2. Align regions to `probesets_<genome>.rds[["Rosenski_region"]]`
+3. Create a WGBS-backed `ImprintomeSet`
+4. Run `runImprintome()` with `probeset = "Rosenski_region"`
+5. Generate the region-safe default visualizations
+
+This workflow is intended for **aggregated region-level methylation values**. For CpG-level WGBS extraction, see the `wgbstools_beta_subset.py` helper workflow.
+
+---
+
+## Phase 1: Prepare wgbstools Region Beta Table
+
+The input is the standard `wgbstools beta_to_table` table. Its first columns are genomic interval coordinates and CpG-index bounds; remaining columns are samples.
+
+Example command outside R:
+
+```{bash, eval = FALSE}
+wgbstools beta_to_table \
+  Rosenski_refined_iDMRs_hg19.withCpG.bed \
+  --betas *.beta \
+  --output Rosenski_iDMRs_mean_beta.hg19.tsv
+```
+
+After running `wgbstools beta_to_table`, the generated table has this shape:
+
+```{r preview-input, eval = FALSE}
+library(imprintomeR)
+
+beta_file <- "Rosenski_iDMRs_mean_beta.hg19.tsv"
+read.delim(beta_file, check.names = FALSE, nrows = 3)
+```
+
+Expected columns:
+
+```text
+chr  start  end  startCpG  endCpG  sample1  sample2  ...
+```
+
+
+---
+
+## Phase 2: Load WGBS Region Beta Values
+
+`LoadWGBSRegionBeta()` converts each interval to a stable region ID:
+
+```text
+NAME = chr:start-end
+```
+
+By default, it aligns the rows to `probesets_hg19.rds[["Rosenski_region"]]`; use `genome = "hg38"` for hg38 region tables.
+
+```{r load-region-beta, eval = FALSE}
+beta_all <- LoadWGBSRegionBeta(beta_file, genome = "hg19")
+
+dim(beta_all)
+head(rownames(beta_all))
+colnames(beta_all)
+
+# Region/probeset annotations are retained as attributes
+head(attr(beta_all, "regions"))
+head(attr(beta_all, "probeset"))
+```
+
+For the refined `Rosenski_region` signature, generate the region-level beta table from `Rosenski_refined_iDMRs_hg19.withCpG.bed` so the input coordinates match `probesets_hg19.rds[["Rosenski_region"]]`.
+
+If you want to keep all regions exactly as they appear in the input file, set `probeset = NULL`:
+
+```{r load-no-alignment, eval = FALSE}
+beta_all <- LoadWGBSRegionBeta(beta_file, probeset = NULL)
+```
+
+---
+
+## Phase 3: Create Metadata
+
+For direct WGBS analysis, metadata only needs to match the sample columns in the beta matrix. `Sample_Name` must match `colnames(beta_region)`.
+
+```{r create-meta, eval = FALSE}
+sample_ids <- colnames(beta_all)
+
+sample_group <- ifelse(
+  grepl("-cfDNA-", sample_ids, ignore.case = TRUE),
+  "cfDNA",
+  ifelse(
+    grepl("-WBC-", sample_ids, ignore.case = TRUE),
+    "WBC",
+    sub("-Z[0-9A-Za-z]+$", "",
+        sub("^GSM[0-9]+_", "", sample_ids))
+  )
+)
+meta_region <- data.frame(
+  Sample_Name = colnames(beta_region),
+  Sample_Group = sample_group,
+  stringsAsFactors = FALSE
+)
+
+meta_region
+```
+
+---
+
+## Phase 4: Create an ImprintomeSet
+
+Region-level WGBS objects should explicitly set `genome = "hg19"` and `assay = "WGBS"`.
+
+```{r create-imprintomeset, eval = FALSE}
+probesets <- readRDS(system.file(
+  "extdata",
+  "probesets_hg19.rds",
+  package = "imprintomeR"
+))
+
+x <- ImprintomeSet(
+  beta = beta_region,
+  meta = meta_region,
+  probeset = probesets[["Rosenski_region"]],
+  genome = "hg19",
+  assay = "WGBS"
+)
+
+x
+```
+
+---
+
+## Phase 5: Run Region-Level Imprinting Analysis
+
+`runImprintome()` uses the maternal and paternal `ORIGIN` annotations in `Rosenski_region` to calculate paternal/maternal medians, IDS, Angle, and imprinting status.
+
+```{r run-imprintome, eval = FALSE}
+x <- runImprintome(
+  x,
+  probeset = "Rosenski_region",
+  ids_cutoff = 0.2
+)
+
+status <- results(x)[["AnalyzeImprintStatus.Rosenski_region"]]
+status[, c(
+  "Sample_Name",
+  "paternal_median",
+  "maternal_median",
+  "IDS",
+  "Angle",
+  "Mechanism",
+  "Status"
+)]
+```
+
+Interpretation should remain cautious because WGBS region-level beta values are not allele-specific. IDS and Angle summarize directional deviation from balanced methylation across maternal-origin and paternal-origin regions.
+
+---
+
+## Phase 6: Region-Safe Default Visualizations
+
+For `probeset = "Rosenski_region"`, the default visualization set is intentionally restricted to plot types that work with region-level beta rows:
+
+```text
+polar
+beeswarm_origin
+heatmap_by_gene
+radar
+```
+
+```{r run-region-visualizations, eval = FALSE}
+x <- runImprintomeVisualizations(
+  x,
+  probeset = "Rosenski_region",
+  result_name = "AnalyzeImprintStatus.Rosenski_region",
+  plot_types = "default",
+  save_plots = FALSE,
+  store_plots = TRUE
+)
+
+attr(x, "visualization_manifest")
+names(plots(x))
+```
+
+### Individual Plot Examples
+
+```{r plot-polar, eval = FALSE, fig.width = 8, fig.height = 6}
+x <- runImprintomeVisualizations(
+  x,
+  probeset = "Rosenski_region",
+  result_name = "AnalyzeImprintStatus.Rosenski_region",
+  plot_types = "polar",
+  save_plots = FALSE,
+  store_plots = TRUE
+)
+print(plots(x)[["polar.Rosenski_region"]])
+```
+
+```{r plot-beeswarm-origin, eval = FALSE, fig.width = 8, fig.height = 5}
+x <- runImprintomeVisualizations(
+  x,
+  probeset = "Rosenski_region",
+  plot_types = "beeswarm_origin",
+  save_plots = FALSE,
+  store_plots = TRUE
+)
+print(plots(x)[["beeswarm_origin.Rosenski_region"]])
+```
+
+```{r plot-heatmap-gene, eval = FALSE, fig.width = 8, fig.height = 6}
+x <- runImprintomeVisualizations(
+  x,
+  probeset = "Rosenski_region",
+  plot_types = "heatmap_by_gene",
+  save_plots = FALSE,
+  store_plots = TRUE
+)
+plots(x)[["heatmap_by_gene.Rosenski_region"]]
+```
+
+```{r plot-radar, eval = FALSE, fig.width = 8, fig.height = 8}
+x <- runImprintomeVisualizations(
+  x,
+  probeset = "Rosenski_region",
+  result_name = "AnalyzeImprintStatus.Rosenski_region",
+  plot_types = "radar",
+  save_plots = FALSE,
+  store_plots = TRUE
+)
+print(plots(x)[[grep("^radar\\.", names(plots(x)), value = TRUE)[1]]])
+```
+
+Avoid using `plot_types = "all"` for `Rosenski_region` unless you explicitly want to test non-region-aware plot paths. In particular, classic `beeswarm` and direct `rainfall` are probe-oriented and are not part of the region-safe default workflow.
+
+---
+
+## Phase 7: Export Results
+
+After analysis and optional visualizations, export result tables and plot files.
+
+```{r export-results, eval = FALSE}
+manifest <- export(
+  x,
+  outdir = "Rosenski_region_imprintome_output",
+  prefix = "Rosenski_iDMRs",
+  save_plots = TRUE,
+  plot_device = "pdf",
+  overwrite = TRUE
+)
+
+manifest
+```
+
+The export will include available result tables such as:
+
+```text
+Rosenski_iDMRs_results_AnalyzeImprintStatus.Rosenski_region.tsv
+Rosenski_iDMRs_imprintomeSet.rds
+```
+
+## Toy Example: Submit WGBS Summary and Run imprintomeR CLI
+
+The following example summarizes WGBS `.beta` files over the refined Rosenski iDMR regions, submits the job to LSF, runs the imprintomeR CLI on the region-level beta table, and then exports a radar plot for one selected sample.
+
+```{bash summarize-wgbs-regions, eval = FALSE}
+# Summarize methylation over refined Rosenski iDMR regions
+cmd="wgbstools beta_to_table --betas *.beta \
+--output Rosenski_iDMRs_mean_beta.hg19.tsv \
+Rosenski_refined_iDMRs_hg19.withCpG.bed"
+
+prefix=wgbstools_iDMRs_beta
+bsub -q priority -J ${prefix} -M 50000 -oo ${prefix}.log -eo ${prefix}.errlog "$cmd" 2>&1 >/dev/null
+```
+
+```{bash run-wgbs-cli, eval = FALSE}
+# Run the imprintomeR WGBS region workflow
+Rscript /PATH/TO/imprintomeR/scripts/run_imprintomeR.R \
+  -B Rosenski_iDMRs_mean_beta.hg19.tsv \
+  -m GSE186458_meta.txt \
+  -o wgbs_imprintome_results_mean \
+  --prefix Rosenski_WGBS \
+  --probeset Rosenski_region \
+  --genome hg19 \
+  --plot-types default \
+  -v
+```
+
+```{r radar-specific-sample, eval = FALSE, fig.width = 8, fig.height = 8}
+# Generate a radar plot for one specific sample
+library(imprintomeR)
+
+sample_id1 <- "GSM5652245_Pancreas-Acinar-Z0000043X"
+x <- readRDS("wgbs_imprintome_results_mean/Rosenski_WGBS_imprintomeSet.rds")
+
+x <- runImprintomeVisualizations(
+  x,
+  outdir = "wgbs_imprintome_results_mean",
+  plot_types = "radar",
+  probeset = "Rosenski_region",
+  sample_id = sample_id1,
+  prefix = "Rosenski_WGBS",
+  store_plots = FALSE,
+  save_plots = TRUE
+)
+```
+---
+
+## Notes and Limitations
+
+- `Rosenski_region` is a **region-level** signature, not an Illumina probe-level probeset.
+- `ORIGIN` is derived from primary germline DMR evidence in Rosenski et al. Sheet S10.
+- `Oocyte gDMR` is treated as maternal; `Sperm gDMR` is treated as paternal.
+- Secondary-only or no-primary-germline regions have `ORIGIN = NA` and do not drive maternal/paternal scoring.
+- Region-level WGBS beta values are not allele-specific; interpretation should be cautious and supported by orthogonal evidence when possible.

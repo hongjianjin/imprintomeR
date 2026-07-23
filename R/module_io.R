@@ -515,9 +515,129 @@ LoadBeta <- function(input) {
   return(beta)
 }
 
+#' Load wgbstools Region-Level Beta Table
+#'
+#' Reads a `wgbstools beta_to_table` output table, converts each genomic interval
+#' to a stable region ID (`chr:start-end`), and returns a numeric beta matrix
+#' suitable for region-level imprintomeR analysis such as `Rosenski_region`.
+#'
+#' @param input Data frame or path to a tab-delimited `wgbstools beta_to_table`
+#'   output. Required columns are `chr`, `start`, and `end`; sample beta columns
+#'   are expected after optional coordinate columns such as `startCpG` and
+#'   `endCpG`.
+#' @param probeset Optional probeset name or data frame used to order/filter
+#'   regions. Defaults to `"Rosenski_region"`. Set to `NULL` to keep all input
+#'   regions in file order.
+#' @param genome Genome build used when loading a named probeset. Currently supports
+#'   `"hg19"` and `"hg38"`. Ignored when `probeset` is `NULL` or a data frame.
+#' @param strict Logical. If `TRUE`, require every probeset region to be present
+#'   in the input table when `probeset` is used.
+#' @param verbose Logical. Print input and matched dimensions.
+#'
+#' @return Numeric matrix with region IDs as row names and samples as columns.
+#'   Region metadata are stored in `attr(x, "regions")`; matched probeset
+#'   annotation is stored in `attr(x, "probeset")` when available.
+#' @export
+LoadWGBSRegionBeta <- function(input, probeset = "Rosenski_region", genome = c("hg19", "hg38"), strict = FALSE, verbose = TRUE) {
+  genome <- match.arg(genome)
+  if (is.data.frame(input)) {
+    dat <- input
+  } else if (is.character(input) && length(input) == 1L && file.exists(input)) {
+    dat <- utils::read.delim(input, header = TRUE, sep = "\t", quote = "", comment.char = "", check.names = FALSE, stringsAsFactors = FALSE)
+  } else {
+    stop("[LoadWGBSRegionBeta] input must be a data frame or an existing tab-delimited file.")
+  }
+
+  if (nrow(dat) == 0L) {
+    stop("[LoadWGBSRegionBeta] input has no rows.")
+  }
+
+  col_lower <- tolower(colnames(dat))
+  chr_col <- match("chr", col_lower)
+  if (is.na(chr_col)) chr_col <- match("chrom", col_lower)
+  start_col <- match("start", col_lower)
+  end_col <- match("end", col_lower)
+  if (any(is.na(c(chr_col, start_col, end_col)))) {
+    stop("[LoadWGBSRegionBeta] required columns are missing: chr/start/end.")
+  }
+
+  region_id <- paste0(dat[[chr_col]], ":", dat[[start_col]], "-", dat[[end_col]])
+  if (anyDuplicated(region_id)) {
+    warning("[LoadWGBSRegionBeta] duplicated chr:start-end regions found; keeping the first occurrence.", call. = FALSE)
+    keep <- !duplicated(region_id)
+    dat <- dat[keep, , drop = FALSE]
+    region_id <- region_id[keep]
+  }
+
+  coord_names <- c("chr", "chrom", "start", "end", "startcpg", "endcpg")
+  sample_cols <- which(!(tolower(colnames(dat)) %in% coord_names))
+  if (length(sample_cols) == 0L) {
+    stop("[LoadWGBSRegionBeta] no sample beta columns found after coordinate columns.")
+  }
+
+  beta <- as.matrix(dat[, sample_cols, drop = FALSE])
+  suppressWarnings(storage.mode(beta) <- "numeric")
+  rownames(beta) <- region_id
+  if (any(!is.finite(beta) & !is.na(beta))) {
+    stop("[LoadWGBSRegionBeta] beta matrix contains non-numeric sample values.")
+  }
+
+  regions <- data.frame(
+    NAME = region_id,
+    CHR = as.character(dat[[chr_col]]),
+    start = as.integer(dat[[start_col]]),
+    end = as.integer(dat[[end_col]]),
+    stringsAsFactors = FALSE
+  )
+  if ("startCpG" %in% colnames(dat)) regions$startCpG <- dat[["startCpG"]]
+  if ("endCpG" %in% colnames(dat)) regions$endCpG <- dat[["endCpG"]]
+  attr(beta, "regions") <- regions
+
+  if (!is.null(probeset)) {
+    probeset_df <- NULL
+    probeset_name <- NULL
+    if (is.character(probeset) && length(probeset) == 1L) {
+      probeset_name <- probeset
+      probeset_file <- paste0("probesets_", genome, ".rds")
+      probesets <- readRDS(.resolve_extdata_file(probeset_file))
+      if (!probeset_name %in% names(probesets)) {
+        stop("[LoadWGBSRegionBeta] probeset not found in ", probeset_file, ": ", probeset_name)
+      }
+      probeset_df <- probesets[[probeset_name]]
+    } else if (is.data.frame(probeset)) {
+      probeset_df <- probeset
+      probeset_name <- "custom"
+    } else {
+      stop("[LoadWGBSRegionBeta] probeset must be NULL, a single probeset name, or a data frame.")
+    }
+
+    if (!"NAME" %in% colnames(probeset_df)) {
+      stop("[LoadWGBSRegionBeta] probeset annotation must contain a NAME column.")
+    }
+    matched <- intersect(as.character(probeset_df$NAME), rownames(beta))
+    if (length(matched) == 0L) {
+      stop("[LoadWGBSRegionBeta] no overlapping regions between beta table and probeset annotation.")
+    }
+    missing <- setdiff(as.character(probeset_df$NAME), rownames(beta))
+    if (strict && length(missing) > 0L) {
+      stop("[LoadWGBSRegionBeta] strict=TRUE but ", length(missing), " probeset region(s) are missing from beta table.")
+    }
+    beta <- beta[matched, , drop = FALSE]
+    attr(beta, "regions") <- regions[match(matched, regions$NAME), , drop = FALSE]
+    attr(beta, "probeset") <- probeset_df[match(matched, as.character(probeset_df$NAME)), , drop = FALSE]
+    attr(beta, "probeset_name") <- probeset_name
+    attr(beta, "genome") <- genome
+  }
+
+  if (isTRUE(verbose)) {
+    cat("\n\t[WGBS region beta dim:", nrow(beta), "x", ncol(beta), "]")
+  }
+  beta
+}
+
 ##################################################################
 probeset_chrs <- c("chr1","chr6","chr7","chr14","chr15","chr19","chr11","chr20")#
-probeset_options <- c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", probeset_chrs )
+probeset_options <- c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Rosenski_region", "Jima", "chr11p15", probeset_chrs )
 
 ##################################################################
 

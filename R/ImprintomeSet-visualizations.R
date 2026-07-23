@@ -85,7 +85,11 @@ runImprintomeVisualizations <- function(x,
   )
 
   if (identical(plot_types, "default")) {
-    plot_types <- default_types
+    if (identical(as.character(probeset)[1], "Rosenski_region")) {
+      plot_types <- c("polar", "beeswarm_origin", "heatmap_by_gene", "radar")
+    } else {
+      plot_types <- default_types
+    }
   } else if (identical(plot_types, "all")) {
     plot_types <- all_types
   }

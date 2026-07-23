@@ -19,7 +19,7 @@ Rscript $(Rscript -e 'cat(system.file("scripts/run_imprintomeR.R", package="impr
 ## Workflow Overview
 
 1. Run `run_meth_QC.R` on raw IDAT files to create a `MethQcSet` and QC output files.
-2. Run `run_imprintomeR.R` on the QC RDS, or on beta plus metadata files, to create an `ImprintomeSet`, run imprinting analysis, save plot PDFs, and export result tables.
+2. Run `run_imprintomeR.R` on the QC RDS, beta plus metadata files, or region-level WGBS beta plus metadata files, to create an `ImprintomeSet`, run imprinting analysis, save plot PDFs, and export result tables.
 
 The recommended end-to-end workflow is:
 
@@ -136,7 +136,7 @@ qc_results/epic/data/epic_qcset.rds
 
 ## Step 2: Imprintome Analysis CLI
 
-`run_imprintomeR.R` runs post-QC imprinting analysis. It can start from either a `MethQcSet` RDS or beta plus metadata files.
+`run_imprintomeR.R` runs post-QC imprinting analysis. It can start from a `MethQcSet` RDS, array beta plus metadata files, or region-level WGBS beta plus metadata files.
 
 ### Recommended Input: MethQcSet RDS
 
@@ -170,16 +170,81 @@ Rscript inst/scripts/run_imprintomeR.R \
 
 The beta matrix should have probes as rows and samples as columns. Metadata should contain `Sample_Name`; `Sample_Group` is preferred.
 
+### Region-Level WGBS Input
+
+Use `-B/--WGBS-beta-file` for region-level methylation tables such as:
+
+- `wgbstools beta_to_table` mean beta output
+- `wgbstools_beta_subset.py` region median beta output
+- `parse_ONT_bedMethyl.R` final `{prefix}_beta.tsv`
+- `parse_WGBS_to_region_beta.R` final `{prefix}_beta.tsv`
+
+This mode follows `wgbs-region-workflow.Rmd`: it loads region-level beta values with `LoadWGBSRegionBeta()`, aligns rows to `probesets_<genome>.rds[["Rosenski_region"]]`, creates a WGBS-backed `ImprintomeSet`, runs `runImprintome()` with `probeset = "Rosenski_region"`, and generates the region-safe visualization set.
+
+The beta table must contain region coordinates followed by sample beta columns:
+
+```text
+chr  start  end  sample1  sample2  ...
+```
+
+`wgbstools beta_to_table` output may also include CpG-index bounds before the sample columns:
+
+```text
+chr  start  end  startCpG  endCpG  sample1  sample2  ...
+```
+
+Metadata `Sample_Name` values must match the WGBS beta sample columns. Use `--genome hg19` or `--genome hg38` to match the coordinate build used to create the region beta table.
+
+Example for hg19 `wgbstools beta_to_table` output:
+
+```bash
+Rscript inst/scripts/run_imprintomeR.R \
+  -B Rosenski_iDMRs_mean_beta.hg19.tsv \
+  -m GSE186458_meta.txt \
+  -o wgbs_imprintome_results_mean \
+  --prefix Rosenski_WGBS \
+  --probeset Rosenski_region \
+  --genome hg19 \
+  --plot-types default \
+  -v
+```
+
+Example for hg38 ONT/modkit bedMethyl region beta output:
+
+```bash
+Rscript inst/scripts/run_imprintomeR.R \
+  -B ONT_NABEC_beta_hg38/ONT_NABEC_Rosenski_hg38_beta.tsv \
+  -m ONT_NABEC_beta_hg38/ONT_NABEC_Rosenski_sample_meta.txt \
+  -o ONT_NABEC_beta_hg38/imprintome_results \
+  --prefix ONT_NABEC_Rosenski_hg38 \
+  --probeset Rosenski_region \
+  --genome hg38 \
+  --plot-types default \
+  -v
+```
+
+For `--probeset Rosenski_region`, `--plot-types default` is restricted to region-aware plots:
+
+```text
+polar
+beeswarm_origin
+heatmap_by_gene
+radar
+```
+
+Avoid `--plot-types all` for `Rosenski_region` unless you are intentionally testing plot paths that expect array-level probes.
+
 ### Useful Analysis Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--rds` / `-r` | NA | Input `MethQcSet` RDS file. |
-| `--beta-file` / `-b` | NA | Beta matrix file, required unless `--rds` is used. |
-| `--meta-file` / `-m` | NA | Metadata file, required unless `--rds` is used. |
+| `--beta-file` / `-b` | NA | Array beta matrix file, required unless `--rds` or `--WGBS-beta-file` is used. |
+| `--WGBS-beta-file` / `-B` | NA | Region-level beta table from `wgbstools beta_to_table`, `parse_ONT_bedMethyl.R`, or `parse_WGBS_to_region_beta.R`; requires `--probeset Rosenski_region`. |
+| `--meta-file` / `-m` | NA | Metadata file, required unless `--rds` is used. Required with `--beta-file` or `--WGBS-beta-file`. |
 | `--outdir` / `-o` | required | Output directory. |
 | `--prefix` / `-p` | basename of `outdir` | Prefix for result, plot, and RDS filenames. |
-| `--probeset` | selected | One of `selected`, `NanoImprint`, `Joshi`, `Court`, `Rosenski`, `Jima`, `chr11p15`. |
+| `--probeset` | selected | One of `selected`, `NanoImprint`, `Joshi`, `Court`, `Rosenski`, `Rosenski_region`, `Jima`, `chr11p15`. |
 | `--plot-types` | default | Comma-separated plot types, `default`, or `all`. |
 | `--ids-cutoff` | 0.2 | IDS cutoff passed to `runImprintome()`. |
 | `--genome` | hg19 | Genome build for bundled probesets. |
@@ -188,7 +253,7 @@ The beta matrix should have probes as rows and samples as columns. Metadata shou
 
 ## Plot Types
 
-`--plot-types default` uses the standard workflow plot set from `runImprintomeVisualizations()`:
+For array/probe-level probesets, `--plot-types default` uses the standard workflow plot set from `runImprintomeVisualizations()`:
 
 - `polar`
 - `beeswarm_origin`
@@ -198,6 +263,13 @@ The beta matrix should have probes as rows and samples as columns. Metadata shou
 - `radar`
 - `beeswarm_chr`
 - `rainfall`
+
+For `--probeset Rosenski_region`, the package uses the region-safe default set instead:
+
+- `polar`
+- `beeswarm_origin`
+- `heatmap_by_gene`
+- `radar`
 
 `circular_heatmap` is not included in `default`. Request it explicitly when needed:
 

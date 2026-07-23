@@ -278,7 +278,25 @@ methods::setMethod(
             if (!overwrite && file.exists(fpath)) {
               status <- "skipped_exists"
             } else {
-              ggplot2::ggsave(filename = fpath, plot = pobj, width = dims[["width"]], height = dims[["height"]], units = "in", limitsize = TRUE)
+              polar_exported <- FALSE
+              if (identical(plot_device, "pdf") && grepl("^polar\\.", nm)) {
+                polar_probeset <- sub("^polar\\.", "", nm)
+                polar_try <- try(
+                  plot(
+                    x,
+                    plot_type = "polar",
+                    probeset = polar_probeset,
+                    outFile = fpath,
+                    width = dims[["width"]],
+                    height = dims[["height"]]
+                  ),
+                  silent = TRUE
+                )
+                polar_exported <- !inherits(polar_try, "try-error")
+              }
+              if (!polar_exported) {
+                ggplot2::ggsave(filename = fpath, plot = pobj, width = dims[["width"]], height = dims[["height"]], units = "in", limitsize = TRUE)
+              }
               status <- "written"
             }
           } else if (inherits(pobj, "imprintome_plot_file") && is.raw(pobj$bytes)) {

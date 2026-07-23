@@ -16,7 +16,7 @@ PlotPolar(
   legend.nrow = NULL,
   legend.ncol = NULL,
   legend.page = "auto",
-  legend.page.threshold = 16,
+  legend.page.threshold = 20,
   legend.text.size = 8
 )
 }

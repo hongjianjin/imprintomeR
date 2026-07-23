@@ -6,7 +6,7 @@
 #'          and export (TSV + directly saved PDF plots).
 #'
 #' Features:
-#'   - Flexible input: MethQcSet RDS file OR beta.txt + meta.txt files
+#'   - Flexible input: MethQcSet RDS file OR beta.txt + meta.txt files OR WGBS region beta + meta
 #'   - QC-clean subsetting with subsetMethQC() when MethQcSet QC results are available
 #'   - ImprintomeSet conversion with configurable probeset
 #'   - Core imprinting analysis (IDS, Angle, Status and mechanism classification)
@@ -25,7 +25,10 @@ library(optparse)
 
 option_list <- list(
     make_option(c("-b", "--beta-file"), type = "character", default = NA,
-        help = "Beta matrix file (beta.txt or beta_EPIC.txt) [REQUIRED unless -r provided]"),
+        help = "Array beta matrix file (beta.txt or beta_EPIC.txt) [REQUIRED unless -r or -B provided]"),
+
+    make_option(c("-B", "--WGBS-beta-file"), type = "character", default = NA,
+        help = "Region-level WGBS beta table from wgbstools beta_to_table, typically for --probeset Rosenski_region [OPTIONAL]"),
 
     make_option(c("-m", "--meta-file"), type = "character", default = NA,
         help = "Metadata file (meta.txt or metadata.tsv) [REQUIRED unless -r provided]"),
@@ -37,7 +40,7 @@ option_list <- list(
         help = "Output directory for results (will be created if not exists) [REQUIRED]"),
 
     make_option(c("--probeset"), type = "character", default = "selected",
-        help = "ICR probeset: selected, NanoImprint, Joshi, Court, Rosenski, Jima, chr11p15 [default: %default]"),
+        help = "ICR probeset: selected, NanoImprint, Joshi, Court, Rosenski, Rosenski_region, Jima, chr11p15 [default: %default]"),
 
     make_option(c("--plot-types"), type = "character", default = "default",
         help = "Comma-separated plot types, or default/all. Supported: polar, beeswarm, beeswarm_origin, beeswarm_chr, heatmap_by_probe, heatmap_by_gene, circular_heatmap, rainfall, radar, mirror_density, violin, cor_heatmap [default: %default]"),
@@ -59,7 +62,7 @@ option_list <- list(
 )
 
 parser <- OptionParser(
-    usage = "%prog -b <beta.txt> -m <meta.txt> -o <outdir> [options]\n  OR  %prog -r <qcset.rds> -o <outdir> [options]",
+    usage = "%prog -b <beta.txt> -m <meta.txt> -o <outdir> [options]\n  OR  %prog -B <wgbs_region_beta.tsv> -m <meta.txt> -o <outdir> --probeset Rosenski_region [options]\n  OR  %prog -r <qcset.rds> -o <outdir> [options]",
     description = "Post-QC imprinting analysis: convert to ImprintomeSet -> analyze -> save plot PDFs -> export",
     option_list = option_list,
     epilogue = paste(
@@ -68,6 +71,8 @@ parser <- OptionParser(
         "  Rscript run_imprintomeR.R -r qc_results/epic/epic_qcset.rds -o analysis_epic\n\n",
         "  # From beta + metadata files:\n",
         "  Rscript run_imprintomeR.R -b /data/beta.txt -m /data/meta.txt -o analysis --plot-types polar,heatmap_by_gene\n\n",
+        "  # From region-level WGBS beta_to_table output:\n",
+        "  Rscript run_imprintomeR.R -B Rosenski_refined_iDMRs_mean_beta.hg19.tsv -m meta.txt -o wgbs_analysis --probeset Rosenski_region --plot-types default -v\n\n",
         "  # All plots, custom probeset and IDS cutoff:\n",
         "  Rscript run_imprintomeR.R -r qcset.rds -o analysis --plot-types all --probeset Joshi --ids-cutoff 0.3 -v\n",
         sep = ""
@@ -157,13 +162,21 @@ tryCatch({
         errors <- c(errors, "ERROR: --outdir is required")
     }
 
-    # Check input options: must provide either RDS OR (beta + meta)
+    # Check input options: must provide one input mode: RDS, array beta, or WGBS region beta.
     has_rds <- !is.na(args$rds)
     has_beta <- !is.na(args$`beta-file`)
+    has_wgbs_beta <- !is.na(args$`WGBS-beta-file`)
     has_meta <- !is.na(args$`meta-file`)
 
-    if (!has_rds && (!has_beta || !has_meta)) {
-        errors <- c(errors, "ERROR: Must provide either -r/--rds OR both -b/--beta-file and -m/--meta-file")
+    input_modes <- sum(c(has_rds, has_beta, has_wgbs_beta))
+    if (input_modes == 0L) {
+        errors <- c(errors, "ERROR: Must provide -r/--rds OR -b/--beta-file OR -B/--WGBS-beta-file")
+    }
+    if (input_modes > 1L) {
+        errors <- c(errors, "ERROR: Use only one input mode: -r/--rds, -b/--beta-file, or -B/--WGBS-beta-file")
+    }
+    if ((has_beta || has_wgbs_beta) && !has_meta) {
+        errors <- c(errors, "ERROR: -m/--meta-file is required with -b/--beta-file or -B/--WGBS-beta-file")
     }
 
     if (has_rds) {
@@ -174,16 +187,22 @@ tryCatch({
         if (has_beta && !file.exists(args$`beta-file`)) {
             errors <- c(errors, paste0("ERROR: Beta file not found: ", args$`beta-file`))
         }
+        if (has_wgbs_beta && !file.exists(args$`WGBS-beta-file`)) {
+            errors <- c(errors, paste0("ERROR: WGBS beta file not found: ", args$`WGBS-beta-file`))
+        }
         if (has_meta && !file.exists(args$`meta-file`)) {
             errors <- c(errors, paste0("ERROR: Meta file not found: ", args$`meta-file`))
         }
     }
 
     # Validate probeset
-    valid_probesets <- c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15")
+    valid_probesets <- c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Rosenski_region", "Jima", "chr11p15")
     if (!args$probeset %in% valid_probesets) {
         errors <- c(errors, paste0("ERROR: Invalid probeset '", args$probeset,
                                    "'. Must be one of: ", paste(valid_probesets, collapse = ", ")))
+    }
+    if (has_wgbs_beta && args$probeset != "Rosenski_region") {
+        errors <- c(errors, "ERROR: -B/--WGBS-beta-file currently requires --probeset Rosenski_region")
     }
 
     # Validate plot types if specified
@@ -202,7 +221,7 @@ tryCatch({
     }
 }
 
-.load_input_data <- function(beta_file, meta_file, rds_file, verbose = FALSE) {
+.load_input_data <- function(beta_file, wgbs_beta_file, meta_file, rds_file, probeset, genome = "hg19", verbose = FALSE) {
     if (verbose) .log_message("Loading input data...", verbose = verbose)
 
     # Mode 1: Load from RDS
@@ -233,7 +252,56 @@ tryCatch({
         ))
     }
 
-    # Mode 2: Load from explicit beta + meta files using imprintomeR built-in functions
+    # Mode 2: Load from region-level WGBS beta + meta files
+    else if (!is.na(wgbs_beta_file) && !is.na(meta_file)) {
+        if (verbose) {
+            .log_message(paste0("  Loading WGBS region beta: ", basename(wgbs_beta_file)), verbose = verbose)
+            .log_message(paste0("  Loading meta: ", basename(meta_file)), verbose = verbose)
+        }
+
+        beta_region <- tryCatch({
+            suppressMessages(LoadWGBSRegionBeta(wgbs_beta_file, probeset = probeset, genome = genome, verbose = verbose))
+        }, error = function(e) {
+            stop("Failed to load WGBS region beta table: ", conditionMessage(e))
+        })
+
+        meta <- tryCatch({
+            suppressMessages(LoadMeta(meta_file))
+        }, error = function(e) {
+            stop("Failed to load metadata: ", conditionMessage(e))
+        })
+
+        beta_samples <- colnames(beta_region)
+        meta_samples <- if ("Sample_Name" %in% colnames(meta)) as.character(meta$Sample_Name) else rownames(meta)
+        overlapping <- intersect(beta_samples, meta_samples)
+
+        if (length(overlapping) == 0) {
+            cat("\n\n[ERROR] Sample name mismatch:\n")
+            cat("  WGBS beta file column names (first 5): ", paste(head(beta_samples, 5), collapse = ", "), "\n")
+            cat("  Meta file Sample_Name (first 5): ", paste(head(meta_samples, 5), collapse = ", "), "\n")
+            cat("  Overlapping samples: 0\n\n")
+            stop("No overlapping samples between WGBS beta file columns and meta Sample_Name")
+        }
+
+        beta_region <- beta_region[, overlapping, drop = FALSE]
+        meta <- meta[match(overlapping, meta_samples), , drop = FALSE]
+        if ("Sample_Name" %in% colnames(meta)) rownames(meta) <- meta$Sample_Name
+
+        if (verbose) {
+            .log_message(paste0("    WGBS beta: ", ncol(beta_region), " samples, ", nrow(beta_region), " regions"), verbose = verbose)
+            .log_message(paste0("    Meta: ", nrow(meta), " samples"), verbose = verbose)
+            .log_message(paste0("    Overlapping: ", length(overlapping), " samples"), verbose = verbose)
+            .log_message("    Platform: WGBS", verbose = verbose)
+        }
+
+        return(list(
+            data = list(beta = beta_region, meta = meta, input_mode = "WGBS"),
+            source = "WGBS region beta + meta.txt",
+            platform = "WGBS"
+        ))
+    }
+
+    # Mode 3: Load from explicit array beta + meta files using imprintomeR built-in functions
     else if (!is.na(beta_file) && !is.na(meta_file)) {
         if (verbose) {
             .log_message(paste0("  Loading beta: ", basename(beta_file)), verbose = verbose)
@@ -324,7 +392,7 @@ tryCatch({
     }
 
     else {
-        stop("Internal error: neither RDS nor beta+meta provided")
+        stop("Internal error: no supported input mode provided")
     }
 }
 
@@ -487,9 +555,10 @@ tryCatch({
             stop("Conversion to ImprintomeSet failed: ", conditionMessage(e))
         })
     }
-    # CASE 2: Construct directly from beta + meta (Option B: QC already done externally)
+    # CASE 2: Construct directly from beta + meta (Option B: QC already done externally, including WGBS region beta)
     else if (is.list(input_data) && "beta" %in% names(input_data) && "meta" %in% names(input_data)) {
-        if (verbose) .log_message("  Constructing ImprintomeSet from beta + meta (external QC)", verbose = verbose)
+        input_mode <- if ("input_mode" %in% names(input_data)) input_data$input_mode else platform
+        if (verbose) .log_message(paste0("  Constructing ImprintomeSet from beta + meta (", input_mode, ")"), verbose = verbose)
 
         imp_set <- tryCatch({
             ImprintomeSet(
@@ -497,7 +566,7 @@ tryCatch({
                 meta = input_data$meta,
                 probeset = probeset_data,
                 genome = genome,
-                assay = platform,
+                assay = if (identical(platform, "WGBS")) "WGBS" else platform,
                 auto_group = TRUE
             )
         }, error = function(e) {
@@ -857,7 +926,10 @@ main <- function() {
 
     tryCatch({
         loaded_existing <- FALSE
-        if (file.exists(imprintome_rds)) {
+        if (file.exists(imprintome_rds) && !is.na(args$`WGBS-beta-file`) && args$verbose) {
+            .log_message(paste0("Existing ImprintomeSet found but WGBS input was supplied; rebuilding from -B input: ", imprintome_rds), verbose = args$verbose)
+        }
+        if (file.exists(imprintome_rds) && is.na(args$`WGBS-beta-file`)) {
             loaded_existing <- FALSE
             if (args$verbose) {
                 .log_message(paste0("Existing ImprintomeSet found: ", imprintome_rds), verbose = args$verbose)
@@ -927,8 +999,11 @@ main <- function() {
             if (args$verbose) .log_message("Phase 2: loading input data", verbose = args$verbose)
             input_list <- .load_input_data(
                 beta_file = args$`beta-file`,
+                wgbs_beta_file = args$`WGBS-beta-file`,
                 meta_file = args$`meta-file`,
                 rds_file = args$rds,
+                probeset = args$probeset,
+                genome = args$genome,
                 verbose = args$verbose
             )
             input_data <- input_list$data
