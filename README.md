@@ -280,6 +280,13 @@ Create an imprintomeR-compatible beta table with `chr`, `start`, `end`, and one 
 
 ```bash
 # wgbstools region summary
+# First generate the CpG-index BED intermediate from the canonical package BED.
+wgbstools convert \
+  inst/extdata/Rosenski_refined_iDMRs_hg19.bed \
+  --genome hg19 \
+  -L \
+  -o Rosenski_refined_iDMRs_hg19.withCpG.bed
+
 wgbstools beta_to_table \
   --betas *.beta \
   --output Rosenski_iDMRs_mean_beta.hg19.tsv \

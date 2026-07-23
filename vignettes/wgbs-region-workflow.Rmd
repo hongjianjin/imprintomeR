@@ -43,15 +43,22 @@ This workflow is intended for **aggregated region-level methylation values**. Fo
 
 ## Phase 1A: Prepare wgbstools Region Beta Table
 
-The input is the standard `wgbstools beta_to_table` table. Its first columns are genomic interval coordinates and CpG-index bounds; remaining columns are samples.
+The input is the standard `wgbstools beta_to_table` table. Its first columns are genomic interval coordinates and CpG-index bounds; remaining columns are samples. Install and configure [wgbstools](https://github.com/nloyfer/wgbs_tools) following the package instructions, including genome initialization for the build you plan to use. imprintomeR ships the canonical region BED (`Rosenski_refined_iDMRs_hg19.bed`); the `.withCpG.bed` file is a generated wgbstools intermediate and does not need to be stored in `inst/extdata`.
 
 Example command outside R:
 
 ```{bash, eval = FALSE}
+# Generate the CpG-index BED intermediate from the canonical package BED.
+wgbstools convert \
+  inst/extdata/Rosenski_refined_iDMRs_hg19.bed \
+  --genome hg19 \
+  -L \
+  -o Rosenski_refined_iDMRs_hg19.withCpG.bed
+
 wgbstools beta_to_table \
-  Rosenski_refined_iDMRs_hg19.withCpG.bed \
   --betas *.beta \
-  --output Rosenski_iDMRs_mean_beta.hg19.tsv
+  --output Rosenski_iDMRs_mean_beta.hg19.tsv \
+  Rosenski_refined_iDMRs_hg19.withCpG.bed
 ```
 
 After running `wgbstools beta_to_table`, the generated table has this shape:
@@ -296,7 +303,7 @@ head(attr(beta_all, "regions"))
 head(attr(beta_all, "probeset"))
 ```
 
-For the refined `Rosenski_region` signature, generate the region-level beta table from `Rosenski_refined_iDMRs_hg19.withCpG.bed` so the input coordinates match `probesets_hg19.rds[["Rosenski_region"]]`.
+For the refined `Rosenski_region` signature, generate `Rosenski_refined_iDMRs_hg19.withCpG.bed` from the canonical `Rosenski_refined_iDMRs_hg19.bed`, then create the region-level beta table from that intermediate so the input coordinates match `probesets_hg19.rds[["Rosenski_region"]]`.
 
 If you want to keep all regions exactly as they appear in the input file, set `probeset = NULL`:
 
@@ -492,7 +499,7 @@ The following example summarizes WGBS `.beta` files over the refined Rosenski iD
 
 ```{bash summarize-wgbs-regions, eval = FALSE}
 # Summarize methylation over refined Rosenski iDMR regions
-cmd="wgbstools beta_to_table --betas *.beta \
+cmd="wgbstools convert inst/extdata/Rosenski_refined_iDMRs_hg19.bed --genome hg19 -L -o Rosenski_refined_iDMRs_hg19.withCpG.bed && wgbstools beta_to_table --betas *.beta \
 --output Rosenski_iDMRs_mean_beta.hg19.tsv \
 Rosenski_refined_iDMRs_hg19.withCpG.bed"
 
