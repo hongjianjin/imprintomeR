@@ -179,7 +179,7 @@ Use `-B/--WGBS-beta-file` for region-level methylation tables such as:
 - `parse_ONT_bedMethyl.R` final `{prefix}_beta.tsv`
 - `parse_WGBS_to_region_beta.R` final `{prefix}_beta.tsv`
 
-This mode follows `wgbs-region-workflow.Rmd`: it loads region-level beta values with `LoadWGBSRegionBeta()`, aligns rows to `probesets_<genome>.rds[["Rosenski_region"]]`, creates a WGBS-backed `ImprintomeSet`, runs `runImprintome()` with `probeset = "Rosenski_region"`, and generates the region-safe visualization set.
+This mode follows `wgbs-region-workflow.Rmd`: it loads region-level beta values with `LoadWGBSRegionBeta()`, aligns rows to a region-level probeset such as `probesets_<genome>.rds[["Rosenski_region"]]` or `probesets_<genome>.rds[["chr11p15_region"]]`, creates a WGBS-backed `ImprintomeSet`, runs `runImprintome()`, and generates the region-safe visualization set.
 
 The beta table must contain region coordinates followed by sample beta columns:
 
@@ -223,7 +223,20 @@ Rscript inst/scripts/run_imprintomeR.R \
   -v
 ```
 
-For `--probeset Rosenski_region`, `--plot-types default` is restricted to region-aware plots:
+Example for focused hg38 chr11p15 region analysis:
+
+```bash
+Rscript inst/scripts/run_imprintomeR.R \
+  -B ONT_NABEC_beta_hg38/ONT_NABEC_Rosenski_hg38_beta.tsv \
+  -m ONT_NABEC_beta_hg38/ONT_NABEC_Rosenski_sample_meta.txt \
+  -o ONT_NABEC_beta_hg38/chr11p15_region_results \
+  --prefix ONT_NABEC_chr11p15_region \
+  --probeset chr11p15_region \
+  --genome hg38 \
+  --plot-types default \
+  -v
+```
+For `--probeset Rosenski_region` or `--probeset chr11p15_region`, `--plot-types default` is restricted to region-aware plots:
 
 ```text
 polar
@@ -232,7 +245,7 @@ heatmap_by_gene
 radar
 ```
 
-Avoid `--plot-types all` for `Rosenski_region` unless you are intentionally testing plot paths that expect array-level probes.
+Avoid `--plot-types all` for region-level probesets unless you are intentionally testing plot paths that expect array-level probes.
 
 ### Useful Analysis Options
 
@@ -240,11 +253,11 @@ Avoid `--plot-types all` for `Rosenski_region` unless you are intentionally test
 |--------|---------|-------------|
 | `--rds` / `-r` | NA | Input `MethQcSet` RDS file. |
 | `--beta-file` / `-b` | NA | Array beta matrix file, required unless `--rds` or `--WGBS-beta-file` is used. |
-| `--WGBS-beta-file` / `-B` | NA | Region-level beta table from `wgbstools beta_to_table`, `parse_ONT_bedMethyl.R`, or `parse_WGBS_to_region_beta.R`; requires `--probeset Rosenski_region`. |
+| `--WGBS-beta-file` / `-B` | NA | Region-level beta table from `wgbstools beta_to_table`, `parse_ONT_bedMethyl.R`, or `parse_WGBS_to_region_beta.R`; requires `--probeset Rosenski_region` or `--probeset chr11p15_region`. |
 | `--meta-file` / `-m` | NA | Metadata file, required unless `--rds` is used. Required with `--beta-file` or `--WGBS-beta-file`. |
 | `--outdir` / `-o` | required | Output directory. |
 | `--prefix` / `-p` | basename of `outdir` | Prefix for result, plot, and RDS filenames. |
-| `--probeset` | selected | One of `selected`, `NanoImprint`, `Joshi`, `Court`, `Rosenski`, `Rosenski_region`, `Jima`, `chr11p15`. |
+| `--probeset` | selected | One of `selected`, `NanoImprint`, `Joshi`, `Court`, `Rosenski`, `Rosenski_region`, `chr11p15_region`, `Jima`, `chr11p15`. |
 | `--plot-types` | default | Comma-separated plot types, `default`, or `all`. |
 | `--ids-cutoff` | 0.2 | IDS cutoff passed to `runImprintome()`. |
 | `--genome` | hg19 | Genome build for bundled probesets. |
@@ -264,7 +277,7 @@ For array/probe-level probesets, `--plot-types default` uses the standard workfl
 - `beeswarm_chr`
 - `rainfall`
 
-For `--probeset Rosenski_region`, the package uses the region-safe default set instead:
+For `--probeset Rosenski_region` or `--probeset chr11p15_region`, the package uses the region-safe default set instead:
 
 - `polar`
 - `beeswarm_origin`

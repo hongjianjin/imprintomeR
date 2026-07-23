@@ -276,7 +276,7 @@ For WGBS, ONT, or other sequencing-based methylation data, summarize methylation
 
 ### Prepare Region Beta Table
 
-Create an imprintomeR-compatible beta table with `chr`, `start`, `end`, and one column per sample. Common routes are:
+Create an imprintomeR-compatible beta table with `chr`, `start`, `end`, and one column per sample. Use `Rosenski_region` for the full refined iDMR set, or `chr11p15_region` for the focused chr11p15 subset derived from `Rosenski_region` after excluding OSBPL5. Common routes are:
 
 ```bash
 # wgbstools region summary
@@ -321,7 +321,7 @@ library(imprintomeR)
 
 beta <- LoadWGBSRegionBeta(
   "Rosenski_iDMRs_mean_beta.hg19.tsv",
-  probeset = "Rosenski_region",
+  probeset = "Rosenski_region",  # use "chr11p15_region" for focused chr11p15 analysis
   genome = "hg19"
 )
 
@@ -359,6 +359,17 @@ Rscript inst/scripts/run_imprintomeR.R \
   --prefix Rosenski_WGBS \
   --probeset Rosenski_region \
   --genome hg19 \
+  --plot-types default \
+  -v
+
+# Focused hg38 chr11p15 region analysis
+Rscript inst/scripts/run_imprintomeR.R \
+  -B ONT_Rosenski_hg38_beta.tsv \
+  -m sample_meta.tsv \
+  -o chr11p15_region_results \
+  --prefix chr11p15_region \
+  --probeset chr11p15_region \
+  --genome hg38 \
   --plot-types default \
   -v
 ```
@@ -596,7 +607,7 @@ attr(x, "visualization_manifest")
 names(plots(x))
 ```
 
-Use `save_plots = TRUE` with `outdir = "plots"` to write plot files during generation while storing successful plot objects. For `probeset = "Rosenski_region"`, the default visualization set is region-safe and focuses on `polar`, `beeswarm_origin`, `heatmap_by_gene`, and `radar`.
+Use `save_plots = TRUE` with `outdir = "plots"` to write plot files during generation while storing successful plot objects. For `probeset = "Rosenski_region"` or `probeset = "chr11p15_region"`, the default visualization set is region-safe and focuses on `polar`, `beeswarm_origin`, `heatmap_by_gene`, and `radar`.
 
 ### Example plots
 
@@ -865,4 +876,3 @@ Then ask an AI agent:
 ```text
 Use $imprintomer to create an imprintomeR workflow from IDAT files.
 ```
-

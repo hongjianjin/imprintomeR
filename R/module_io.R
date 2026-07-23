@@ -637,7 +637,7 @@ LoadWGBSRegionBeta <- function(input, probeset = "Rosenski_region", genome = c("
 
 ##################################################################
 probeset_chrs <- c("chr1","chr6","chr7","chr14","chr15","chr19","chr11","chr20")#
-probeset_options <- c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Rosenski_region", "Jima", "chr11p15", probeset_chrs )
+probeset_options <- c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Rosenski_region", "chr11p15_region", "Jima", "chr11p15", probeset_chrs )
 
 ##################################################################
 

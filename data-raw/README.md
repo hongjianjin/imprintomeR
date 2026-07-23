@@ -15,13 +15,13 @@ The package uses these annotation and example files:
 
 2. **probesets_hg19.rds**
    - Curated hg19 probesets for array-based imprinting analysis.
-   - Current sets: `Jima`, `Joshi`, `Court`, `Rosenski`, `selected`, `NanoImprint`, `chr11p15`, and `Rosenski_region`.
+   - Current sets: `Jima`, `Joshi`, `Court`, `Rosenski`, `selected`, `NanoImprint`, `chr11p15`, `Rosenski_region`, and `chr11p15_region`.
    - `selected` contains 606 cross-platform 450K/EPIC probes.
-   - `Rosenski_region` contains 72 refined region-level iDMRs.
+   - `Rosenski_region` contains 72 refined region-level iDMRs.`r`n   - `chr11p15_region` contains 8 chr11p15 refined iDMRs derived from `Rosenski_region`, with OSBPL5 excluded.
 
 3. **probesets_hg38.rds**
    - hg38 probesets for region-level WGBS/ONT workflows.
-   - Current set: `Rosenski_region`.
+   - Current sets: `Rosenski_region` (72 regions) and `chr11p15_region` (8 hg38 chr11p15 regions; OSBPL5 excluded).
 
 4. **Rosenski_refined_iDMRs_hg19.bed** and **Rosenski_refined_iDMRs_hg38.bed**
    - Refined Rosenski iDMR regions formatted for region-level methylation summaries.

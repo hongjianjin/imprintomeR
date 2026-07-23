@@ -58,3 +58,48 @@ test_that("LoadWGBSRegionBeta can align named hg38 Rosenski_region", {
   expect_equal(attr(beta, "probeset_name"), "Rosenski_region")
   expect_equal(attr(beta, "genome"), "hg38")
 })
+
+test_that("hg38 chr11p15_region is a chr11 subset excluding OSBPL5", {
+  probesets <- readRDS(test_path("..", "inst", "extdata", "probesets_hg38.rds"))
+  expect_true("chr11p15_region" %in% names(probesets))
+
+  reg <- probesets[["chr11p15_region"]]
+  expect_equal(nrow(reg), 8)
+  expect_true(all(reg$CHR == "chr11"))
+  expect_false(any(reg$Closest_TSS_gene_name == "OSBPL5", na.rm = TRUE))
+  expect_true(all(reg$NAME %in% probesets[["Rosenski_region"]]$NAME))
+
+  tab <- data.frame(
+    chr = reg$CHR[1:2],
+    start = reg$start[1:2],
+    end = reg$end[1:2],
+    sample_A = c(0.48, 0.55),
+    check.names = FALSE
+  )
+  beta <- LoadWGBSRegionBeta(tab, probeset = "chr11p15_region", genome = "hg38", verbose = FALSE)
+  expect_equal(dim(beta), c(2L, 1L))
+  expect_equal(rownames(beta), reg$NAME[1:2])
+  expect_equal(attr(beta, "probeset_name"), "chr11p15_region")
+})
+test_that("hg19 chr11p15_region is a chr11 subset excluding OSBPL5", {
+  probesets <- readRDS(test_path("..", "inst", "extdata", "probesets_hg19.rds"))
+  expect_true("chr11p15_region" %in% names(probesets))
+
+  reg <- probesets[["chr11p15_region"]]
+  expect_equal(nrow(reg), 8)
+  expect_true(all(reg$CHR == "chr11"))
+  expect_false(any(reg$Closest_TSS_gene_name == "OSBPL5", na.rm = TRUE))
+  expect_true(all(reg$NAME %in% probesets[["Rosenski_region"]]$NAME))
+
+  tab <- data.frame(
+    chr = reg$CHR[1:2],
+    start = reg$start[1:2],
+    end = reg$end[1:2],
+    sample_A = c(0.48, 0.55),
+    check.names = FALSE
+  )
+  beta <- LoadWGBSRegionBeta(tab, probeset = "chr11p15_region", genome = "hg19", verbose = FALSE)
+  expect_equal(dim(beta), c(2L, 1L))
+  expect_equal(rownames(beta), reg$NAME[1:2])
+  expect_equal(attr(beta, "probeset_name"), "chr11p15_region")
+})

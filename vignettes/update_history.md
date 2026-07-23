@@ -11,15 +11,15 @@ This file summarizes major user-facing improvements by package version.
 - Added hg19 and hg38 Rosenski refined iDMR region resources:
   - `inst/extdata/Rosenski_refined_iDMRs_hg19.bed`
   - `inst/extdata/Rosenski_refined_iDMRs_hg38.bed`
-- Added `probesets_hg38.rds` with `Rosenski_region` for hg38 region-level analysis.
-- Updated `probesets_hg19.rds` to include `Rosenski_region`.
+- Added `probesets_hg38.rds` with `Rosenski_region` (72 regions) and `chr11p15_region` (8 chr11p15 regions; OSBPL5 excluded) for hg38 region-level analysis.
+- Updated `probesets_hg19.rds` to include `Rosenski_region` and `chr11p15_region` region-level signatures.
 
 ### New Command-Line Support
 
 - Updated `inst/scripts/run_imprintomeR.R` to support region-level sequencing input:
   - `-B`, `--WGBS-beta-file`
   - `--genome hg19|hg38`
-  - `--probeset Rosenski_region`
+  - `--probeset Rosenski_region` or `--probeset chr11p15_region`
 - Added direct CLI workflow from region beta table plus metadata to `ImprintomeSet`, `runImprintome()`, visualizations, and export.
 
 ### New Region-Beta Parser Scripts
@@ -37,7 +37,7 @@ This file summarizes major user-facing improvements by package version.
 ### Region-Safe Analysis and Visualization
 
 - Updated analysis and plotting internals to work with region-level rows rather than only Illumina probe IDs.
-- For `probeset = "Rosenski_region"`, `runImprintomeVisualizations(..., plot_types = "default")` now uses the region-safe default set:
+- For `probeset = "Rosenski_region"` or `probeset = "chr11p15_region"`, `runImprintomeVisualizations(..., plot_types = "default")` now uses the region-safe default set:
   - `polar`
   - `beeswarm_origin`
   - `heatmap_by_gene`
@@ -49,7 +49,7 @@ This file summarizes major user-facing improvements by package version.
 - Updated `README.md` with a WGBS Region-Based Workflow section.
 - Updated `vignettes/imprintomeR_cli_README.md` with WGBS/ONT CLI examples.
 - Documented that `Rosenski_refined_iDMRs_hg19.withCpG.bed` is a generated `wgbstools convert -L` intermediate, not a package extdata file.
-- Added tests for `LoadWGBSRegionBeta()` and Rosenski region visualization behavior.
+- Added tests for `LoadWGBSRegionBeta()`, `chr11p15_region`, and Rosenski region visualization behavior.
 
 ## Version 1.1.0
 

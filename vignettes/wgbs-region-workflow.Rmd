@@ -32,9 +32,9 @@ This vignette demonstrates the region-level WGBS/ONT workflow added for Rosenski
 You will:
 
 1. Generate or load a region-level beta table from `wgbstools beta_to_table`, ONT/modkit bedMethyl files, or another supported methylation-call format
-2. Align regions to `probesets_<genome>.rds[["Rosenski_region"]]`
+2. Align regions to `probesets_<genome>.rds[["Rosenski_region"]]` or the focused `chr11p15_region` subset
 3. Create a WGBS-backed `ImprintomeSet`
-4. Run `runImprintome()` with `probeset = "Rosenski_region"`
+4. Run `runImprintome()` with `probeset = "Rosenski_region"` or `probeset = "chr11p15_region"`
 5. Generate the region-safe default visualizations
 
 This workflow is intended for **aggregated region-level methylation values**. For CpG-level WGBS extraction, see the `wgbstools_beta_subset.py` helper workflow. For ONT/modkit bedMethyl files, use `inst/scripts/parse_ONT_bedMethyl.R` to create the same region-level beta table format.
@@ -289,7 +289,7 @@ Use `--sample-map` with columns `file` and `Sample_Name` when filenames do not c
 NAME = chr:start-end
 ```
 
-By default, it aligns the rows to `probesets_hg19.rds[["Rosenski_region"]]`; use `genome = "hg38"` for hg38 region tables, including ONT bedMethyl summaries produced with `Rosenski_refined_iDMRs_hg38.bed`.
+By default, it aligns the rows to `probesets_hg19.rds[["Rosenski_region"]]`; use `genome = "hg38"` for hg38 region tables, including ONT bedMethyl summaries produced with `Rosenski_refined_iDMRs_hg38.bed`. For focused 11p15 analysis, use `probeset = "chr11p15_region"` with the matching genome build; this subset contains chr11 refined iDMRs and excludes OSBPL5.
 
 ```{r load-region-beta, eval = FALSE}
 beta_all <- LoadWGBSRegionBeta(beta_file, genome = "hg19")
@@ -309,6 +309,19 @@ If you want to keep all regions exactly as they appear in the input file, set `p
 
 ```{r load-no-alignment, eval = FALSE}
 beta_all <- LoadWGBSRegionBeta(beta_file, probeset = NULL)
+```
+
+If you want to focus on the chr11p15 region subset, use `chr11p15_region`:
+
+```{r load-chr11p15-region, eval = FALSE}
+beta_chr11p15 <- LoadWGBSRegionBeta(
+  beta_file,
+  probeset = "chr11p15_region",
+  genome = "hg38"
+)
+
+nrow(beta_chr11p15)
+rownames(beta_chr11p15)
 ```
 
 ---
@@ -394,7 +407,7 @@ Interpretation should remain cautious because region-level WGBS/ONT beta values 
 
 ## Phase 6: Region-Safe Default Visualizations
 
-For `probeset = "Rosenski_region"`, the default visualization set is intentionally restricted to plot types that work with region-level beta rows:
+For `probeset = "Rosenski_region"` or `probeset = "chr11p15_region"`, the default visualization set is intentionally restricted to plot types that work with region-level beta rows:
 
 ```text
 polar
@@ -465,7 +478,7 @@ x <- runImprintomeVisualizations(
 print(plots(x)[[grep("^radar\\.", names(plots(x)), value = TRUE)[1]]])
 ```
 
-Avoid using `plot_types = "all"` for `Rosenski_region` unless you explicitly want to test non-region-aware plot paths. In particular, classic `beeswarm` and direct `rainfall` are probe-oriented and are not part of the region-safe default workflow.
+Avoid using `plot_types = "all"` for region-level probesets unless you explicitly want to test non-region-aware plot paths. In particular, classic `beeswarm` and direct `rainfall` are probe-oriented and are not part of the region-safe default workflow.
 
 ---
 
@@ -518,6 +531,17 @@ Rscript /PATH/TO/imprintomeR/scripts/run_imprintomeR.R \
   --genome hg19 \
   --plot-types default \
   -v
+
+# Focused hg38 chr11p15 region workflow
+Rscript /PATH/TO/imprintomeR/scripts/run_imprintomeR.R \
+  -B ONT_Rosenski_hg38_beta.tsv \
+  -m ONT_meta.txt \
+  -o chr11p15_region_results \
+  --prefix chr11p15_region \
+  --probeset chr11p15_region \
+  --genome hg38 \
+  --plot-types default \
+  -v
 ```
 
 ```{r radar-specific-sample, eval = FALSE, fig.width = 8, fig.height = 8}
@@ -542,7 +566,7 @@ x <- runImprintomeVisualizations(
 
 ## Notes and Limitations
 
-- `Rosenski_region` is a **region-level** signature, not an Illumina probe-level probeset.
+- `Rosenski_region` and `chr11p15_region` are **region-level** signatures, not Illumina probe-level probesets.
 - `ORIGIN` is derived from primary germline DMR evidence in Rosenski et al. Sheet S10.
 - `Oocyte gDMR` is treated as maternal; `Sperm gDMR` is treated as paternal.
 - Secondary-only or no-primary-germline regions have `ORIGIN = NA` and do not drive maternal/paternal scoring.
