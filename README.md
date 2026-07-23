@@ -41,7 +41,7 @@ For more details on data file management, see `data-raw/README.md`.
   - [Step 2: Create Analysis Container (ImprintomeSet)](#step-2-create-analysis-container-imprintomeset)
   - [Step 3: Run Imprinting Analysis](#step-3-run-imprinting-analysis)
   - [Step 4: Summarize, Visualize, Export](#step-4-7-summarize-visualize-export)
-  - [WGBS Region-Based Workflow](#wgbs-region-based-workflow)
+- [WGBS Region-Based Workflow](#wgbs-region-based-workflow)
 - [Detailed Examples](#detailed-examples)
   - [MethQcSet: Platform-Specific Preprocessing](#methqcset-platform-specific-preprocessing)
   - [ImprintomeSet: Analysis Container](#imprintomeset-analysis-container)
