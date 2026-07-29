@@ -542,6 +542,17 @@ tryCatch({
         stop("Imprinting analysis failed: ", conditionMessage(e))
     })
 
+    result_name <- paste0("AnalyzeImprintStatus.", probeset)
+    result_list <- results(imp_set_analyzed)
+    if (result_name %in% names(result_list)) {
+        attr(result_list[[result_name]], "imprintomeR_cache") <- list(
+            probeset = probeset,
+            genome = as.character(imp_set_analyzed@genome)[1],
+            ids_cutoff = as.numeric(ids_cutoff)[1]
+        )
+        results(imp_set_analyzed) <- result_list
+    }
+
     # Extract results summary
     res <- tryCatch({
         results(imp_set_analyzed)
@@ -568,6 +579,29 @@ tryCatch({
     if (verbose) .log_message("  Analysis complete", verbose = verbose)
 
     imp_set_analyzed
+}
+
+.activate_probeset <- function(imp_set, probeset, genome, verbose = FALSE) {
+    probeset(imp_set) <- .load_probeset_by_name(probeset, genome, verbose = verbose)
+    imp_set
+}
+
+.cached_result_matches <- function(imp_set, probeset, genome, ids_cutoff) {
+    if (!identical(tolower(as.character(imp_set@genome)[1]), tolower(genome))) {
+        return(FALSE)
+    }
+
+    result_name <- paste0("AnalyzeImprintStatus.", probeset)
+    result_list <- results(imp_set)
+    if (!(result_name %in% names(result_list))) {
+        return(FALSE)
+    }
+
+    cache_info <- attr(result_list[[result_name]], "imprintomeR_cache", exact = TRUE)
+    is.list(cache_info) &&
+        identical(cache_info$probeset, probeset) &&
+        identical(tolower(cache_info$genome), tolower(genome)) &&
+        isTRUE(all.equal(as.numeric(cache_info$ids_cutoff), as.numeric(ids_cutoff)))
 }
 
 # ============================================================================
@@ -741,6 +775,36 @@ tryCatch({
     invisible(manifest)
 }
 
+.export_requested_analysis <- function(imp_set, outdir, probeset, artifact_prefix,
+                                       imprintome_rds, save_rds = TRUE, verbose = FALSE) {
+    result_name <- paste0("AnalyzeImprintStatus.", probeset)
+    result_list <- results(imp_set)
+    if (!(result_name %in% names(result_list))) {
+        stop("Requested analysis result is missing: ", result_name)
+    }
+
+    result_file <- file.path(
+        outdir,
+        paste0(artifact_prefix, "_results_", result_name, ".tsv")
+    )
+    write.table(result_list[[result_name]], result_file, sep = "\t", quote = FALSE,
+                row.names = FALSE, col.names = TRUE)
+
+    if (isTRUE(save_rds)) {
+        saveRDS(.strip_plot_payload(imp_set), imprintome_rds)
+    }
+
+    manifest <- data.frame(
+        category = c("results", if (isTRUE(save_rds)) "data" else character()),
+        name = c(result_name, if (isTRUE(save_rds)) "ImprintomeSet" else character()),
+        file = c(result_file, if (isTRUE(save_rds)) imprintome_rds else character()),
+        status = "written",
+        stringsAsFactors = FALSE
+    )
+    if (verbose) .log_message(paste0("  Exported: ", result_file), verbose = verbose)
+    invisible(manifest)
+}
+
 .export_imprintome_fallback <- function(imp_set, outdir, probeset, verbose = FALSE) {
     # Fallback export if built-in export() fails
     # Exports: results (xlsx/tsv), metadata.tsv, imprintomeSet.rds
@@ -844,8 +908,9 @@ main <- function() {
         dir.create(args$outdir, showWarnings = FALSE, recursive = TRUE)
     }
 
-    output_prefix <- if (!is.na(args$prefix)) args$prefix else basename(normalizePath(args$outdir, mustWork = FALSE))
-    imprintome_rds <- file.path(args$outdir, paste0(output_prefix, "_imprintomeSet.rds"))
+    dataset_prefix <- if (!is.na(args$prefix)) args$prefix else basename(normalizePath(args$outdir, mustWork = FALSE))
+    cache_prefix <- paste(dataset_prefix, tolower(args$genome), sep = "_")
+    imprintome_rds <- file.path(args$outdir, paste0(cache_prefix, "_imprintomeSet.rds"))
 
     # Set up logging file
     log_file <- file.path(args$outdir, "run_imprintomeR.log")
@@ -884,10 +949,13 @@ main <- function() {
             }
 
             requested_result <- paste0("AnalyzeImprintStatus.", args$probeset)
-            existing_results <- names(results(imp_set))
-            if (is.null(existing_results)) existing_results <- character(0)
 
-            if (requested_result %in% existing_results) {
+            if (.cached_result_matches(
+                imp_set, args$probeset, args$genome, args$`ids-cutoff`
+            )) {
+                imp_set <- .activate_probeset(
+                    imp_set, args$probeset, args$genome, verbose = args$verbose
+                )
                 loaded_existing <- TRUE
                 if (args$verbose) {
                     .log_message(paste0("  Cached result found: ", requested_result), verbose = args$verbose)
@@ -895,6 +963,9 @@ main <- function() {
                 }
             } else {
                 loaded_existing <- FALSE
+                imp_set <- .activate_probeset(
+                    imp_set, args$probeset, args$genome, verbose = args$verbose
+                )
                 if (args$verbose) {
                     .log_message(paste0("  Cached result not found for requested probeset: ", requested_result), verbose = args$verbose)
                     .log_message("  Running core analysis on cached ImprintomeSet", verbose = args$verbose)
@@ -988,19 +1059,15 @@ main <- function() {
 
         # Generate individual plots if requested
         if (length(plot_types) > 0 && !args$`skip-plots`) {
-            imp_set <- .generate_imprintome_plots(imp_set, plot_types, args$probeset, args$outdir, prefix = output_prefix, verbose = args$verbose)
+            imp_set <- .generate_imprintome_plots(imp_set, plot_types, args$probeset, args$outdir, prefix = cache_prefix, verbose = args$verbose)
         }
 
-        # Phase 7: Export results (with optional plot saving)
-        if (loaded_existing) {
-            if (args$verbose) .log_message("Phase 7: exporting result/plot files from existing ImprintomeSet without changing RDS", verbose = args$verbose)
-            .export_imprintome_without_rds(imp_set, args$outdir, prefix = output_prefix, verbose = args$verbose)
-        } else {
-            if (args$verbose) .log_message("Phase 7: exporting results", verbose = args$verbose)
-            .export_imprintome_analysis(imp_set, args$outdir, args$probeset,
-                                       plot_types = plot_types,
-                                       verbose = args$verbose)
-        }
+        # Phase 7: Export only the requested result and update the shared cache when needed.
+        if (args$verbose) .log_message("Phase 7: exporting requested analysis", verbose = args$verbose)
+        .export_requested_analysis(
+            imp_set, args$outdir, args$probeset, cache_prefix,
+            imprintome_rds, save_rds = !loaded_existing, verbose = args$verbose
+        )
         # Phase 8: Completion summary
         elapsed_time <- difftime(Sys.time(), start_time, units = "secs")
 

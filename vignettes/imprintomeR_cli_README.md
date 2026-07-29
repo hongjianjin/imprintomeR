@@ -178,7 +178,7 @@ The beta matrix should have probes as rows and samples as columns. Metadata shou
 | `--beta-file` / `-b` | NA | Beta matrix file, required unless `--rds` is used. |
 | `--meta-file` / `-m` | NA | Metadata file, required unless `--rds` is used. |
 | `--outdir` / `-o` | required | Output directory. |
-| `--prefix` / `-p` | basename of `outdir` | Prefix for result, plot, and RDS filenames. |
+| `--prefix` / `-p` | basename of `outdir` | Dataset prefix for result, plot, and RDS filenames; the normalized genome is appended automatically. |
 | `--probeset` | selected | One of `selected`, `NanoImprint`, `Joshi`, `Court`, `Rosenski`, `Jima`, `chr11p15`. |
 | `--plot-types` | default | Comma-separated plot types, `default`, or `all`. |
 | `--ids-cutoff` | 0.2 | IDS cutoff passed to `runImprintome()`. |
@@ -220,21 +220,20 @@ A typical analysis directory contains:
 ```text
 imprintome_results/
 +-- run_imprintomeR.log
-+-- GSE240091_imprintomeSet.rds
-+-- GSE240091_results_AnalyzeImprintStatus.selected.tsv
-+-- GSE240091_results_AnalyzeImprintStatus.selected.rds
-+-- GSE240091_plot_polar.selected.pdf
-+-- GSE240091_plot_heatmap_by_gene.selected.pdf
-+-- GSE240091_plot_radar.<sample_id>.pdf
++-- GSE240091_hg19_imprintomeSet.rds
++-- GSE240091_hg19_results_AnalyzeImprintStatus.selected.tsv
++-- GSE240091_hg19_polar.selected.pdf
++-- GSE240091_hg19_heatmap_by_gene.selected.pdf
++-- GSE240091_hg19_radar.<sample_id>.pdf
 ```
 
-The main result table is stored as `AnalyzeImprintStatus.<probeset>` inside `results(x)` and exported as a prefixed TSV/RDS file.
+The main result table is stored as `AnalyzeImprintStatus.<probeset>` inside `results(x)` and exported as a genome-prefixed TSV file.
 
 Example reload:
 
 ```r
 library(imprintomeR)
-x <- readRDS("imprintome_results/GSE240091_imprintomeSet.rds")
+x <- readRDS("imprintome_results/GSE240091_hg19_imprintomeSet.rds")
 names(results(x))
 status <- results(x)[["AnalyzeImprintStatus.selected"]]
 ```
@@ -244,15 +243,15 @@ status <- results(x)[["AnalyzeImprintStatus.selected"]]
 The runner saves a lean object as:
 
 ```text
-<prefix>_imprintomeSet.rds
+<prefix>_<genome>_imprintomeSet.rds
 ```
 
 The object contains beta values, metadata, probeset data, and result tables, but not stored plot objects.
 
-On later runs:
+The same dataset and genome share this RDS across probesets. Different genomes use separate cache files. On later runs:
 
-- If the cached RDS contains `AnalyzeImprintStatus.<probeset>`, analysis is skipped and requested plot/result files are regenerated without overwriting the RDS.
-- If the cached RDS exists but does not contain the requested probeset result, core analysis is rerun for that probeset and the lean RDS is updated.
+- If the cached RDS contains `AnalyzeImprintStatus.<probeset>` with matching genome and `--ids-cutoff` provenance, analysis is skipped and requested plot/result files are regenerated without overwriting the RDS.
+- If the requested probeset result is absent, or its stored `--ids-cutoff` differs, core analysis is rerun for that probeset and the lean RDS is updated. Recalculation replaces that probeset's prior result while preserving other named probeset results.
 - Plot PDFs are generated directly and are not saved back into the RDS.
 
 ## End-to-End Example For HPC
@@ -328,7 +327,7 @@ qc_results/<platform>/plots/
 After imprintome analysis:
 
 ```text
-imprintome_results/<prefix>_imprintomeSet.rds
-imprintome_results/<prefix>_results_AnalyzeImprintStatus.<probeset>.tsv
-imprintome_results/<prefix>_plot_*.pdf
+imprintome_results/<prefix>_<genome>_imprintomeSet.rds
+imprintome_results/<prefix>_<genome>_results_AnalyzeImprintStatus.<probeset>.tsv
+imprintome_results/<prefix>_<genome>_<plot_name>.pdf
 ```

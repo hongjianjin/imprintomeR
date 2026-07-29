@@ -232,3 +232,30 @@ testthat::test_that("runImprintomeVisualizations stores successful plots", {
     testthat::expect_equal(manifest$status[1], "stored")
   })
 })
+
+testthat::test_that("runImprintomeVisualizations retains old-style plot filenames", {
+  testthat::skip_if_not_installed("ggplot2")
+  .with_plot_fixture_files({
+    x <- .make_imprintomeset()
+    x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
+    outdir <- tempfile("imprintome-plots-")
+    dir.create(outdir)
+
+    x <- runImprintomeVisualizations(
+      x,
+      plot_types = "polar",
+      probeset = "selected",
+      prefix = "GSE237503_hg19",
+      outdir = outdir,
+      save_plots = TRUE,
+      store_plots = FALSE,
+      verbose = FALSE
+    )
+
+    manifest <- attr(x, "visualization_manifest")
+    testthat::expect_equal(
+      basename(manifest$file[1]), "GSE237503_hg19_polar.selected.pdf"
+    )
+    testthat::expect_true(file.exists(manifest$file[1]))
+  })
+})
