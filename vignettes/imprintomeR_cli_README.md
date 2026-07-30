@@ -184,6 +184,7 @@ The beta matrix should have probes as rows and samples as columns. Metadata shou
 | `--ids-cutoff` | 0.2 | IDS cutoff passed to `runImprintome()`. |
 | `--genome` | hg19 | Genome build for bundled probesets. |
 | `--skip-plots` | FALSE | Skip plot generation. |
+| `--radar-all` | NULL | Pass `TRUE` to generate radar PDFs for every sample under `radar-all/`. |
 | `--verbose` / `-v` | FALSE | Print detailed progress messages. |
 
 ## Plot Types
@@ -212,6 +213,22 @@ Rscript inst/scripts/run_imprintomeR.R \
 `--plot-types all` includes all supported plot types, including `circular_heatmap`, `beeswarm`, `violin`, and `cor_heatmap`.
 
 Plots are saved directly as PDF files and are not embedded in the exported `ImprintomeSet` RDS. This keeps the cached RDS smaller.
+
+### Radar Plots For All Samples
+
+Pass `--radar-all TRUE` to generate one radar PDF for every sample:
+
+```bash
+Rscript inst/scripts/run_imprintomeR.R \
+  -r qc_results/epic/data/epic_qcset.rds \
+  -o imprintome_results \
+  --prefix GSE240091 \
+  --probeset selected \
+  --radar-all TRUE
+```
+
+When enabled, the ordinary single-sample `radar` entry is removed from the regular plot workflow. All-sample radar generation is explicit and independent of `--skip-plots`. PDFs are written under `radar-all/` as `<prefix>_<genome>_radar.<sample_id>.pdf`. Omitting `--radar-all` preserves the existing single-sample radar behavior.
+
 
 ## Imprintome Outputs
 
@@ -330,4 +347,5 @@ After imprintome analysis:
 imprintome_results/<prefix>_<genome>_imprintomeSet.rds
 imprintome_results/<prefix>_<genome>_results_AnalyzeImprintStatus.<probeset>.tsv
 imprintome_results/<prefix>_<genome>_<plot_name>.pdf
+imprintome_results/radar-all/<prefix>_<genome>_radar.<sample_id>.pdf
 ```

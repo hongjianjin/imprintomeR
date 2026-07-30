@@ -48,6 +48,9 @@ option_list <- list(
     make_option(c("--genome"), type = "character", default = "hg19",
         help = "Genome version for probeset loading (hg19, hg38) [default: %default]"),
 
+    make_option(c("--radar-all"), type = "logical", default = NULL,
+        help = "Generate radar PDFs for all samples under radar-all/ when TRUE [default: NULL]"),
+
     make_option(c("--skip-plots"), action = "store_true", default = FALSE,
         help = "Suppress all plot generation"),
 
@@ -692,6 +695,75 @@ tryCatch({
     .strip_plot_payload(imp_set)
 }
 
+.plot_types_without_single_radar <- function(plot_types) {
+    if (identical(plot_types, "default")) {
+        return(c("polar", "beeswarm_origin", "mirror_density",
+                 "heatmap_by_probe", "heatmap_by_gene", "beeswarm_chr", "rainfall"))
+    }
+    if (identical(plot_types, "all")) {
+        return(c("polar", "mirror_density", "beeswarm", "beeswarm_origin",
+                 "beeswarm_chr", "violin", "heatmap_by_probe", "heatmap_by_gene",
+                 "circular_heatmap", "cor_heatmap", "rainfall"))
+    }
+    setdiff(plot_types, "radar")
+}
+
+.generate_all_radar_plots <- function(imp_set, probeset, outdir, prefix, verbose = FALSE) {
+    sample_ids <- colnames(beta(imp_set))
+    sample_ids <- sample_ids[!is.na(sample_ids) & nzchar(sample_ids)]
+    if (length(sample_ids) == 0L) {
+        warning("--radar-all found no sample columns in beta(imp_set)")
+        return(invisible(data.frame()))
+    }
+
+    radar_dir <- file.path(outdir, "radar-all")
+    dir.create(radar_dir, recursive = TRUE, showWarnings = FALSE)
+    safe_sample_ids <- gsub("[^A-Za-z0-9_.-]", "_", sample_ids)
+    safe_sample_ids <- make.unique(safe_sample_ids, sep = "_")
+    result_name <- paste0("AnalyzeImprintStatus.", probeset)
+    manifest <- data.frame(
+        sample_id = sample_ids,
+        file = file.path(radar_dir, paste0(prefix, "_radar.", safe_sample_ids, ".pdf")),
+        status = "pending",
+        message = "",
+        stringsAsFactors = FALSE
+    )
+
+    for (i in seq_along(sample_ids)) {
+        err <- NULL
+        tryCatch({
+            plot(
+                imp_set,
+                plot_type = "radar",
+                result_name = result_name,
+                probeset = probeset,
+                sample_id = sample_ids[i],
+                outFile = manifest$file[i]
+            )
+        }, error = function(e) {
+            err <<- conditionMessage(e)
+        })
+
+        if (is.null(err) && file.exists(manifest$file[i])) {
+            manifest$status[i] <- "saved"
+        } else {
+            if (is.null(err)) err <- "Radar backend did not create the expected PDF"
+            manifest$status[i] <- "skipped_error"
+            manifest$message[i] <- err
+            warning("Skipping radar plot for sample '", sample_ids[i], "': ", err, call. = FALSE)
+        }
+    }
+
+    if (verbose) {
+        .log_message(
+            paste0("  Radar-all: ", sum(manifest$status == "saved"), " saved, ",
+                   sum(manifest$status != "saved"), " skipped; directory: ", radar_dir),
+            verbose = verbose
+        )
+    }
+    invisible(manifest)
+}
+
 # ============================================================================
 # PHASE 6: EXPORT RESULTS (using built-in export() function)
 # ============================================================================
@@ -1056,10 +1128,20 @@ main <- function() {
         # Phase 6: Generate plots and export
         if (args$verbose) .log_message("Phase 6: preparing plots", verbose = args$verbose)
         plot_types <- .parse_plot_types(args$`plot-types`, args$`skip-plots`)
+        if (isTRUE(args$`radar-all`)) {
+            plot_types <- .plot_types_without_single_radar(plot_types)
+        }
 
         # Generate individual plots if requested
         if (length(plot_types) > 0 && !args$`skip-plots`) {
             imp_set <- .generate_imprintome_plots(imp_set, plot_types, args$probeset, args$outdir, prefix = cache_prefix, verbose = args$verbose)
+        }
+
+        # --radar-all is explicit and independent of the ordinary --skip-plots workflow.
+        if (isTRUE(args$`radar-all`)) {
+            .generate_all_radar_plots(
+                imp_set, args$probeset, args$outdir, cache_prefix, verbose = args$verbose
+            )
         }
 
         # Phase 7: Export only the requested result and update the shared cache when needed.

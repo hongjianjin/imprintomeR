@@ -259,3 +259,51 @@ testthat::test_that("runImprintomeVisualizations retains old-style plot filename
     testthat::expect_true(file.exists(manifest$file[1]))
   })
 })
+
+.run_imprintome_cli_script <- file.path(.find_imprintomer_root_plot(), "inst", "scripts", "run_imprintomeR.R")
+
+.load_run_imprintome_cli_function <- function(function_name) {
+  script <- .run_imprintome_cli_script
+  exprs <- parse(file = script, keep.source = FALSE)
+  matches <- vapply(exprs, function(expr) {
+    is.call(expr) && identical(as.character(expr[[1]]), "<-") &&
+      identical(as.character(expr[[2]]), function_name)
+  }, logical(1))
+  testthat::expect_equal(sum(matches), 1L)
+  eval(exprs[[which(matches)]], envir = .GlobalEnv)
+  get(function_name, envir = .GlobalEnv, inherits = FALSE)
+}
+
+testthat::test_that("radar-all writes one old-style PDF per sample", {
+  testthat::skip_if_not_installed("ggplot2")
+  .with_plot_fixture_files({
+    x <- .make_imprintomeset()
+    x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
+    radar_all <- .load_run_imprintome_cli_function(".generate_all_radar_plots")
+    outdir <- tempfile("imprintome-radar-all-")
+    dir.create(outdir)
+    on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)
+
+    manifest <- radar_all(
+      x, probeset = "selected", outdir = outdir, prefix = "GSE237503_hg19"
+    )
+
+    testthat::expect_equal(nrow(manifest), ncol(beta(x)))
+    testthat::expect_true(all(manifest$status == "saved"))
+    radar_dir <- normalizePath(file.path(outdir, "radar-all"), winslash = "/")
+    file_dirs <- normalizePath(dirname(manifest$file), winslash = "/")
+    testthat::expect_true(all(file_dirs == radar_dir))
+    testthat::expect_setequal(
+      basename(manifest$file),
+      paste0("GSE237503_hg19_radar.", colnames(beta(x)), ".pdf")
+    )
+    testthat::expect_true(all(file.exists(manifest$file)))
+  })
+})
+
+testthat::test_that("radar-all removes the ordinary single-sample radar", {
+  without_radar <- .load_run_imprintome_cli_function(".plot_types_without_single_radar")
+  testthat::expect_false("radar" %in% without_radar("default"))
+  testthat::expect_false("radar" %in% without_radar("all"))
+  testthat::expect_equal(without_radar(c("polar", "radar")), "polar")
+})
