@@ -421,6 +421,8 @@ plot(
 
 ### 6.1 Chromosome Beeswarm Panels
 
+Chromosome beeswarm plots show only chromosomes with at least five usable (finite) probe values for the selected sample. A single-chromosome request with fewer than five usable probes returns an informative error.
+
 ```{r, eval = FALSE}
 p_bee_chr_all <- plot(
   x,

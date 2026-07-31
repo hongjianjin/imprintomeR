@@ -82,13 +82,13 @@ testthat::local_edition(1)
 .load_local_imprintomer_plot_code()
 
 .make_plot_fixture <- function() {
-  probes <- c("cg00000001", "cg00000002", "cg00000003", "cg00000004")
+  probes <- c("cg00000001", "cg00000002", "cg00000003", "cg00000004", "cg00000005")
 
   beta <- data.frame(
     NAME = probes,
-    S1 = c(0.30, 0.35, 0.70, 0.68),
-    S2 = c(0.40, 0.45, 0.62, 0.60),
-    S3 = c(0.52, 0.49, 0.51, 0.48),
+    S1 = c(0.30, 0.35, 0.70, 0.68, 0.55),
+    S2 = c(0.40, 0.45, 0.62, 0.60, 0.50),
+    S3 = c(0.52, 0.49, 0.51, 0.48, 0.53),
     stringsAsFactors = FALSE
   )
   rownames(beta) <- beta$NAME
@@ -102,10 +102,10 @@ testthat::local_edition(1)
 
   probeset <- data.frame(
     NAME = probes,
-    CHR = c("chr11", "chr11", "chr11", "chr11"),
-    MAPINFO = c(10001, 10002, 10003, 10004),
-    ORIGIN = c("maternal", "maternal", "paternal", "paternal"),
-    Closest_TSS_gene_name = c("GENE1", "GENE1", "GENE1", "GENE1"),
+    CHR = rep("chr11", 5),
+    MAPINFO = 10001:10005,
+    ORIGIN = c("maternal", "maternal", "paternal", "paternal", NA),
+    Closest_TSS_gene_name = rep("GENE1", 5),
     stringsAsFactors = FALSE
   )
   rownames(probeset) <- probeset$NAME
@@ -212,6 +212,39 @@ testthat::test_that("plot errors on unsupported plot_type", {
     x <- .make_imprintomeset()
     testthat::expect_error(plot(x, plot_type = "not_a_plot"), "Unsupported plot_type")
   })
+})
+
+testthat::test_that("beeswarm_chr retains chromosomes with at least five usable probes", {
+  testthat::skip_if_not_installed("ggplot2")
+  testthat::skip_if_not_installed("ggbeeswarm")
+
+  probes <- sprintf("cg%08d", seq_len(9))
+  beta_x <- data.frame(S1 = seq(0.1, 0.9, length.out = 9), row.names = probes)
+  meta_x <- data.frame(Sample_Name = "S1", row.names = "S1")
+  probeset <- data.frame(
+    NAME = probes,
+    CHR = c(rep("chr1", 4), rep("chr2", 5)),
+    ORIGIN = rep(c("maternal", "paternal"), length.out = 9),
+    stringsAsFactors = FALSE
+  )
+
+  old_get_probeset <- .imprint_get_probeset_df
+  assign(".imprint_get_probeset_df", function(...) probeset, envir = .GlobalEnv)
+  on.exit(assign(".imprint_get_probeset_df", old_get_probeset, envir = .GlobalEnv), add = TRUE)
+
+  p <- .imprint_beeswarm_chr(
+    beta_x, meta_x, SAMPLEID = "Sample_Name", probeset_name = "threshold", sample_id = "S1"
+  )
+  testthat::expect_equal(levels(p$data$Chromosome), "chr2")
+  testthat::expect_equal(nrow(p$data), 5L)
+
+  testthat::expect_error(
+    .imprint_beeswarm_chr(
+      beta_x, meta_x, SAMPLEID = "Sample_Name", probeset_name = "threshold",
+      sample_id = "S1", chr = "chr1"
+    ),
+    "requires at least 5 usable probes per chromosome"
+  )
 })
 
 testthat::test_that("runImprintomeVisualizations stores successful plots", {

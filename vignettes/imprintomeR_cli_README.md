@@ -245,6 +245,8 @@ Rscript inst/scripts/run_imprintomeR.R \
 
 When enabled, the ordinary single-sample `beeswarm_chr` entry is removed from the regular plot workflow. Multipage generation is explicit and independent of `--skip-plots`. The PDF is written directly under the output directory as `<prefix>_<genome>_beeswarm_chr.<probeset>.all.pdf`.
 
+Each page shows only chromosomes with at least five usable (finite) probe values for that sample.
+
 
 ## Imprintome Outputs
 

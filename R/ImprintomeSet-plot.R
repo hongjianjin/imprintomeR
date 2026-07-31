@@ -320,6 +320,17 @@ if (!methods::isGeneric("plot")) {
     stop("plot_type='beeswarm_chr' has no probe values after chromosome/probe filtering.")
   }
 
+  min_probes_per_chr <- 5L
+  probes_per_chr <- table(used$Chromosome)
+  retained_chr <- names(probes_per_chr)[probes_per_chr >= min_probes_per_chr]
+  used <- used[used$Chromosome %in% retained_chr, , drop = FALSE]
+  if (nrow(used) == 0L) {
+    stop(
+      "plot_type='beeswarm_chr' requires at least ", min_probes_per_chr,
+      " usable probes per chromosome after chromosome/probe filtering."
+    )
+  }
+
   used$Chromosome <- factor(used$Chromosome, levels = stringr::str_sort(unique(used$Chromosome), numeric = TRUE))
   pg <- ggplot2::ggplot(used, ggplot2::aes(x = 1, y = value, color = CATEGORY)) +
     ggbeeswarm::geom_quasirandom(size = 1, alpha = alpha) +
