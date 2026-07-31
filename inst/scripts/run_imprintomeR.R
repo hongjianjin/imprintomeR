@@ -748,7 +748,7 @@ tryCatch({
 
     pdf_opened <- FALSE
     successful <- 0L
-    grDevices::pdf(out_file, width = 8, height = 8, onefile = TRUE)
+    grDevices::pdf(out_file, width = 12, height = 12, onefile = TRUE)
     pdf_opened <- TRUE
     on.exit(if (isTRUE(pdf_opened)) grDevices::dev.off(), add = TRUE)
 

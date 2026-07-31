@@ -330,6 +330,44 @@ testthat::test_that("beeswarm_chr filename includes probeset and sample", {
   })
 })
 
+testthat::test_that("single rainfall and radar filenames include probeset and sample", {
+  testthat::skip_if_not_installed("ggplot2")
+  .with_plot_fixture_files({
+    x <- .make_imprintomeset()
+    x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
+    outdir <- tempfile("imprintome-single-sample-plots-")
+    dir.create(outdir)
+    on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)
+    sid <- colnames(beta(x))[1]
+
+    x <- runImprintomeVisualizations(
+      x,
+      plot_types = c("rainfall", "radar"),
+      probeset = "selected",
+      sample_id = sid,
+      prefix = "GSE237503_hg19",
+      outdir = outdir,
+      save_plots = TRUE,
+      store_plots = FALSE,
+      verbose = FALSE
+    )
+
+    manifest <- attr(x, "visualization_manifest")
+    testthat::expect_equal(
+      manifest$name,
+      c(paste0("rainfall.selected.", sid), paste0("radar.selected.", sid))
+    )
+    testthat::expect_equal(
+      basename(manifest$file),
+      c(
+        paste0("GSE237503_hg19_rainfall.selected.", sid, ".pdf"),
+        paste0("GSE237503_hg19_radar.selected.", sid, ".pdf")
+      )
+    )
+    testthat::expect_true(all(file.exists(manifest$file)))
+  })
+})
+
 .run_imprintome_cli_script <- file.path(.find_imprintomer_root_plot(), "inst", "scripts", "run_imprintomeR.R")
 
 .load_run_imprintome_cli_function <- function(function_name) {
@@ -350,6 +388,10 @@ testthat::test_that("radar-all writes one multipage PDF", {
     x <- .make_imprintomeset()
     x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
     radar_all <- .load_run_imprintome_cli_function(".generate_all_radar_plots")
+    testthat::expect_match(
+      paste(deparse(body(radar_all)), collapse = "\n"),
+      "width = 12, height = 12", fixed = TRUE
+    )
     outdir <- tempfile("imprintome-radar-all-")
     dir.create(outdir)
     on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)

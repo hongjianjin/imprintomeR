@@ -133,8 +133,8 @@ runImprintomeVisualizations <- function(x,
       "heatmap_by_gene" = paste0("heatmap_by_gene.", probeset),
       "circular_heatmap" = paste0("circular.", probeset),
       "cor_heatmap" = paste0("cor_heatmap.", probeset),
-      "rainfall" = paste0("rainfall.", sample_suffix),
-      "radar" = paste0("radar.", sample_suffix),
+      "rainfall" = paste0("rainfall.", probeset, ".", sample_suffix),
+      "radar" = paste0("radar.", probeset, ".", sample_suffix),
       paste0(plot_type, ".", probeset)
     )
   }

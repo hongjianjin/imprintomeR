@@ -217,7 +217,7 @@ Plots are saved directly as PDF files and are not embedded in the exported `Impr
 
 ### Radar Plots For All Samples
 
-Pass `--radar-all TRUE` to generate one multipage radar PDF with one 8 x 8 inch page per sample:
+Pass `--radar-all TRUE` to generate one multipage radar PDF with one 12 x 12 inch page per sample:
 
 ```bash
 Rscript inst/scripts/run_imprintomeR.R \
@@ -229,6 +229,8 @@ Rscript inst/scripts/run_imprintomeR.R \
 ```
 
 When enabled, the ordinary single-sample `radar` entry is removed from the regular plot workflow. All-sample radar generation is explicit and independent of `--skip-plots`. The PDF is written directly under the output directory as `<prefix>_<genome>_radar.<probeset>.all.pdf`. Omitting `--radar-all` preserves the existing single-sample radar behavior.
+
+Single-sample rainfall and radar files use `<prefix>_<genome>_rainfall.<probeset>.<sampleID>.pdf` and `<prefix>_<genome>_radar.<probeset>.<sampleID>.pdf`, respectively.
 
 ### Chromosome Beeswarm For All Samples
 
@@ -259,7 +261,8 @@ imprintome_results/
 +-- GSE240091_hg19_results_AnalyzeImprintStatus.selected.tsv
 +-- GSE240091_hg19_polar.selected.pdf
 +-- GSE240091_hg19_heatmap_by_gene.selected.pdf
-+-- GSE240091_hg19_radar.<sample_id>.pdf
++-- GSE240091_hg19_radar.<probeset>.<sample_id>.pdf
++-- GSE240091_hg19_rainfall.<probeset>.<sample_id>.pdf
 ```
 
 The main result table is stored as `AnalyzeImprintStatus.<probeset>` inside `results(x)` and exported as a genome-prefixed TSV file.
