@@ -183,8 +183,9 @@ The beta matrix should have probes as rows and samples as columns. Metadata shou
 | `--plot-types` | default | Comma-separated plot types, `default`, or `all`. |
 | `--ids-cutoff` | 0.2 | IDS cutoff passed to `runImprintome()`. |
 | `--genome` | hg19 | Genome build for bundled probesets. |
-| `--skip-plots` | FALSE | Skip plot generation. |
-| `--radar-all` | NULL | Pass `TRUE` to generate radar PDFs for every sample under `radar-all/`. |
+| `--skip-plots` | FALSE | Skip the ordinary plot workflow; explicit `--radar-all` and `--beeswarm-chr-all` outputs still run. |
+| `--radar-all` | NULL | Pass `TRUE` to generate one multipage radar PDF containing every sample. |
+| `--beeswarm-chr-all` | NULL | Pass `TRUE` to generate one multipage chromosome-beeswarm PDF containing every sample. |
 | `--verbose` / `-v` | FALSE | Print detailed progress messages. |
 
 ## Plot Types
@@ -216,7 +217,7 @@ Plots are saved directly as PDF files and are not embedded in the exported `Impr
 
 ### Radar Plots For All Samples
 
-Pass `--radar-all TRUE` to generate one radar PDF for every sample:
+Pass `--radar-all TRUE` to generate one multipage radar PDF with one 8 x 8 inch page per sample:
 
 ```bash
 Rscript inst/scripts/run_imprintomeR.R \
@@ -227,7 +228,22 @@ Rscript inst/scripts/run_imprintomeR.R \
   --radar-all TRUE
 ```
 
-When enabled, the ordinary single-sample `radar` entry is removed from the regular plot workflow. All-sample radar generation is explicit and independent of `--skip-plots`. PDFs are written under `radar-all/` as `<prefix>_<genome>_radar.<sample_id>.pdf`. Omitting `--radar-all` preserves the existing single-sample radar behavior.
+When enabled, the ordinary single-sample `radar` entry is removed from the regular plot workflow. All-sample radar generation is explicit and independent of `--skip-plots`. The PDF is written directly under the output directory as `<prefix>_<genome>_radar.<probeset>.all.pdf`. Omitting `--radar-all` preserves the existing single-sample radar behavior.
+
+### Chromosome Beeswarm For All Samples
+
+Pass `--beeswarm-chr-all TRUE` to generate one multipage PDF with one 10 x 4 inch page per sample:
+
+```bash
+Rscript inst/scripts/run_imprintomeR.R \
+  -r qc_results/epic/data/epic_qcset.rds \
+  -o imprintome_results \
+  --prefix GSE166531 \
+  --probeset chr11p15 \
+  --beeswarm-chr-all TRUE
+```
+
+When enabled, the ordinary single-sample `beeswarm_chr` entry is removed from the regular plot workflow. Multipage generation is explicit and independent of `--skip-plots`. The PDF is written directly under the output directory as `<prefix>_<genome>_beeswarm_chr.<probeset>.all.pdf`.
 
 
 ## Imprintome Outputs
@@ -347,5 +363,6 @@ After imprintome analysis:
 imprintome_results/<prefix>_<genome>_imprintomeSet.rds
 imprintome_results/<prefix>_<genome>_results_AnalyzeImprintStatus.<probeset>.tsv
 imprintome_results/<prefix>_<genome>_<plot_name>.pdf
-imprintome_results/radar-all/<prefix>_<genome>_radar.<sample_id>.pdf
+imprintome_results/<prefix>_<genome>_radar.<probeset>.all.pdf
+imprintome_results/<prefix>_<genome>_beeswarm_chr.<probeset>.all.pdf
 ```

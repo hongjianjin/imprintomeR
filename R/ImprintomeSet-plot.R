@@ -306,9 +306,9 @@ if (!methods::isGeneric("plot")) {
   used <- used[is.finite(used$value), , drop = FALSE]
   used$CATEGORY <- ifelse(
     grepl("maternal", used$CATEGORY_RAW, ignore.case = TRUE), "maternal",
-    ifelse(grepl("paternal", used$CATEGORY_RAW, ignore.case = TRUE), "paternal", "other")
+    ifelse(grepl("paternal", used$CATEGORY_RAW, ignore.case = TRUE), "paternal", NA_character_)
   )
-  used$CATEGORY <- factor(used$CATEGORY, levels = c("maternal", "paternal", "other"))
+  used$CATEGORY <- factor(used$CATEGORY, levels = c("maternal", "paternal"))
 
   chr_scope <- "all"
   if (!is.null(chr) && nzchar(chr) && tolower(chr) != "all") {
@@ -321,63 +321,32 @@ if (!methods::isGeneric("plot")) {
   }
 
   used$Chromosome <- factor(used$Chromosome, levels = stringr::str_sort(unique(used$Chromosome), numeric = TRUE))
-  used$ID <- as.character(used$Chromosome)
-  num_groups <- length(unique(used$CATEGORY))
-  dot_size <- max(2, 2 - log10(nrow(used) + 1) / 6)
-
-  pg <- ggplot2::ggplot(used, ggplot2::aes(x = interaction(ID, CATEGORY), y = value, color = CATEGORY)) +
-    ggbeeswarm::geom_quasirandom(size = dot_size, alpha = alpha, pch = 20) +
-    ggplot2::stat_summary(
-      fun = median,
-      geom = "errorbar",
-      ggplot2::aes(ymin = after_stat(y), ymax = after_stat(y)),
-      width = 0.75,
-      linewidth = 0.8,
-      color = "grey30"
-    ) +
-    ggplot2::facet_wrap(~Chromosome, nrow = 1, scales = "free_x", strip.position = "bottom") +
-    ggplot2::scale_x_discrete(labels = function(x) {
-      labels <- rep("", length(x))
-      labels[seq(1, length(x), by = num_groups)] <- vapply(
-        strsplit(as.character(x), "\\."),
-        function(parts) parts[1],
-        character(1)
-      )[seq(1, length(x), by = num_groups)]
-      labels
-    }) +
-    ggplot2::geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
-    ggplot2::scale_color_manual(
-      values = c(
-        maternal = unname(.imprint_origin_colors()["maternal"]),
-        paternal = unname(.imprint_origin_colors()["paternal"]),
-        other = unname(.imprint_origin_colors()["reference"])
-      ),
-      name = "Allelic origin"
-    ) +
-    ggplot2::theme_minimal() +
+  pg <- ggplot2::ggplot(used, ggplot2::aes(x = 1, y = value, color = CATEGORY)) +
+    ggbeeswarm::geom_quasirandom(size = 1, alpha = alpha) +
+    ggplot2::facet_wrap(~Chromosome, nrow = 1) +
+    ggplot2::geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40", linewidth = 0.5) +
+    ggplot2::geom_hline(yintercept = c(0.3, 0.7), linetype = "dotted", color = "grey60", linewidth = 0.5) +
+    ggplot2::scale_color_discrete(name = "Allelic origin", na.value = "grey50", na.translate = TRUE) +
     ggplot2::theme_classic(base_size = 10) +
     ggplot2::theme(
-      axis.text.x = ggplot2::element_text(angle = 90, hjust = 1),
-      axis.title.x = ggplot2::element_blank(),
+      axis.text.x = ggplot2::element_blank(),
       axis.ticks.x = ggplot2::element_blank(),
-      strip.text = ggplot2::element_blank(),
-      strip.background = ggplot2::element_blank(),
-      legend.position = "bottom"
+      panel.border = ggplot2::element_rect(color = "grey20", fill = NA, linewidth = 0.5),
+      legend.position = "right"
     ) +
     ggplot2::labs(
       title = title,
       subtitle = paste0("Sample: ", chosen_sample, " | Probeset: ", probeset_name, " | Chromosome: ", paste(chr_scope, collapse = ",")),
-      x = "ID",
+      x = "Chromosome",
       y = "Methylation Level"
     ) +
     ggplot2::ylim(0, 1)
 
   if (!is.null(outFile)) {
-    n_chr <- length(unique(used$Chromosome))
     ggplot2::ggsave(
       filename = outFile,
       plot = pg,
-      width = ifelse(is.null(width), max(6, n_chr * 1.5), width),
+      width = ifelse(is.null(width), 10, width),
       height = ifelse(is.null(height), 4, height),
       units = "in",
       limitsize = TRUE
@@ -613,8 +582,8 @@ methods::setMethod(
           chr = chr_focus,
           alpha = alpha,
           outFile = outFile,
-          width = width,
-          height = height,
+          width = if (!is.null(args$width)) width else NULL,
+          height = if (!is.null(args$height)) height else NULL,
           title = title
         )
       )

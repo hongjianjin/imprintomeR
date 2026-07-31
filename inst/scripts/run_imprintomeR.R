@@ -49,7 +49,10 @@ option_list <- list(
         help = "Genome version for probeset loading (hg19, hg38) [default: %default]"),
 
     make_option(c("--radar-all"), type = "logical", default = NULL,
-        help = "Generate radar PDFs for all samples under radar-all/ when TRUE [default: NULL]"),
+        help = "Generate one multipage radar PDF for all samples when TRUE [default: NULL]"),
+
+    make_option(c("--beeswarm-chr-all"), type = "logical", default = NULL, dest = "beeswarm_chr_all",
+        help = "Generate one multipage chromosome beeswarm PDF for all samples when TRUE [default: NULL]"),
 
     make_option(c("--skip-plots"), action = "store_true", default = FALSE,
         help = "Suppress all plot generation"),
@@ -708,6 +711,19 @@ tryCatch({
     setdiff(plot_types, "radar")
 }
 
+.plot_types_without_single_beeswarm_chr <- function(plot_types) {
+    if (identical(plot_types, "default")) {
+        return(c("polar", "beeswarm_origin", "mirror_density",
+                 "heatmap_by_probe", "heatmap_by_gene", "radar", "rainfall"))
+    }
+    if (identical(plot_types, "all")) {
+        return(c("polar", "mirror_density", "beeswarm", "beeswarm_origin",
+                 "violin", "heatmap_by_probe", "heatmap_by_gene",
+                 "circular_heatmap", "cor_heatmap", "rainfall", "radar"))
+    }
+    setdiff(plot_types, "beeswarm_chr")
+}
+
 .generate_all_radar_plots <- function(imp_set, probeset, outdir, prefix, verbose = FALSE) {
     sample_ids <- colnames(beta(imp_set))
     sample_ids <- sample_ids[!is.na(sample_ids) & nzchar(sample_ids)]
@@ -716,48 +732,135 @@ tryCatch({
         return(invisible(data.frame()))
     }
 
-    radar_dir <- file.path(outdir, "radar-all")
-    dir.create(radar_dir, recursive = TRUE, showWarnings = FALSE)
-    safe_sample_ids <- gsub("[^A-Za-z0-9_.-]", "_", sample_ids)
-    safe_sample_ids <- make.unique(safe_sample_ids, sep = "_")
+    safe_probeset <- gsub("[^A-Za-z0-9_.-]", "_", probeset)
+    out_file <- file.path(
+        outdir,
+        paste0(prefix, "_radar.", safe_probeset, ".all.pdf")
+    )
     result_name <- paste0("AnalyzeImprintStatus.", probeset)
     manifest <- data.frame(
         sample_id = sample_ids,
-        file = file.path(radar_dir, paste0(prefix, "_radar.", safe_sample_ids, ".pdf")),
+        file = rep(out_file, length(sample_ids)),
         status = "pending",
         message = "",
         stringsAsFactors = FALSE
     )
 
+    pdf_opened <- FALSE
+    successful <- 0L
+    grDevices::pdf(out_file, width = 8, height = 8, onefile = TRUE)
+    pdf_opened <- TRUE
+    on.exit(if (isTRUE(pdf_opened)) grDevices::dev.off(), add = TRUE)
+
     for (i in seq_along(sample_ids)) {
         err <- NULL
         tryCatch({
-            plot(
+            p <- plot(
                 imp_set,
                 plot_type = "radar",
                 result_name = result_name,
                 probeset = probeset,
-                sample_id = sample_ids[i],
-                outFile = manifest$file[i]
+                sample_id = sample_ids[i]
             )
+            print(p)
         }, error = function(e) {
             err <<- conditionMessage(e)
         })
 
-        if (is.null(err) && file.exists(manifest$file[i])) {
+        if (is.null(err)) {
             manifest$status[i] <- "saved"
+            successful <- successful + 1L
         } else {
-            if (is.null(err)) err <- "Radar backend did not create the expected PDF"
             manifest$status[i] <- "skipped_error"
             manifest$message[i] <- err
             warning("Skipping radar plot for sample '", sample_ids[i], "': ", err, call. = FALSE)
         }
     }
 
+    grDevices::dev.off()
+    pdf_opened <- FALSE
+    if (successful == 0L && file.exists(out_file)) {
+        unlink(out_file)
+    }
+
     if (verbose) {
         .log_message(
-            paste0("  Radar-all: ", sum(manifest$status == "saved"), " saved, ",
-                   sum(manifest$status != "saved"), " skipped; directory: ", radar_dir),
+            paste0(
+                "  Radar-all: ", successful, " pages saved, ",
+                sum(manifest$status != "saved"), " skipped; file: ", out_file
+            ),
+            verbose = verbose
+        )
+    }
+    invisible(manifest)
+}
+
+.generate_all_beeswarm_chr_plots <- function(imp_set, probeset, outdir, prefix, verbose = FALSE) {
+    sample_ids <- colnames(beta(imp_set))
+    sample_ids <- sample_ids[!is.na(sample_ids) & nzchar(sample_ids)]
+    if (length(sample_ids) == 0L) {
+        warning("--beeswarm-chr-all found no sample columns in beta(imp_set)")
+        return(invisible(data.frame()))
+    }
+
+    safe_probeset <- gsub("[^A-Za-z0-9_.-]", "_", probeset)
+    out_file <- file.path(
+        outdir,
+        paste0(prefix, "_beeswarm_chr.", safe_probeset, ".all.pdf")
+    )
+    manifest <- data.frame(
+        sample_id = sample_ids,
+        file = rep(out_file, length(sample_ids)),
+        status = "pending",
+        message = "",
+        stringsAsFactors = FALSE
+    )
+
+    pdf_opened <- FALSE
+    successful <- 0L
+    grDevices::pdf(out_file, width = 10, height = 4, onefile = TRUE)
+    pdf_opened <- TRUE
+    on.exit(if (isTRUE(pdf_opened)) grDevices::dev.off(), add = TRUE)
+
+    for (i in seq_along(sample_ids)) {
+        err <- NULL
+        tryCatch({
+            p <- plot(
+                imp_set,
+                plot_type = "beeswarm_chr",
+                probeset = probeset,
+                sample_id = sample_ids[i]
+            )
+            print(p)
+        }, error = function(e) {
+            err <<- conditionMessage(e)
+        })
+
+        if (is.null(err)) {
+            manifest$status[i] <- "saved"
+            successful <- successful + 1L
+        } else {
+            manifest$status[i] <- "skipped_error"
+            manifest$message[i] <- err
+            warning(
+                "Skipping chromosome beeswarm for sample '", sample_ids[i], "': ",
+                err, call. = FALSE
+            )
+        }
+    }
+
+    grDevices::dev.off()
+    pdf_opened <- FALSE
+    if (successful == 0L && file.exists(out_file)) {
+        unlink(out_file)
+    }
+
+    if (verbose) {
+        .log_message(
+            paste0(
+                "  Beeswarm-chr-all: ", successful, " pages saved, ",
+                sum(manifest$status != "saved"), " skipped; file: ", out_file
+            ),
             verbose = verbose
         )
     }
@@ -1133,6 +1236,9 @@ main <- function() {
         }
 
         # Generate individual plots if requested
+        if (isTRUE(args$beeswarm_chr_all)) {
+            plot_types <- .plot_types_without_single_beeswarm_chr(plot_types)
+        }
         if (length(plot_types) > 0 && !args$`skip-plots`) {
             imp_set <- .generate_imprintome_plots(imp_set, plot_types, args$probeset, args$outdir, prefix = cache_prefix, verbose = args$verbose)
         }
@@ -1144,6 +1250,13 @@ main <- function() {
             )
         }
 
+
+        # --beeswarm-chr-all is explicit and independent of --skip-plots.
+        if (isTRUE(args$beeswarm_chr_all)) {
+            .generate_all_beeswarm_chr_plots(
+                imp_set, args$probeset, args$outdir, cache_prefix, verbose = args$verbose
+            )
+        }
         # Phase 7: Export only the requested result and update the shared cache when needed.
         if (args$verbose) .log_message("Phase 7: exporting requested analysis", verbose = args$verbose)
         .export_requested_analysis(

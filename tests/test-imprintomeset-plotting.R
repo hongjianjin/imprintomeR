@@ -184,6 +184,11 @@ testthat::test_that("plot supports explicit plot_type dispatch", {
     testthat::expect_s3_class(p_chr, "ggplot")
     testthat::expect_true(grepl(paste0("Sample: ", sid), p_chr$labels$subtitle, fixed = TRUE))
     testthat::expect_true(grepl("Chromosome: chr11", p_chr$labels$subtitle, fixed = TRUE))
+    testthat::expect_s3_class(p_chr$facet, "FacetWrap")
+    testthat::expect_equal(p_chr$labels$x, "Chromosome")
+    testthat::expect_false(inherits(p_chr$theme$panel.border, "element_blank"))
+    testthat::expect_equal(p_chr$theme$legend.position, "right")
+    testthat::expect_equal(length(p_chr$layers), 3L)
 
     p_rain <- plot(x, plot_type = "rainfall", sample_id = sid)
     testthat::expect_s3_class(p_rain, "ggplot")
@@ -260,6 +265,38 @@ testthat::test_that("runImprintomeVisualizations retains old-style plot filename
   })
 })
 
+testthat::test_that("beeswarm_chr filename includes probeset and sample", {
+  testthat::skip_if_not_installed("ggplot2")
+  .with_plot_fixture_files({
+    x <- .make_imprintomeset()
+    x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
+    outdir <- tempfile("imprintome-beeswarm-chr-")
+    dir.create(outdir)
+    on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)
+    sid <- colnames(beta(x))[1]
+
+    x <- runImprintomeVisualizations(
+      x,
+      plot_types = "beeswarm_chr",
+      probeset = "selected",
+      sample_id = sid,
+      prefix = "GSE166531_hg19",
+      outdir = outdir,
+      save_plots = TRUE,
+      store_plots = FALSE,
+      verbose = FALSE
+    )
+
+    manifest <- attr(x, "visualization_manifest")
+    testthat::expect_equal(manifest$status[1], "saved")
+    testthat::expect_equal(
+      basename(manifest$file[1]),
+      paste0("GSE166531_hg19_beeswarm_chr.selected.", sid, ".pdf")
+    )
+    testthat::expect_true(file.exists(manifest$file[1]))
+  })
+})
+
 .run_imprintome_cli_script <- file.path(.find_imprintomer_root_plot(), "inst", "scripts", "run_imprintomeR.R")
 
 .load_run_imprintome_cli_function <- function(function_name) {
@@ -274,7 +311,7 @@ testthat::test_that("runImprintomeVisualizations retains old-style plot filename
   get(function_name, envir = .GlobalEnv, inherits = FALSE)
 }
 
-testthat::test_that("radar-all writes one old-style PDF per sample", {
+testthat::test_that("radar-all writes one multipage PDF", {
   testthat::skip_if_not_installed("ggplot2")
   .with_plot_fixture_files({
     x <- .make_imprintomeset()
@@ -290,14 +327,12 @@ testthat::test_that("radar-all writes one old-style PDF per sample", {
 
     testthat::expect_equal(nrow(manifest), ncol(beta(x)))
     testthat::expect_true(all(manifest$status == "saved"))
-    radar_dir <- normalizePath(file.path(outdir, "radar-all"), winslash = "/")
-    file_dirs <- normalizePath(dirname(manifest$file), winslash = "/")
-    testthat::expect_true(all(file_dirs == radar_dir))
-    testthat::expect_setequal(
-      basename(manifest$file),
-      paste0("GSE237503_hg19_radar.", colnames(beta(x)), ".pdf")
+    testthat::expect_length(unique(manifest$file), 1L)
+    testthat::expect_equal(
+      basename(unique(manifest$file)),
+      "GSE237503_hg19_radar.selected.all.pdf"
     )
-    testthat::expect_true(all(file.exists(manifest$file)))
+    testthat::expect_true(file.exists(unique(manifest$file)))
   })
 })
 
@@ -306,4 +341,39 @@ testthat::test_that("radar-all removes the ordinary single-sample radar", {
   testthat::expect_false("radar" %in% without_radar("default"))
   testthat::expect_false("radar" %in% without_radar("all"))
   testthat::expect_equal(without_radar(c("polar", "radar")), "polar")
+})
+
+testthat::test_that("beeswarm-chr-all writes one multipage PDF", {
+  testthat::skip_if_not_installed("ggplot2")
+  .with_plot_fixture_files({
+    x <- .make_imprintomeset()
+    x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
+    beeswarm_all <- .load_run_imprintome_cli_function(".generate_all_beeswarm_chr_plots")
+    outdir <- tempfile("imprintome-beeswarm-chr-all-")
+    dir.create(outdir)
+    on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)
+
+    manifest <- beeswarm_all(
+      x,
+      probeset = "selected",
+      outdir = outdir,
+      prefix = "GSE166531_hg19"
+    )
+
+    testthat::expect_equal(nrow(manifest), ncol(beta(x)))
+    testthat::expect_true(all(manifest$status == "saved"))
+    testthat::expect_length(unique(manifest$file), 1L)
+    testthat::expect_equal(
+      basename(unique(manifest$file)),
+      "GSE166531_hg19_beeswarm_chr.selected.all.pdf"
+    )
+    testthat::expect_true(file.exists(unique(manifest$file)))
+  })
+})
+
+testthat::test_that("beeswarm-chr-all removes the ordinary single-sample plot", {
+  without_beeswarm <- .load_run_imprintome_cli_function(".plot_types_without_single_beeswarm_chr")
+  testthat::expect_false("beeswarm_chr" %in% without_beeswarm("default"))
+  testthat::expect_false("beeswarm_chr" %in% without_beeswarm("all"))
+  testthat::expect_equal(without_beeswarm(c("polar", "beeswarm_chr")), "polar")
 })
