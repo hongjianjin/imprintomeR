@@ -310,11 +310,9 @@ if (!methods::isGeneric("plot")) {
   )
   used$CATEGORY <- factor(used$CATEGORY, levels = c("maternal", "paternal"))
 
-  chr_scope <- "all"
   if (!is.null(chr) && nzchar(chr) && tolower(chr) != "all") {
     chr_norm <- .imprint_normalize_chr(chr)
     used <- used[used$Chromosome %in% chr_norm, , drop = FALSE]
-    chr_scope <- chr_norm
   }
   if (nrow(used) == 0L) {
     stop("plot_type='beeswarm_chr' has no probe values after chromosome/probe filtering.")
@@ -331,7 +329,8 @@ if (!methods::isGeneric("plot")) {
     )
   }
 
-  used$Chromosome <- factor(used$Chromosome, levels = stringr::str_sort(unique(used$Chromosome), numeric = TRUE))
+  retained_chr <- stringr::str_sort(unique(used$Chromosome), numeric = TRUE)
+  used$Chromosome <- factor(used$Chromosome, levels = retained_chr)
   pg <- ggplot2::ggplot(used, ggplot2::aes(x = 1, y = value, color = CATEGORY)) +
     ggbeeswarm::geom_quasirandom(size = 1, alpha = alpha) +
     ggplot2::facet_wrap(~Chromosome, nrow = 1) +
@@ -347,7 +346,7 @@ if (!methods::isGeneric("plot")) {
     ) +
     ggplot2::labs(
       title = title,
-      subtitle = paste0("Sample: ", chosen_sample, " | Probeset: ", probeset_name, " | Chromosome: ", paste(chr_scope, collapse = ",")),
+      subtitle = paste0("Sample: ", chosen_sample, " | Probeset: ", probeset_name),
       x = "Chromosome",
       y = "Methylation Level"
     ) +

@@ -183,7 +183,7 @@ testthat::test_that("plot supports explicit plot_type dispatch", {
     p_chr <- plot(x, plot_type = "beeswarm_chr", probeset = "selected", sample_id = sid, chr = "chr11")
     testthat::expect_s3_class(p_chr, "ggplot")
     testthat::expect_true(grepl(paste0("Sample: ", sid), p_chr$labels$subtitle, fixed = TRUE))
-    testthat::expect_true(grepl("Chromosome: chr11", p_chr$labels$subtitle, fixed = TRUE))
+    testthat::expect_false(grepl("Chromosome:", p_chr$labels$subtitle, fixed = TRUE))
     testthat::expect_s3_class(p_chr$facet, "FacetWrap")
     testthat::expect_equal(p_chr$labels$x, "Chromosome")
     testthat::expect_false(inherits(p_chr$theme$panel.border, "element_blank"))
@@ -237,6 +237,7 @@ testthat::test_that("beeswarm_chr retains chromosomes with at least five usable 
   )
   testthat::expect_equal(levels(p$data$Chromosome), "chr2")
   testthat::expect_equal(nrow(p$data), 5L)
+  testthat::expect_false(grepl("Chromosome:", p$labels$subtitle, fixed = TRUE))
 
   testthat::expect_error(
     .imprint_beeswarm_chr(
@@ -381,6 +382,42 @@ testthat::test_that("single rainfall and radar filenames include probeset and sa
   eval(exprs[[which(matches)]], envir = .GlobalEnv)
   get(function_name, envir = .GlobalEnv, inherits = FALSE)
 }
+
+testthat::test_that("rainfall-all writes one multipage PDF", {
+  testthat::skip_if_not_installed("ggplot2")
+  .with_plot_fixture_files({
+    x <- .make_imprintomeset()
+    x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
+    rainfall_all <- .load_run_imprintome_cli_function(".generate_all_rainfall_plots")
+    testthat::expect_match(
+      paste(deparse(body(rainfall_all)), collapse = "\n"),
+      "width = 12, height = 6", fixed = TRUE
+    )
+    outdir <- tempfile("imprintome-rainfall-all-")
+    dir.create(outdir)
+    on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)
+
+    manifest <- rainfall_all(
+      x, probeset = "selected", outdir = outdir, prefix = "GSE237503_hg19"
+    )
+
+    testthat::expect_equal(nrow(manifest), ncol(beta(x)))
+    testthat::expect_true(all(manifest$status == "saved"))
+    testthat::expect_length(unique(manifest$file), 1L)
+    testthat::expect_equal(
+      basename(unique(manifest$file)),
+      "GSE237503_hg19_rainfall.selected.all.pdf"
+    )
+    testthat::expect_true(file.exists(unique(manifest$file)))
+  })
+})
+
+testthat::test_that("rainfall-all removes the ordinary single-sample rainfall", {
+  without_rainfall <- .load_run_imprintome_cli_function(".plot_types_without_single_rainfall")
+  testthat::expect_false("rainfall" %in% without_rainfall("default"))
+  testthat::expect_false("rainfall" %in% without_rainfall("all"))
+  testthat::expect_equal(without_rainfall(c("polar", "rainfall")), "polar")
+})
 
 testthat::test_that("radar-all writes one multipage PDF", {
   testthat::skip_if_not_installed("ggplot2")

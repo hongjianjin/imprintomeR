@@ -183,7 +183,8 @@ The beta matrix should have probes as rows and samples as columns. Metadata shou
 | `--plot-types` | default | Comma-separated plot types, `default`, or `all`. |
 | `--ids-cutoff` | 0.2 | IDS cutoff passed to `runImprintome()`. |
 | `--genome` | hg19 | Genome build for bundled probesets. |
-| `--skip-plots` | FALSE | Skip the ordinary plot workflow; explicit `--radar-all` and `--beeswarm-chr-all` outputs still run. |
+| `--skip-plots` | FALSE | Skip the ordinary plot workflow; explicit `--rainfall-all`, `--radar-all`, and `--beeswarm-chr-all` outputs still run. |
+| `--rainfall-all` | NULL | Pass `TRUE` to generate one multipage rainfall PDF containing every sample. |
 | `--radar-all` | NULL | Pass `TRUE` to generate one multipage radar PDF containing every sample. |
 | `--beeswarm-chr-all` | NULL | Pass `TRUE` to generate one multipage chromosome-beeswarm PDF containing every sample. |
 | `--verbose` / `-v` | FALSE | Print detailed progress messages. |
@@ -214,6 +215,21 @@ Rscript inst/scripts/run_imprintomeR.R \
 `--plot-types all` includes all supported plot types, including `circular_heatmap`, `beeswarm`, `violin`, and `cor_heatmap`.
 
 Plots are saved directly as PDF files and are not embedded in the exported `ImprintomeSet` RDS. This keeps the cached RDS smaller.
+
+### Rainfall Plots For All Samples
+
+Pass `--rainfall-all TRUE` to generate one multipage rainfall PDF with one 12 x 6 inch page per sample:
+
+```bash
+Rscript inst/scripts/run_imprintomeR.R \
+  -r qc_results/epic/data/epic_qcset.rds \
+  -o imprintome_results \
+  --prefix GSE240091 \
+  --probeset selected \
+  --rainfall-all TRUE
+```
+
+When enabled, the ordinary single-sample `rainfall` entry is removed from the regular plot workflow. All-sample rainfall generation is explicit and independent of `--skip-plots`. The PDF is written directly under the output directory as `<prefix>_<genome>_rainfall.<probeset>.all.pdf`. Omitting `--rainfall-all` preserves the existing single-sample rainfall behavior.
 
 ### Radar Plots For All Samples
 
@@ -368,6 +384,7 @@ After imprintome analysis:
 imprintome_results/<prefix>_<genome>_imprintomeSet.rds
 imprintome_results/<prefix>_<genome>_results_AnalyzeImprintStatus.<probeset>.tsv
 imprintome_results/<prefix>_<genome>_<plot_name>.pdf
+imprintome_results/<prefix>_<genome>_rainfall.<probeset>.all.pdf
 imprintome_results/<prefix>_<genome>_radar.<probeset>.all.pdf
 imprintome_results/<prefix>_<genome>_beeswarm_chr.<probeset>.all.pdf
 ```

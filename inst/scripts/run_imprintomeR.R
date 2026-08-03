@@ -51,6 +51,9 @@ option_list <- list(
     make_option(c("--radar-all"), type = "logical", default = NULL,
         help = "Generate one multipage radar PDF for all samples when TRUE [default: NULL]"),
 
+    make_option(c("--rainfall-all"), type = "logical", default = NULL, dest = "rainfall_all",
+        help = "Generate one multipage rainfall PDF for all samples when TRUE [default: NULL]"),
+
     make_option(c("--beeswarm-chr-all"), type = "logical", default = NULL, dest = "beeswarm_chr_all",
         help = "Generate one multipage chromosome beeswarm PDF for all samples when TRUE [default: NULL]"),
 
@@ -711,6 +714,19 @@ tryCatch({
     setdiff(plot_types, "radar")
 }
 
+.plot_types_without_single_rainfall <- function(plot_types) {
+    if (identical(plot_types, "default")) {
+        return(c("polar", "beeswarm_origin", "mirror_density",
+                 "heatmap_by_probe", "heatmap_by_gene", "radar", "beeswarm_chr"))
+    }
+    if (identical(plot_types, "all")) {
+        return(c("polar", "mirror_density", "beeswarm", "beeswarm_origin",
+                 "beeswarm_chr", "violin", "heatmap_by_probe", "heatmap_by_gene",
+                 "circular_heatmap", "cor_heatmap", "radar"))
+    }
+    setdiff(plot_types, "rainfall")
+}
+
 .plot_types_without_single_beeswarm_chr <- function(plot_types) {
     if (identical(plot_types, "default")) {
         return(c("polar", "beeswarm_origin", "mirror_density",
@@ -722,6 +738,75 @@ tryCatch({
                  "circular_heatmap", "cor_heatmap", "rainfall", "radar"))
     }
     setdiff(plot_types, "beeswarm_chr")
+}
+
+.generate_all_rainfall_plots <- function(imp_set, probeset, outdir, prefix, verbose = FALSE) {
+    sample_ids <- colnames(beta(imp_set))
+    sample_ids <- sample_ids[!is.na(sample_ids) & nzchar(sample_ids)]
+    if (length(sample_ids) == 0L) {
+        warning("--rainfall-all found no sample columns in beta(imp_set)")
+        return(invisible(data.frame()))
+    }
+
+    safe_probeset <- gsub("[^A-Za-z0-9_.-]", "_", probeset)
+    out_file <- file.path(
+        outdir,
+        paste0(prefix, "_rainfall.", safe_probeset, ".all.pdf")
+    )
+    manifest <- data.frame(
+        sample_id = sample_ids,
+        file = rep(out_file, length(sample_ids)),
+        status = "pending",
+        message = "",
+        stringsAsFactors = FALSE
+    )
+
+    pdf_opened <- FALSE
+    successful <- 0L
+    grDevices::pdf(out_file, width = 12, height = 6, onefile = TRUE)
+    pdf_opened <- TRUE
+    on.exit(if (isTRUE(pdf_opened)) grDevices::dev.off(), add = TRUE)
+
+    for (i in seq_along(sample_ids)) {
+        err <- NULL
+        tryCatch({
+            p <- plot(
+                imp_set,
+                plot_type = "rainfall",
+                probeset = probeset,
+                sample_id = sample_ids[i]
+            )
+            print(p)
+        }, error = function(e) {
+            err <<- conditionMessage(e)
+        })
+
+        if (is.null(err)) {
+            manifest$status[i] <- "saved"
+            successful <- successful + 1L
+        } else {
+            manifest$status[i] <- "skipped_error"
+            manifest$message[i] <- err
+            warning("Skipping rainfall plot for sample '", sample_ids[i], "': ", err, call. = FALSE)
+        }
+    }
+
+    grDevices::dev.off()
+    pdf_opened <- FALSE
+    if (successful == 0L && file.exists(out_file)) {
+        unlink(out_file)
+    }
+
+    if (verbose) {
+        .log_message(
+            paste0(
+                "  Rainfall-all: ", successful, " pages saved, ",
+                sum(manifest$status != "saved"), " skipped; file: ", out_file
+            ),
+            verbose = verbose
+        )
+    }
+    invisible(manifest)
 }
 
 .generate_all_radar_plots <- function(imp_set, probeset, outdir, prefix, verbose = FALSE) {
@@ -1234,6 +1319,9 @@ main <- function() {
         if (isTRUE(args$`radar-all`)) {
             plot_types <- .plot_types_without_single_radar(plot_types)
         }
+        if (isTRUE(args$rainfall_all)) {
+            plot_types <- .plot_types_without_single_rainfall(plot_types)
+        }
 
         # Generate individual plots if requested
         if (isTRUE(args$beeswarm_chr_all)) {
@@ -1241,6 +1329,13 @@ main <- function() {
         }
         if (length(plot_types) > 0 && !args$`skip-plots`) {
             imp_set <- .generate_imprintome_plots(imp_set, plot_types, args$probeset, args$outdir, prefix = cache_prefix, verbose = args$verbose)
+        }
+
+        # --rainfall-all is explicit and independent of the ordinary --skip-plots workflow.
+        if (isTRUE(args$rainfall_all)) {
+            .generate_all_rainfall_plots(
+                imp_set, args$probeset, args$outdir, cache_prefix, verbose = args$verbose
+            )
         }
 
         # --radar-all is explicit and independent of the ordinary --skip-plots workflow.
