@@ -700,7 +700,7 @@ manifest <- export(
 
 ## Test Suite
 
-imprintomeR includes comprehensive unit tests (102+ passing tests). For development and contribution instructions, see `.github/copilot-instructions.md`.
+imprintomeR includes comprehensive unit tests (102+ passing tests).
 
 ### Running Tests Locally (Development)
 
