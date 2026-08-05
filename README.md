@@ -28,7 +28,7 @@ This downloads two annotation files (total ~52 MB):
 - CpG probe coordinates and annotations
 - ICR (Imprinted Gene Region) probeset definitions
 
-For more details on data file management, see `data-raw/README.md`.
+Package data files are shipped under `inst/extdata/`.
 
 ## Table of Contents
 

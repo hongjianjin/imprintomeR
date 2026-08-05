@@ -5,7 +5,7 @@
 
 # Large data files (anno, probesets) are committed to inst/extdata/
 # but NOT tracked for changes to avoid bloat on updates
-# See data-raw/README.md for setup instructions
+# Keep the shipped annotation and probeset files available in inst/extdata/.
 inst/extdata/*.rds
 !inst/extdata/anno.uniq_harmonized.liftover.rds
 !inst/extdata/probesets_hg19.rds
