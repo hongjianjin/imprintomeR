@@ -1,6 +1,6 @@
 ---
-title: "WGBS Region-Level Imprinting Workflow"
-subtitle: "Using wgbstools or ONT bedMethyl region beta output with Rosenski_region"
+title: "WGBS and EM-seq Region-Level Imprinting Workflow"
+subtitle: "Using wgbstools, ONT bedMethyl, WGBS, or EM-seq region beta output with Rosenski_region"
 author: "imprintomeR contributors"
 date: "`r Sys.Date()`"
 output:
@@ -27,11 +27,11 @@ knitr::opts_chunk$set(
 
 ## Overview
 
-This vignette demonstrates the region-level WGBS/ONT workflow added for Rosenski-style imprinting regions. It starts from region-level beta tables, such as `wgbstools beta_to_table` output or ONT/modkit bedMethyl summaries, rather than Illumina array beta values.
+This vignette demonstrates the region-level WGBS/ONT workflow added for Rosenski-style imprinting regions. It starts from region-level beta tables generated from `wgbstools beta_to_table`, ONT/modkit bedMethyl, short-read WGBS, or EM-seq CpG bedGraph files, rather than Illumina array beta values.
 
 You will:
 
-1. Generate or load a region-level beta table from `wgbstools beta_to_table`, ONT/modkit bedMethyl files, or another supported methylation-call format
+1. Generate or load a region-level beta table from `wgbstools beta_to_table`, ONT/modkit bedMethyl, short-read WGBS, or EM-seq CpG bedGraph files
 2. Align regions to `probesets_<genome>.rds[["Rosenski_region"]]` or the focused `chr11p15_region` subset
 3. Create a WGBS-backed `ImprintomeSet`
 4. Run `runImprintome()` with `probeset = "Rosenski_region"` or `probeset = "chr11p15_region"`
@@ -278,6 +278,102 @@ Rscript /PATH/TO/imprintomeR/scripts/run_imprintomeR.R \
 ```
 
 Use `--sample-map` with columns `file` and `Sample_Name` when filenames do not cleanly encode sample IDs.
+
+---
+
+## Phase 1D: Parse EM-seq CpG BedGraph Files
+
+For EM-seq output summarized by Bismark, use
+`parse_EMseq_to_region_beta.R` to process multiple CpG bedGraph files and
+create an imprintomeR-compatible region beta table. The parser follows the
+same region aggregation and output conventions as
+`parse_WGBS_to_region_beta.R`, but is specialized for the six-column
+EM-seq CpG bedGraph layout.
+
+Expected input:
+
+```text
+track type="bedGraph" description="sample CpG merged methylation levels"
+chr1  10468  10470  66  2  1
+chr1  10470  10472  75  3  1
+```
+
+The columns are:
+
+1. chromosome
+2. BED start
+3. BED end
+4. methylation percentage; retained for reference but not used in aggregation
+5. methylated count
+6. unmethylated count
+
+The parser skips `track`, `browser`, comment, and column-header lines. It
+filters sites using `--min-site-coverage`, intersects retained CpGs with the
+requested region BED, and calculates count-weighted region beta as:
+
+```text
+sum(methylated) / sum(methylated + unmethylated)
+```
+
+This is preferable to averaging the percentage column when CpG coverage varies
+within a region.
+
+Example for multiple uncompressed or gzipped bedGraph files:
+
+```{bash parse-emseq-bedgraph, eval = FALSE}
+Rscript /PATH/TO/imprintomeR/scripts/parse_EMseq_to_region_beta.R \
+  --input "dev_tmp/BismarkRemapping/*_CpG.bedGraph" \
+  --genome hg38 \
+  --outdir EMseq_region_beta \
+  --prefix EMseq_Rosenski_hg38 \
+  --jobs 8 \
+  -v
+```
+
+Multiple glob patterns can be comma-separated:
+
+```{bash parse-emseq-multiple-patterns, eval = FALSE}
+Rscript /PATH/TO/imprintomeR/scripts/parse_EMseq_to_region_beta.R \
+  --input "batch1/*_CpG.bedGraph,batch2/*_CpG.bedGraph.gz" \
+  --regions /PATH/TO/imprintomeR/extdata/Rosenski_refined_iDMRs_hg38.bed \
+  --outdir EMseq_region_beta \
+  --prefix EMseq_Rosenski_hg38 \
+  --jobs 8
+```
+
+By default, filenames such as
+`3197296_SJGENLK084660_G1-CCSS-32615701_CpG.bedGraph` produce the sample
+name `3197296_SJGENLK084660_G1-CCSS-32615701`. When filenames do not encode
+the desired sample IDs, provide `--sample-map` as a tab-delimited file with
+columns `file` and `Sample_Name`. Multiple files assigned to the same
+sample are combined by summing methylated and total counts before beta is
+calculated.
+
+Main outputs:
+
+- `{prefix}_sample_map.tsv`: input-file to sample-name mapping.
+- `{prefix}_file_region_counts.tsv`: per-file regional methylated and total counts.
+- `{prefix}_sample_region_counts.tsv`: counts and beta after files are combined by sample.
+- `{prefix}_beta.tsv`: imprintomeR-compatible matrix with `chr`, `start`,
+  `end`, and one beta column per sample.
+
+The final beta table can be supplied directly to the imprintomeR CLI:
+
+```{bash run-emseq-cli, eval = FALSE}
+Rscript /PATH/TO/imprintomeR/scripts/run_imprintomeR.R \
+  -B EMseq_region_beta/EMseq_Rosenski_hg38_beta.tsv \
+  -m EMseq_meta.tsv \
+  -o EMseq_imprintome_results \
+  --prefix EMseq_Rosenski_hg38 \
+  --probeset Rosenski_region \
+  --genome hg38 \
+  --plot-types default \
+  -v
+```
+
+The parser requires `bash`, `awk`, and `bedtools` and is intended for
+Linux/HPC execution. Use `--jobs` to process independent bedGraph files in
+parallel.
 
 ---
 
