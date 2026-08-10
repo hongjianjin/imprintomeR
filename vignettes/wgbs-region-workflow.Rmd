@@ -318,6 +318,14 @@ sum(methylated) / sum(methylated + unmethylated)
 This is preferable to averaging the percentage column when CpG coverage varies
 within a region.
 
+The parser supports resumable reruns. For each input file, an existing
+`{prefix}_*_region_counts.tsv` file is reused when it is non-empty, contains the
+expected region/count columns, and contains valid numeric count and beta values.
+Empty, incomplete, or malformed files are regenerated. Use
+`--continue-on-error` for large batches to keep successful files while retrying
+failed files; failures are recorded in `{prefix}_failures.tsv` with the input
+file, sample name, and captured error message.
+
 Example for multiple uncompressed or gzipped bedGraph files:
 
 ```{bash parse-emseq-bedgraph, eval = FALSE}
@@ -326,6 +334,7 @@ Rscript /PATH/TO/imprintomeR/scripts/parse_EMseq_to_region_beta.R \
   --genome hg38 \
   --outdir EMseq_region_beta \
   --prefix EMseq_Rosenski_hg38 \
+  --continue-on-error \
   --jobs 8 \
   -v
 ```
@@ -352,7 +361,9 @@ calculated.
 Main outputs:
 
 - `{prefix}_sample_map.tsv`: input-file to sample-name mapping.
-- `{prefix}_file_region_counts.tsv`: per-file regional methylated and total counts.
+- `{prefix}_*_region_counts.tsv`: per-input-file regional methylated and total counts; valid files are reused on rerun.
+- `{prefix}_failures.tsv`: failed input files and captured errors when failures occur.
+- `{prefix}_file_region_counts.tsv`: combined per-file regional methylated and total counts.
 - `{prefix}_sample_region_counts.tsv`: counts and beta after files are combined by sample.
 - `{prefix}_beta.tsv`: imprintomeR-compatible matrix with `chr`, `start`,
   `end`, and one beta column per sample.
