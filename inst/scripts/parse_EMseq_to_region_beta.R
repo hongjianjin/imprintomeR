@@ -34,6 +34,8 @@ option_list <- list(
     help = "bedtools executable [default: %default]"),
   make_option(c("-j", "--jobs"), type = "integer", default = 1,
     help = "Number of files to process in parallel on Unix/Linux [default: %default]"),
+  make_option(c("--continue-on-error"), action = "store_true", default = FALSE,
+    help = "Continue processing other files after a file-level failure and write a failure report."),
   make_option(c("--keep-temp"), action = "store_true", default = FALSE,
     help = "Keep the temporary standardized region BED [default: %default]"),
   make_option(c("-v", "--verbose"), action = "store_true", default = FALSE,
@@ -185,6 +187,34 @@ normalization_awk <- function() {
   )
 }
 
+counts_required <- c(
+  "CHR", "start", "end", "Closest_TSS_gene_name", "ORIGIN", "NAME", "ICR_name",
+  "N_methylated", "N_total", "beta", "n_sites"
+)
+
+read_existing_counts <- function(path, file, sample_name) {
+  if (!file.exists(path) || is.na(file.info(path)$size) || file.info(path)$size == 0) {
+    return(NULL)
+  }
+  dat <- tryCatch(
+    read.delim(path, sep = "\t", quote = "", check.names = FALSE, stringsAsFactors = FALSE),
+    error = function(e) NULL
+  )
+  if (is.null(dat) || nrow(dat) == 0L || !all(counts_required %in% colnames(dat))) {
+    return(NULL)
+  }
+  numeric_columns <- c("N_methylated", "N_total", "beta", "n_sites")
+  valid_numeric <- vapply(numeric_columns, function(name) {
+    value <- suppressWarnings(as.numeric(dat[[name]]))
+    all(is.na(dat[[name]]) | !is.na(value))
+  }, logical(1))
+  if (!all(valid_numeric)) {
+    return(NULL)
+  }
+  dat$Sample_Name <- sample_name
+  dat$file <- file
+  dat[, c("Sample_Name", "file", setdiff(colnames(dat), c("Sample_Name", "file")))]
+}
 run_one_file <- function(file, sample_name, regions_bed, out_file) {
   reader <- if (grepl("\\.gz$|\\.bgz$", file, ignore.case = TRUE)) {
     paste("gzip -cd", shQuote(normalizePath(file, mustWork = TRUE)))
@@ -202,18 +232,27 @@ run_one_file <- function(file, sample_name, regions_bed, out_file) {
     'END { for (k in cov) { beta = (cov[k] > 0 ? meth[k] / cov[k] : "NA");',
     'print chr[k], st[k], en[k], gene[k], origin[k], k, icr[k], meth[k], cov[k], beta, sites[k] } }'
   )
+  error_file <- paste0(out_file, ".err")
+  if (file.exists(error_file)) unlink(error_file)
   cmd <- paste(
+    "set -o pipefail;",
     reader,
     "| awk", shQuote(norm_awk),
-    "|", shQuote(args$bedtools), "intersect -a stdin -b", shQuote(regions_bed), "-wa -wb",
+    "|", shQuote(args$bedtools), "intersect -nonamecheck -a stdin -b", shQuote(regions_bed), "-wa -wb",
     "| awk", shQuote(aggregate_awk),
     ">", shQuote(out_file)
   )
   log_msg("Aggregating ", basename(file), " -> ", basename(out_file))
-  status <- system2("bash", c("-lc", shQuote(cmd)))
-  if (!identical(status, 0L)) {
-    stop("awk/bedtools command failed for file: ", file)
+  status <- system2("bash", c("-lc", shQuote(cmd)), stderr = error_file)
+  if (is.null(status) || !identical(as.integer(status), 0L)) {
+    details <- if (file.exists(error_file)) {
+      paste(trimws(readLines(error_file, warn = FALSE)), collapse = " | ")
+    } else {
+      "no stderr captured"
+    }
+    stop("awk/bedtools command failed for file: ", file, "; ", details)
   }
+  if (file.exists(error_file)) unlink(error_file)
   dat <- read.delim(out_file, sep = "\t", quote = "", check.names = FALSE, stringsAsFactors = FALSE)
   if (nrow(dat) == 0L) {
     warning("No methylation calls overlapped regions for file: ", file, call. = FALSE)
@@ -256,6 +295,18 @@ main <- function() {
   process_index <- function(i) {
     safe_file_id <- sprintf("%03d_%s", i, gsub("[^A-Za-z0-9_.-]", "_", basename(input_files[i])))
     counts_file <- file.path(args$outdir, paste0(args$prefix, "_", safe_file_id, "_region_counts.tsv"))
+    existing <- read_existing_counts(
+      path = counts_file,
+      file = input_files[i],
+      sample_name = sample_map$Sample_Name[i]
+    )
+    if (!is.null(existing)) {
+      log_msg("Skipping existing processed output: ", basename(counts_file))
+      return(existing)
+    }
+    if (file.exists(counts_file)) {
+      log_msg("Existing output is empty or invalid; reprocessing: ", basename(counts_file), level = "WARN")
+    }
     run_one_file(
       file = input_files[i],
       sample_name = sample_map$Sample_Name[i],
@@ -264,14 +315,57 @@ main <- function() {
     )
   }
 
-  per_file <- if (jobs > 1L) {
-    parallel::mclapply(seq_along(input_files), process_index, mc.cores = jobs)
-  } else {
-    lapply(seq_along(input_files), process_index)
+  safe_process <- function(i) {
+    tryCatch(
+      process_index(i),
+      error = function(e) {
+        log_msg("FAILED ", basename(input_files[i]), ": ", conditionMessage(e), level = "ERROR")
+        structure(
+          list(
+            file = input_files[i],
+            Sample_Name = sample_map$Sample_Name[i],
+            message = conditionMessage(e)
+          ),
+          class = "emseq_file_error"
+        )
+      }
+    )
   }
-  failed <- which(vapply(per_file, inherits, logical(1), what = "try-error"))
+
+  per_file <- if (jobs > 1L) {
+    parallel::mclapply(
+      seq_along(input_files), safe_process,
+      mc.cores = jobs,
+      mc.preschedule = FALSE
+    )
+  } else {
+    lapply(seq_along(input_files), safe_process)
+  }
+  is_failed <- function(x) inherits(x, c("emseq_file_error", "error", "try-error"))
+  failed <- which(vapply(per_file, is_failed, logical(1)))
   if (length(failed) > 0L) {
-    stop("Parallel processing failed for file(s): ", paste(input_files[failed], collapse = ", "))
+    failure_message <- function(x) {
+      if (inherits(x, "emseq_file_error")) return(x$message)
+      if (inherits(x, "error")) return(conditionMessage(x))
+      paste(as.character(x), collapse = " ")
+    }
+    failure_file <- file.path(args$outdir, paste0(args$prefix, "_failures.tsv"))
+    failures <- data.frame(
+      file = input_files[failed],
+      Sample_Name = sample_map$Sample_Name[failed],
+      error = vapply(per_file[failed], failure_message, character(1)),
+      stringsAsFactors = FALSE
+    )
+    write.table(failures, failure_file, sep = "\t", quote = FALSE, row.names = FALSE)
+    log_msg("Failed files: ", length(failed), "; details written to ", failure_file, level = "ERROR")
+    if (!isTRUE(args$`continue-on-error`)) {
+      stop("Processing failed for ", length(failed), " file(s). See ", failure_file, " for details.")
+    }
+    per_file <- per_file[-failed]
+    if (length(per_file) == 0L) {
+      stop("All input files failed. See ", failure_file, " for details.")
+    }
+    log_msg("Continuing with ", length(per_file), " successful file(s).", level = "WARN")
   }
 
   file_counts <- do.call(rbind, per_file)
