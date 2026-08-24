@@ -26,11 +26,25 @@ claude mcp add --transport http imprintomeR http://127.0.0.1:8000/mcp
 - `package_info`, `list_data_files`, and `cli_help` provide discovery and help.
 - `imprintomer://readme` exposes the project README.
 
-Example request in Claude Code:
+### Example requests in Claude Code
 
-> Run `run_imprintome_analysis` with `rds="qc_results/epic/data/epic_qcset.rds"`, `outdir="imprintome_results"`, `prefix="GSE240091"`, `probeset="selected"`, `genome="hg19"`, `plot_types="default"`, and `radar_all=true`.
+QC:
 
-The tool returns the R exit code, stdout/stderr, and files created under the requested output directory.
-Example request in Codex:
+> Use `run_methylation_qc` with `metadata="metadata.tsv"`, `datadir="/data/idats"`, `outdir="qc_results"`, `platform="EPIC"`, `plot_types="intensity,detection_pval,probe_coverage,beta_density"`, and `verbose=true`. Report the QC output files and any errors.
 
-> Use the `run_methylation_qc` MCP tool with `metadata="metadata.tsv"`, `datadir="/data/idats"`, `outdir="qc_results"`, `platform="EPIC"`, `plot_types="intensity,detection_pval,probe_coverage,beta_density"`, and `verbose=true`. Then report the QC output files and any errors.\n\nInputs are passed as argument arrays (not shell strings); arbitrary commands are not exposed.
+Imprintome analysis:
+
+> Use `run_imprintome_analysis` with `rds="qc_results/epic/data/epic_qcset.rds"`, `outdir="imprintome_results"`, `prefix="GSE240091"`, `probeset="selected"`, `genome="hg19"`, `plot_types="default"`, and `radar_all=true`. Report the analysis outputs and any errors.
+
+### Example requests in Codex
+
+QC:
+
+> Call the `run_methylation_qc` MCP tool with `metadata="metadata.tsv"`, `datadir="/data/idats"`, `outdir="qc_results"`, `platform="EPIC"`, `plot_types="intensity,detection_pval,probe_coverage,beta_density"`, and `verbose=true`. Report the QC output files and any errors.
+
+Imprintome analysis:
+
+> Call the `run_imprintome_analysis` MCP tool with `rds="qc_results/epic/data/epic_qcset.rds"`, `outdir="imprintome_results"`, `prefix="GSE240091"`, `probeset="selected"`, `genome="hg19"`, `plot_types="default"`, `ids_cutoff=0.2`, `rainfall_all=true`, and `beeswarm_chr_all=true`. Report the analysis outputs and any errors.
+
+Inputs are passed as argument arrays (not shell strings); arbitrary commands are not exposed. Each tool returns the R exit code, stdout/stderr, and files created under the requested output directory.
+
