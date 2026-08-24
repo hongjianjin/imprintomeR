@@ -36,6 +36,15 @@ python mcp_server/server.py --transport streamable-http --host 127.0.0.1 --port 
 ```
 
 Connect clients to `http://127.0.0.1:8000/mcp`. For local stdio clients use `python mcp_server/server.py --transport stdio`. The server requires `Rscript` on `PATH`.
+Cloning the repository does not automatically register the server with any AI client. The server must be running, and each client must be configured to connect to its endpoint. A hosted/web session usually cannot reach your local `127.0.0.1` address; use a desktop/CLI client on the same machine or deploy the server at a secured HTTPS URL.
+
+Verify the server is registered in Claude Code:
+
+```bash
+claude mcp list
+```
+
+After registration, ask the client to call `package_info`. The response should report package version `1.1.5`. If no imprintomeR tools appear, confirm that the server process is still running, the client is using the same machine/environment, and that the endpoint is exactly `http://127.0.0.1:8000/mcp`.
 
 Claude Code registration:
 
