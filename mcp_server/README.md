@@ -12,20 +12,12 @@ The server runs the repository CLI and therefore needs a local clone, R, and `Rs
 git clone https://github.com/hongjianjin/imprintomeR.git
 cd imprintomeR
 python -m pip install -r requirements-mcp.txt
-python mcp_server/server.py --transport streamable-http --host 127.0.0.1 --port 8000
 ```
-
-Register the endpoint with Claude Code:
-
-```bash
-claude mcp add --transport http imprintomeR http://127.0.0.1:8000/mcp
-```
-
-Codex can use the same `http://127.0.0.1:8000/mcp` endpoint through its MCP/server settings.
 
 ### No local clone
 
 Deploy the repository and its R dependencies on an HPC node, VM, or cloud server. Expose the Streamable HTTP endpoint as a secured HTTPS URL, then configure that URL in Claude Code or Codex. Analysis and output files remain on the remote machine. Use HTTPS and authentication for shared or production deployments; do not expose an unauthenticated analysis service.
+
 ## Install and run
 
 ```bash
@@ -36,22 +28,19 @@ python mcp_server/server.py --transport streamable-http --host 127.0.0.1 --port 
 ```
 
 Connect clients to `http://127.0.0.1:8000/mcp`. For local stdio clients use `python mcp_server/server.py --transport stdio`. The server requires `Rscript` on `PATH`.
+
 Cloning the repository does not automatically register the server with any AI client. The server must be running, and each client must be configured to connect to its endpoint. A hosted/web session usually cannot reach your local `127.0.0.1` address; use a desktop/CLI client on the same machine or deploy the server at a secured HTTPS URL.
-
-Verify the server is registered in Claude Code:
-
-```bash
-claude mcp list
-```
-
-After registration, ask the client to call `package_info`. The response should report package version `1.1.5`. If no imprintomeR tools appear, confirm that the server process is still running, the client is using the same machine/environment, and that the endpoint is exactly `http://127.0.0.1:8000/mcp`.
 
 Claude Code registration:
 
 ```bash
 claude mcp add --transport http imprintomeR http://127.0.0.1:8000/mcp
+claude mcp list
 ```
 
+After registration, ask the client to call `package_info`. The response should report package version `1.1.5`. If no imprintomeR tools appear, confirm that the server process is still running, the client is using the same machine/environment, and that the endpoint is exactly `http://127.0.0.1:8000/mcp`.
+
+Codex can use the same `http://127.0.0.1:8000/mcp` endpoint through its MCP/server settings.
 ## Analysis tools
 
 - `run_methylation_qc` — runs `run_meth_QC.R` from metadata and an IDAT directory. Supports platform, QC cutoffs, QC plot/report controls, and ewastools control selection. It verifies that a `*_qcset.rds` file was exported and returns its path in `required_outputs`, ready for `run_imprintome_analysis`.
