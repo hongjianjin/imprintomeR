@@ -1,56 +1,90 @@
 ---
 name: imprintomer
-description: Run and interpret imprintomeR methylation QC and imprinting analyses through the MCP tools run_methylation_qc and run_imprintome_analysis. Use when an agent needs to prepare QC results, run an imprintomeR analysis, select probesets/genomes, generate plots, or report output artifacts.
+description: Run and interpret imprintomeR methylation QC and genomic-imprinting analyses, including input validation, parameter selection, artifact checks, and reproducible result reporting.
+usage: Use when preparing IDAT or beta-matrix inputs, running imprintomeR QC or imprinting analysis, selecting probesets and genome builds, generating plots, or troubleshooting analysis outputs.
+version: 1.0.0
+validated_against:
+  - date: 2026-08-24
+    package: imprintomeR
+    package_version: 1.1.5
+    checks: SKILL.md frontmatter and workflow consistency review
+tags:
+  - skill
+  - category:pipeline
+  - domain:genomics
+  - domain:epigenomics
+  - language:r
 ---
 
 # imprintomeR analysis skill
 
-Use the configured imprintomeR MCP server for execution. Do not invent QC summaries or substitute an unrelated methylation workflow when the MCP tools are available.
+## Overview
 
-## Tool routing
+Guide reproducible methylation-array QC and genomic-imprinting analysis with imprintomeR. Use the configured MCP server to execute the package workflows; the skill provides routing, parameter, validation, and reporting guidance.
 
-- Use `run_methylation_qc` for raw IDAT processing. It requires metadata and an IDAT directory and returns the R exit code, generated files, and the required `*_qcset.rds` path.
-- Use `run_imprintome_analysis` for post-QC analysis. It accepts either that QC RDS or a beta matrix plus metadata.
-- Use `package_info` to verify the server and package version, and `cli_help` when a parameter is unclear.
+## When To Use
 
-## QC workflow
+Use this skill when the user asks to:
 
-Call `run_methylation_qc` with:
+- Run QC from IDAT files and metadata.
+- Run imprintome analysis from a QC RDS or beta plus metadata.
+- Choose a probeset, genome build, IDS cutoff, or plot set.
+- Generate or verify radar, rainfall, or chromosome-beeswarm artifacts.
+- Diagnose missing outputs, cache reuse, or QC-to-analysis handoff problems.
 
-- `metadata`: TSV/CSV containing `Sample_Name` and `Basename`; `Sample_Group` is recommended.
-- `datadir`: directory containing the IDAT files.
-- `outdir`: dedicated output directory.
-- Optional `platform`: `EPIC`, `EPICv2`, `450K`, or automatic detection.
-- Optional `pcutoff`, `icutoff`, `plot_types`, `no_qc_plots`, `no_qc_report`, `skip_ewastools`, and `verbose`.
+## Inputs and Assumptions
 
-Before proceeding, require `success: true`, `returncode: 0`, and a non-empty `required_outputs` entry ending in `_qcset.rds`. Pass that exact RDS path to the imprintome analysis tool; do not guess its location.
+- Raw QC requires metadata (TSV/CSV) with `Sample_Name` and `Basename`; `Sample_Group` is recommended.
+- QC also requires an IDAT directory with minfi-compatible files.
+- Imprintome analysis accepts either a `MethQcSet` RDS or both a beta matrix and metadata file.
+- Beta matrices have probes as rows and samples as columns; sample identifiers must align with metadata.
+- The execution environment has R, `Rscript`, imprintomeR, and the configured MCP server available.
+- Defaults are `pcutoff = 0.05`, `icutoff = 11`, `ids_cutoff = 0.2`, and `genome = hg19`.
 
-## Imprintome workflow
+## Workflow and Tool Calls
 
-Call `run_imprintome_analysis` with either:
+1. Verify the integration with `package_info`; use `cli_help` when a parameter or supported value is unclear.
+2. For raw arrays, call `run_methylation_qc` with `metadata`, `datadir`, and a dedicated `outdir`. Set `platform` only when automatic detection should be overridden.
+3. Require `success: true`, `returncode: 0`, and a non-empty `required_outputs` entry ending in `_qcset.rds`. Pass that exact path to the next tool; never guess the RDS location.
+4. Call `run_imprintome_analysis` with either `rds` or `beta_file` plus `meta_file`, and set `outdir`, `prefix`, `probeset`, `genome`, `ids_cutoff`, and `plot_types` explicitly when reproducibility matters.
+5. Set `radar_all`, `rainfall_all`, or `beeswarm_chr_all` to true for multipage all-sample PDFs. `skip_plots` suppresses ordinary plots but does not suppress explicit all-sample outputs.
+6. Use `verbose = true` for diagnostics and preserve the returned R stdout/stderr.
 
-- `rds`: a QC `MethQcSet` RDS; or
-- `beta_file` and `meta_file` together for already prepared data.
+Supported probesets are `selected`, `NanoImprint`, `Joshi`, `Court`, `Rosenski`, `Jima`, and `chr11p15`. Supported genome builds are `hg19` and `hg38`; do not mix a probeset annotation with the wrong genome.
 
-Set `outdir` and a descriptive `prefix`. Select:
+## Validation
 
-- `probeset`: `selected`, `NanoImprint`, `Joshi`, `Court`, `Rosenski`, `Jima`, or `chr11p15`.
-- `genome`: `hg19` or `hg38`, matching the probeset annotation.
-- `ids_cutoff`: numeric IDS threshold, default `0.2`.
-- `plot_types`: `default`, `all`, or a comma-separated list.
-- `radar_all`, `rainfall_all`, and `beeswarm_chr_all` for multipage all-sample PDFs.
-- `skip_plots` only when ordinary plots should be suppressed; explicit all-sample flags remain independent.
+For QC, confirm:
 
-Use `verbose=true` when diagnosing a run. Report the returned `success`, R output, and `output_files`. If the run fails, preserve the R stderr and do not claim analysis results.
+- `success` is true and `returncode` is zero.
+- `required_outputs` contains the exported `*_qcset.rds`.
+- The returned output list includes expected QC tables and plots when requested.
 
-## Interpretation and reproducibility
+For imprintome analysis, confirm:
 
-Keep the QC and imprintome stages separate. State the selected probeset, genome, IDS cutoff, input mode, and output directory in the analysis report. Check that the returned output files include the expected genome-aware imprintome RDS and result table. Do not mix hg19 and hg38 probesets.
+- `success` is true and `returncode` is zero.
+- The output list includes the genome-aware imprintome RDS and requested result table.
+- The selected probeset, genome, IDS cutoff, input mode, and output directory are reported.
+- Any warnings or R stderr are reported without claiming unsupported conclusions.
 
-For all-sample plots, expect filenames of the form:
+## Output Expectations
 
-- `<prefix>_<genome>_radar.<probeset>.all.pdf`
-- `<prefix>_<genome>_rainfall.<probeset>.all.pdf`
-- `<prefix>_<genome>_beeswarm_chr.<probeset>.all.pdf`
+Standard analysis artifacts include:
 
-Use the MCP server README for connection, client registration, and concrete Claude Code/Codex prompts.
+```text
+<prefix>_<genome>_imprintomeSet.rds
+<prefix>_<genome>_results_AnalyzeImprintStatus.<probeset>.tsv
+<prefix>_<genome>_radar.<probeset>.<sampleID>.pdf
+<prefix>_<genome>_rainfall.<probeset>.<sampleID>.pdf
+<prefix>_<genome>_radar.<probeset>.all.pdf
+<prefix>_<genome>_rainfall.<probeset>.all.pdf
+<prefix>_<genome>_beeswarm_chr.<probeset>.all.pdf
+```
+
+Chromosome-beeswarm plots retain only chromosomes with at least five finite probes for a sample. Report skipped samples, missing files, and failed pages explicitly.
+
+## Reproducibility and Safety
+
+Keep QC and imprintome stages separate and use a dedicated output directory per run. Preserve the exact parameters and returned artifact list. Do not expose arbitrary shell execution through the skill; pass validated paths and argument values to the MCP tools only.
+
+For client registration and concrete Claude Code/Codex prompts, read `mcp_server/README.md`.
