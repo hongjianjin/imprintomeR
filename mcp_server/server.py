@@ -15,13 +15,20 @@ def _path(value: str, must_exist: bool = False) -> Path:
     path = Path(value).expanduser().resolve()
     if must_exist and not path.exists(): raise ValueError(f"Path does not exist: {path}")
     return path
-def _run(script: Path, args: list[str], outdir: Path) -> str:
+def _run(script: Path, args: list[str], outdir: Path, required_suffix: Optional[str] = None) -> str:
     if not script.exists(): raise ValueError(f"CLI script not found: {script}")
     outdir.mkdir(parents=True, exist_ok=True)
     result = subprocess.run(["Rscript", str(script), *args], cwd=ROOT, capture_output=True, text=True, check=False)
-    files = [str(p.relative_to(outdir)) for p in outdir.rglob("*") if p.is_file()]
-    return _json({"returncode": result.returncode, "success": result.returncode == 0, "stdout": result.stdout, "stderr": result.stderr, "output_files": sorted(files)})
-@mcp.tool()
+    files = [p for p in outdir.rglob("*") if p.is_file()]
+    required = sorted(p for p in files if required_suffix and p.name.endswith(required_suffix))
+    success = result.returncode == 0
+    payload = {"returncode": result.returncode, "success": success, "stdout": result.stdout, "stderr": result.stderr, "output_files": sorted(str(p.relative_to(outdir)) for p in files)}
+    if required_suffix:
+        payload["required_outputs"] = [str(p) for p in required]
+        if success and not required:
+            payload["success"] = False
+            payload["error"] = f"CLI completed without exporting a required {required_suffix} file under {outdir}"
+    return _json(payload)@mcp.tool()
 def package_info() -> str:
     """Return package version, repository path, and CLI availability."""
     version = "unknown"
@@ -71,7 +78,7 @@ def run_methylation_qc(metadata: str, datadir: str, outdir: str = "qc_results", 
     if no_qc_report: args += ["--no-qc-report"]
     if skip_ewastools: args += ["--skip-ewastools"]
     if verbose: args += ["--verbose"]
-    return _run(QC_CLI, args, output)
+    return _run(QC_CLI, args, output, required_suffix="_qcset.rds")
 @mcp.resource("imprintomer://readme")
 def readme() -> str:
     """Expose the project README as an MCP resource."""

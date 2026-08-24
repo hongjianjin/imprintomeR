@@ -45,7 +45,7 @@ claude mcp add --transport http imprintomeR http://127.0.0.1:8000/mcp
 
 ## Analysis tools
 
-- `run_methylation_qc` — runs `run_meth_QC.R` from metadata and an IDAT directory. Supports platform, QC cutoffs, QC plot/report controls, and ewastools control selection.
+- `run_methylation_qc` — runs `run_meth_QC.R` from metadata and an IDAT directory. Supports platform, QC cutoffs, QC plot/report controls, and ewastools control selection. It verifies that a `*_qcset.rds` file was exported and returns its path in `required_outputs`, ready for `run_imprintome_analysis`.
 - `run_imprintome_analysis` — runs `run_imprintomeR.R` from either a `MethQcSet` RDS or beta plus metadata. Supports `probeset`, `plot_types`, `ids_cutoff`, `genome`, `radar_all`, `rainfall_all`, `beeswarm_chr_all`, and `skip_plots`.
 - `package_info`, `list_data_files`, and `cli_help` provide discovery and help.
 - `imprintomer://readme` exposes the project README.
