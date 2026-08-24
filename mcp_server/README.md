@@ -30,4 +30,7 @@ Example request in Claude Code:
 
 > Run `run_imprintome_analysis` with `rds="qc_results/epic/data/epic_qcset.rds"`, `outdir="imprintome_results"`, `prefix="GSE240091"`, `probeset="selected"`, `genome="hg19"`, `plot_types="default"`, and `radar_all=true`.
 
-The tool returns the R exit code, stdout/stderr, and files created under the requested output directory. Inputs are passed as argument arrays (not shell strings); arbitrary commands are not exposed.
+The tool returns the R exit code, stdout/stderr, and files created under the requested output directory.
+Example request in Codex:
+
+> Use the `run_methylation_qc` MCP tool with `metadata="metadata.tsv"`, `datadir="/data/idats"`, `outdir="qc_results"`, `platform="EPIC"`, `plot_types="intensity,detection_pval,probe_coverage,beta_density"`, and `verbose=true`. Then report the QC output files and any errors.\n\nInputs are passed as argument arrays (not shell strings); arbitrary commands are not exposed.
