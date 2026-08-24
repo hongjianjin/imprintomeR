@@ -56,7 +56,6 @@ Package data files are shipped under `inst/extdata/`.
 - [Test Suite](#test-suite)
   - [Running Tests Locally (Development)](#running-tests-locally-development)
 - [Vignettes](#vignettes)
-- [MCP Server](#mcp-server)
 
 ## Architecture: Preprocessing-First Workflow
 
