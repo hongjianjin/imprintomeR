@@ -50,7 +50,7 @@ Package data files are shipped under `inst/extdata/`.
   - [Example Plots](#example-plots)
 - [Export Results](#export-results)
 - [Testing](#testing)
-- [Vignettes](#vignettes)
+- [Vignettes](#vignettes)`n- [MCP Server](#mcp-server)
 
 ## Architecture: Preprocessing-First Workflow
 
