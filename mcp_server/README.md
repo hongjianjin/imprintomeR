@@ -56,7 +56,7 @@ QC:
 
 Imprintome analysis:
 
-> Use `run_imprintome_analysis` with `rds="qc_results/epic/data/epic_qcset.rds"`, `outdir="imprintome_results"`, `prefix="GSE240091"`, `probeset="selected"`, `genome="hg19"`, `plot_types="default"`, `radar_all=true`, and `beeswarm_chr_all=true`. Report the analysis outputs and any errors.
+> Use `run_imprintome_analysis` with `rds="qc_results/epic/data/epic_qcset.rds"`, `outdir="imprintome_results"`, `prefix="GSE240091"`, `probeset="selected"`, `genome="hg19"`, `plot_types="default"`, `radar_all=true`, and `beeswarm_chr_all=true` (CLI equivalent: `--beeswarm-chr-all TRUE`). Report the analysis outputs and any errors.
 
 ### Example requests in Codex
 
@@ -66,7 +66,7 @@ QC:
 
 Imprintome analysis:
 
-> Call the `run_imprintome_analysis` MCP tool with `rds="qc_results/epic/data/epic_qcset.rds"`, `outdir="imprintome_results"`, `prefix="GSE240091"`, `probeset="selected"`, `genome="hg19"`, `plot_types="default"`, `ids_cutoff=0.2`, `rainfall_all=true`, and `beeswarm_chr_all=true`. Report the analysis outputs and any errors.
+> Call the `run_imprintome_analysis` MCP tool with `rds="qc_results/epic/data/epic_qcset.rds"`, `outdir="imprintome_results"`, `prefix="GSE240091"`, `probeset="selected"`, `genome="hg19"`, `plot_types="default"`, `ids_cutoff=0.2`, `rainfall_all=true`, and `beeswarm_chr_all=true` (CLI equivalent: `--beeswarm-chr-all TRUE`). Report the analysis outputs and any errors.
 
 Inputs are passed as argument arrays (not shell strings); arbitrary commands are not exposed. Each tool returns the R exit code, stdout/stderr, and files created under the requested output directory.
 
