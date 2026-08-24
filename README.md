@@ -51,7 +51,6 @@ Package data files are shipped under `inst/extdata/`.
 - [Export Results](#export-results)
 - [Testing](#testing)
 - [Vignettes](#vignettes)
-- [AI Agent Skill](#ai-agent-skill)
 
 ## Architecture: Preprocessing-First Workflow
 
