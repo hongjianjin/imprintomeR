@@ -56,7 +56,7 @@ QC:
 
 Imprintome analysis:
 
-> Use `run_imprintome_analysis` with `rds="qc_results/epic/data/epic_qcset.rds"`, `outdir="imprintome_results"`, `prefix="GSE240091"`, `probeset="selected"`, `genome="hg19"`, `plot_types="default"`, and `radar_all=true`. Report the analysis outputs and any errors.
+> Use `run_imprintome_analysis` with `rds="qc_results/epic/data/epic_qcset.rds"`, `outdir="imprintome_results"`, `prefix="GSE240091"`, `probeset="selected"`, `genome="hg19"`, `plot_types="default"`, `radar_all=true`, and `beeswarm_chr_all=true`. Report the analysis outputs and any errors.
 
 ### Example requests in Codex
 
