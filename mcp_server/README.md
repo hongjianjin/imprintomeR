@@ -2,6 +2,30 @@
 
 This server exposes the documented `imprintomeR` command-line workflows through MCP. Streamable HTTP is the default transport and supports simultaneous clients such as Claude Code, Codex, and Cursor.
 
+## Deployment options
+
+### Local clone (Claude Code or Codex)
+
+The server runs the repository CLI and therefore needs a local clone, R, and `Rscript` on the machine running the MCP server:
+
+```bash
+git clone https://github.com/hongjianjin/imprintomeR.git
+cd imprintomeR
+python -m pip install -r requirements-mcp.txt
+python mcp_server/server.py --transport streamable-http --host 127.0.0.1 --port 8000
+```
+
+Register the endpoint with Claude Code:
+
+```bash
+claude mcp add --transport http imprintomeR http://127.0.0.1:8000/mcp
+```
+
+Codex can use the same `http://127.0.0.1:8000/mcp` endpoint through its MCP/server settings.
+
+### No local clone
+
+Deploy the repository and its R dependencies on an HPC node, VM, or cloud server. Expose the Streamable HTTP endpoint as a secured HTTPS URL, then configure that URL in Claude Code or Codex. Analysis and output files remain on the remote machine. Use HTTPS and authentication for shared or production deployments; do not expose an unauthenticated analysis service.
 ## Install and run
 
 ```bash
