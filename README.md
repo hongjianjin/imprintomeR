@@ -53,6 +53,7 @@ Package data files are shipped under `inst/extdata/`.
 - [Export QC Results](#export-qc-results)
 - [MCP Server](https://github.com/hongjianjin/imprintomeR/tree/master#mcp-server)
   - [Local Setup](#local-setup)
+- [Agent Skill](#agent-skill)
 - [Test Suite](#test-suite)
   - [Running Tests Locally (Development)](#running-tests-locally-development)
 - [Vignettes](#vignettes)
@@ -728,6 +729,14 @@ claude mcp add --transport http imprintomeR http://127.0.0.1:8000/mcp
 Codex and Cursor can connect to the same `http://127.0.0.1:8000/mcp` endpoint through their MCP/server settings. The server supports concurrent clients over Streamable HTTP. For users without a local clone, deploy it on an HPC node, VM, or cloud server and expose a secured HTTPS MCP endpoint; analysis outputs remain on that remote machine.
 
 See [mcp_server/README.md](mcp_server/README.md) for tool parameters and example requests.
+
+## Agent Skill
+
+The repository includes an optional Agent Skills-compatible skill for guided imprintomeR QC and imprinting workflows. It helps AI agents route requests to the MCP tools `run_methylation_qc` and `run_imprintome_analysis`, validate QC RDS handoff, and preserve probeset, genome, and IDS-cutoff settings.
+
+- [skills/imprintomer/SKILL.md](skills/imprintomer/SKILL.md)
+
+The skill provides guidance only; the MCP server performs the analysis.
 
 ## Test Suite
 
