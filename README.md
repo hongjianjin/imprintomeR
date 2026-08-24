@@ -724,6 +724,7 @@ claude mcp add --transport http imprintomeR http://127.0.0.1:8000/mcp
 Codex and Cursor can connect to the same `http://127.0.0.1:8000/mcp` endpoint through their MCP/server settings. The server supports concurrent clients over Streamable HTTP. For users without a local clone, deploy it on an HPC node, VM, or cloud server and expose a secured HTTPS MCP endpoint; analysis outputs remain on that remote machine.
 
 See [mcp_server/README.md](mcp_server/README.md) for tool parameters and example requests.
+
 ## Test Suite
 
 imprintomeR includes comprehensive unit tests (102+ passing tests).
