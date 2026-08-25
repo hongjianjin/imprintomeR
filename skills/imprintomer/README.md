@@ -34,6 +34,13 @@ Beta matrices use probes as rows and samples as columns. Sample identifiers must
 
 Optional parameters include `EPIC`, `EPICv2`, or `450K` platform selection, probeset, genome (`hg19` or `hg38`), `ids_cutoff` (default `0.2`), plot types, output prefix, and all-sample plot flags.
 
+## Workflow defaults and supported values
+
+Unless the user specifies otherwise, use `probeset = selected`, `genome = hg19`, `plot-types = default`, `ids-cutoff = 0.2`, QC `pcutoff = 0.05`, and QC `icutoff = 11`. Supported array platforms are automatic detection, `EPIC`, `EPICv2`, and `450K`.
+
+Supported ordinary plot types are `polar`, `beeswarm`, `beeswarm_origin`, `beeswarm_chr`, `heatmap_by_probe`, `heatmap_by_gene`, `circular_heatmap`, `rainfall`, `radar`, `mirror_density`, `violin`, and `cor_heatmap`.
+
+The all-sample flags `--radar-all TRUE`, `--rainfall-all TRUE`, and `--beeswarm-chr-all TRUE` explicitly generate multipage PDFs. They remain independent of ordinary `--skip-plots` behavior.
 ## Environment and setup
 
 The machine running the workflow needs R (>= 4.1), `Rscript`, imprintomeR, and its declared dependencies. From a local checkout:
