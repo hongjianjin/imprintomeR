@@ -21,7 +21,7 @@ Required:
 - a TSV or CSV metadata file
 - a dedicated QC output directory
 
-Metadata must contain `Sample_Name` and `Basename`; `Sample_Group` is recommended. `Basename` may be an absolute IDAT prefix or relative to the IDAT directory.
+Metadata must contain `Sample_Name` and `Basename`; `Sample_Group` is recommended. `Basename` must be the full absolute IDAT path prefix, excluding `_Red.idat` and `_Grn.idat`.
 
 ### Imprintome analysis
 
