@@ -24,7 +24,7 @@ library(optparse)
 
 option_list <- list(
     make_option(c("-m", "--metadata"), type = "character", default = NA,
-        help = "Metadata file (TSV/CSV) with columns: Sample_Name, Basename, Sample_Group [REQUIRED]"),
+        help = "Metadata file (TSV/CSV) with Sample_Name and absolute Basename IDAT prefixes [REQUIRED]"),
 
     make_option(c("-b", "--datadir"), type = "character", default = NA,
         help = "IDAT directory prefix (parent directory containing Sentrix_ID files) [REQUIRED]"),
@@ -237,22 +237,27 @@ suppressPackageStartupMessages({
         }
     }
 
+    is_absolute_prefix <- function(prefix) {
+        grepl("^(/|[A-Za-z]:[/\\\\]|\\\\\\\\)", prefix)
+    }
+
     resolve_prefix <- function(prefix) {
-        candidates <- unique(c(prefix, file.path(idat_dir, prefix)))
-        for (candidate in candidates) {
-            standardize_idat_names(candidate)
-            if (idat_exists(candidate, "Red") && idat_exists(candidate, "Grn")) {
-                return(candidate)
-            }
+        standardize_idat_names(prefix)
+        if (idat_exists(prefix, "Red") && idat_exists(prefix, "Grn")) {
+            return(prefix)
         }
         NA_character_
     }
-
     missing_files <- character()
     resolved <- character(nrow(meta))
 
     for (i in seq_len(nrow(meta))) {
         basename <- as.character(meta$Basename[i])
+        if (is.na(basename) || !nzchar(basename) || !is_absolute_prefix(basename)) {
+            missing_files <- c(missing_files, paste0(meta$Sample_Name[i], " (Basename must be an absolute IDAT path prefix: ", basename, ")"))
+            resolved[i] <- NA_character_
+            next
+        }
         resolved_i <- resolve_prefix(basename)
         if (is.na(resolved_i)) {
             missing_files <- c(missing_files, paste0(
