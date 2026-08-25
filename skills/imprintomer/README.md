@@ -41,7 +41,7 @@ The machine running the workflow needs R (>= 4.1), `Rscript`, imprintomeR, and i
 ```bash
 git clone https://github.com/hongjianjin/imprintomeR.git
 cd imprintomeR
-Rscript -e 'install.packages(".", repos = NULL, type = "source")'
+R CMD INSTALL .
 ```
 
 The direct entry points are:
