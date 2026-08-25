@@ -40,8 +40,7 @@ Unless the user specifies otherwise, use `probeset = selected`, `genome = hg19`,
 
 Supported ordinary plot types are `polar`, `beeswarm`, `beeswarm_origin`, `beeswarm_chr`, `heatmap_by_probe`, `heatmap_by_gene`, `circular_heatmap`, `rainfall`, `radar`, `mirror_density`, `violin`, and `cor_heatmap`.
 
-The all-sample flags `--radar-all TRUE`, `--rainfall-all TRUE`, and `--beeswarm-chr-all TRUE` explicitly generate multipage PDFs. They remain independent of ordinary `--skip-plots` behavior.
-## Environment and setup
+The all-sample flags `--radar-all TRUE`, `--rainfall-all TRUE`, and `--beeswarm-chr-all TRUE` explicitly generate multipage PDFs. They remain independent of ordinary `--skip-plots` behavior.`r`n`r`n## Environment and setup
 
 The machine running the workflow needs R (>= 4.1), `Rscript`, imprintomeR, and its declared dependencies. From a local checkout:
 
