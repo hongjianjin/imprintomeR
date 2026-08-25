@@ -75,7 +75,7 @@ For beta-matrix input, probes must be rows, samples must be columns, and sample 
 ### Optional inputs
 
 - repository checkout directory
-- array platform: automatic detection by default, or `EPIC`, `EPICv2`, `450K`, or `27K`
+- array platform: automatic detection by default, or `EPIC`, `EPICv2`, or `450K`
 - probeset: `selected`, `NanoImprint`, `Joshi`, `Court`, `Rosenski`, `Jima`, or `chr11p15`
 - genome build: `hg19` or `hg38`
 - QC `pcutoff`, default `0.05`
