@@ -26,7 +26,6 @@ The recommended end-to-end workflow is:
 ```bash
 Rscript inst/scripts/run_meth_QC.R \
   -m metadata.tsv \
-  \
   -o qc_results \
   --platform EPIC \
   -v
@@ -69,7 +68,6 @@ Compressed `.idat.gz` files are accepted. Lowercase `*_red.idat` / `*_green.idat
 ```bash
 Rscript inst/scripts/run_meth_QC.R \
   -m metadata.tsv \
-  \
   -o qc_results
 ```
 
