@@ -26,7 +26,7 @@ The recommended end-to-end workflow is:
 ```bash
 Rscript inst/scripts/run_meth_QC.R \
   -m metadata.tsv \
-  -b /data/idats \
+  \
   -o qc_results \
   --platform EPIC \
   -v
@@ -69,7 +69,7 @@ Compressed `.idat.gz` files are accepted. Lowercase `*_red.idat` / `*_green.idat
 ```bash
 Rscript inst/scripts/run_meth_QC.R \
   -m metadata.tsv \
-  -b /data/idats \
+  \
   -o qc_results
 ```
 
@@ -336,7 +336,7 @@ For installed packages, use `system.file()` to avoid hard-coding the source tree
 QC_SCRIPT=$(Rscript -e 'cat(system.file("scripts/run_meth_QC.R", package="imprintomeR"))')
 IMP_SCRIPT=$(Rscript -e 'cat(system.file("scripts/run_imprintomeR.R", package="imprintomeR"))')
 
-Rscript "$QC_SCRIPT" -m metadata.tsv -b /data/idats -o qc_results -v
+Rscript "$QC_SCRIPT" -m metadata.tsv -o qc_results -v
 Rscript "$IMP_SCRIPT" -r qc_results/epic/data/epic_qcset.rds -o imprintome_results --prefix GSE240091 -v
 ```
 
