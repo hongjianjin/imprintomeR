@@ -734,7 +734,8 @@ See [mcp_server/README.md](mcp_server/README.md) for tool parameters and example
 
 The repository includes an optional Agent Skills-compatible skill for guided imprintomeR QC and imprinting workflows. It helps AI agents route requests to the MCP tools `run_methylation_qc` and `run_imprintome_analysis`, validate QC RDS handoff, and preserve probeset, genome, and IDS-cutoff settings.
 
-- [skills/imprintomer/SKILL.md](skills/imprintomer/SKILL.md)`r`n- [skills/imprintomer/README.md](skills/imprintomer/README.md)
+- [skills/imprintomer/SKILL.md](skills/imprintomer/SKILL.md)
+- [skills/imprintomer/README.md](skills/imprintomer/README.md)
 
 The skill provides guidance only; the MCP server performs the analysis.
 
