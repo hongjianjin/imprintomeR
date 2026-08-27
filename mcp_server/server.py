@@ -68,12 +68,11 @@ def run_imprintome_analysis(rds: Optional[str] = None, beta_file: Optional[str] 
     if verbose: args += ["--verbose"]
     return _run(IMP_CLI, args, output)
 @mcp.tool()
-def run_methylation_qc(metadata: str, datadir: str, outdir: str = "qc_results", platform: Optional[str] = None, pcutoff: float = 0.05, icutoff: float = 11, plot_types: str = "intensity,detection_pval,probe_coverage,beta_density", no_qc_plots: bool = False, no_qc_report: bool = False, skip_ewastools: bool = False, verbose: bool = False) -> str:
-    """Run run_meth_QC.R on metadata and an IDAT directory and return outputs."""
-    metadata_path, idat_dir, output = _path(metadata, True), _path(datadir, True), _path(outdir)
-    if not metadata_path.is_file() or not idat_dir.is_dir(): raise ValueError("metadata must be a file and datadir must be a directory")
-    args = ["--metadata", str(metadata_path), "--datadir", str(idat_dir), "--outdir", str(output), "--pcutoff", str(pcutoff), "--icutoff", str(icutoff), "--plot-types", plot_types]
+def run_methylation_qc(metadata: str, outdir: str = "qc_results", platform: Optional[str] = None, pcutoff: float = 0.05, icutoff: float = 11, plot_types: str = "intensity,detection_pval,probe_coverage,beta_density", no_qc_plots: bool = False, no_qc_report: bool = False, skip_ewastools: bool = False, verbose: bool = False) -> str:
     if platform: args += ["--platform", platform]
+    metadata_path, output = _path(metadata, True), _path(outdir)
+    if not metadata_path.is_file(): raise ValueError("metadata must be a file")
+    args = ["--metadata", str(metadata_path), "--outdir", str(output), "--pcutoff", str(pcutoff), "--icutoff", str(icutoff), "--plot-types", plot_types]
     if no_qc_plots: args += ["--no-qc-plots"]
     if no_qc_report: args += ["--no-qc-report"]
     if skip_ewastools: args += ["--skip-ewastools"]
