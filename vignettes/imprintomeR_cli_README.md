@@ -52,7 +52,7 @@ Metadata should be TSV or CSV and include:
 |--------|----------|-------|
 | `Sample_Name` | Yes | Unique sample identifier. |
 | `SAMPLE_NAME` | Backward compatible | Accepted and normalized to `Sample_Name`. |
-| `Basename` | Yes | IDAT prefix, with or without the `--datadir` parent path. |
+| Basename | Yes | Full absolute IDAT path prefix, excluding Red.idat and Grn.idat. |
 | `Sample_Group` | Recommended | Added automatically if missing. |
 
 IDAT files should use minfi-compatible names:
@@ -352,7 +352,7 @@ install.packages("/path/to/imprintomeR", repos = NULL, type = "source")
 
 ### IDAT files not found
 
-Check `Basename` and `--datadir`. `Basename` can be a full IDAT prefix or a prefix relative to `--datadir`.
+Check Basename. It must be a full absolute IDAT path prefix.
 
 ### No samples with `Final.QC == "PASS"`
 
