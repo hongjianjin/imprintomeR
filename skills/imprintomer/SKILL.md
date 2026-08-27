@@ -125,7 +125,6 @@ Run:
 ```bash
 Rscript <repo-dir>/inst/scripts/run_meth_QC.R \
   --metadata <metadata-file> \
-  --datadir <idat-directory> \
   --outdir <qc-output-directory>
 ```
 
@@ -192,7 +191,7 @@ The all-sample options explicitly request multipage PDFs and remain independent 
 
 Before QC:
 
-- confirm that the repository, script, metadata, and IDAT directory exist and are readable
+- confirm that the repository, script, metadata, and absolute Basename IDAT prefixes exist and are readable
 - confirm metadata contains required columns and valid IDAT basenames
 - check for mixed platforms; process each platform separately when required
 - use a dedicated output directory and identify existing results before writing
@@ -239,7 +238,6 @@ Use the imprintomeR simple skill.
 
 The repository is at <absolute-repo-directory>.
 First run:
-Rscript <absolute-repo-directory>/inst/scripts/run_meth_QC.R --metadata <metadata-file> --datadir <idat-directory> --outdir <qc-output-directory> --verbose
 
 Verify the exact *_qcset.rds created by QC. Then run:
 Rscript <absolute-repo-directory>/inst/scripts/run_imprintomeR.R --rds <exact-qcset-rds> --outdir <analysis-output-directory> --prefix <output-prefix> --probeset <probeset> --genome <hg19-or-hg38> --ids-cutoff <value>

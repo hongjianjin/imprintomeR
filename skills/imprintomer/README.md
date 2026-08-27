@@ -17,7 +17,7 @@ This skill teaches an agent how to:
 
 Required:
 
-- an absolute IDAT directory
+- metadata with absolute Basename IDAT prefixes
 - a TSV or CSV metadata file
 - a dedicated QC output directory
 
@@ -67,7 +67,7 @@ For raw IDAT QC followed by imprintome analysis:
 Use the imprintomeR skill.
 
 The repository is at <absolute-repo-directory>.
-Run run_meth_QC.R with metadata <metadata-file>, IDAT directory <idat-directory>, and QC output <qc-output-directory>.
+Run run_meth_QC.R with metadata <metadata-file>, metadata with absolute Basename IDAT prefixes, and QC output <qc-output-directory>.
 Verify that the run succeeded and identify the exact *_qcset.rds created.
 Then run run_imprintomeR.R with that exact RDS, output <analysis-output-directory>, prefix <prefix>, probeset selected, genome hg19, and ids-cutoff 0.2.
 Report commands, exit statuses, warnings, and exact output paths.
@@ -90,7 +90,6 @@ QC:
 ```bash
 Rscript <repo-dir>/inst/scripts/run_meth_QC.R \
   --metadata <metadata-file> \
-  --datadir <idat-directory> \
   --outdir <qc-output-directory> \
   --platform EPIC \
   --verbose

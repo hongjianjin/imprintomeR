@@ -26,8 +26,6 @@ option_list <- list(
     make_option(c("-m", "--metadata"), type = "character", default = NA,
         help = "Metadata file (TSV/CSV) with Sample_Name and absolute Basename IDAT prefixes [REQUIRED]"),
 
-    make_option(c("-b", "--datadir"), type = "character", default = NA,
-        help = "IDAT directory prefix (parent directory containing Sentrix_ID files) [REQUIRED]"),
 
     make_option(c("-o", "--outdir"), type = "character", default = NA,
         help = "Output directory for results (will be created if not exists) [REQUIRED]"),
@@ -58,7 +56,6 @@ option_list <- list(
 )
 
 parser <- OptionParser(
-    usage = "%prog -m <metadata.tsv> -b <idat_dir> -o <outdir> [options]",
     description = "Run Meth_QC workflow: validate metadata -> detect platform -> QC processing -> export",
     option_list = option_list,
     epilogue = paste(
@@ -147,11 +144,6 @@ suppressPackageStartupMessages({
         errors <- c(errors, paste0("ERROR: Metadata file not found: ", args$metadata))
     }
 
-    if (is.na(args$datadir)) {
-        errors <- c(errors, "ERROR: --datadir is required")
-    } else if (!dir.exists(args$datadir)) {
-        errors <- c(errors, paste0("ERROR: IDAT directory not found: ", args$datadir))
-    }
 
     if (is.na(args$outdir)) {
         errors <- c(errors, "ERROR: --outdir is required")
@@ -211,7 +203,7 @@ suppressPackageStartupMessages({
     meta
 }
 
-.validate_basenames <- function(meta, idat_dir, verbose = FALSE) {
+.validate_basenames <- function(meta, verbose = FALSE) {
     if (verbose) .log_message("Validating IDAT file accessibility...")
 
     idat_exists <- function(prefix, color) {
@@ -314,7 +306,7 @@ tryCatch({
     meta <- .validate_metadata(args$metadata, verbose = args$verbose)
 
     # Validate IDAT files
-    meta <- .validate_basenames(meta, args$datadir, verbose = args$verbose)
+    meta <- .validate_basenames(meta, verbose = args$verbose)
 
     # Setup output directory
     .setup_output_dir(args$outdir, verbose = args$verbose)
