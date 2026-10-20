@@ -56,6 +56,20 @@ test_that("selected DMR_type and ORIGIN agree with Monk 2018 Table 1", {
   expect_equal(sum(gametic & sel$ORIGIN == "paternal"), 49)
 })
 
+test_that("chr11p15 is annotated as the two gametic 11p15.5 ICRs", {
+  if (!nzchar(.annotation_root)) skip("Probeset annotation sources not available")
+  a <- .read_annotation()
+  cp <- a$hg19$chr11p15
+  expect_true(all(c("ICR_name", "DMR_type", "DMR_type_source") %in% colnames(cp)))
+  expect_true(all(cp$DMR_type == "gametic"))
+  expect_true(all(cp$DMR_type_source == "Monk2018_Table1"))
+  expect_equal(sort(unique(cp$ICR_name)), c("H19/IGF2:IG-DMR", "KCNQ1OT1:TSS-DMR"))
+  expect_true(all(cp$ORIGIN[cp$ICR_name == "H19/IGF2:IG-DMR"] == "paternal"))
+  expect_true(all(cp$ORIGIN[cp$ICR_name == "KCNQ1OT1:TSS-DMR"] == "maternal"))
+  expect_equal(sum(cp$ICR_name == "H19/IGF2:IG-DMR"), 51)
+  expect_equal(sum(cp$ICR_name == "KCNQ1OT1:TSS-DMR"), 31)
+})
+
 test_that("hg38 selected carries the hg19 selected annotation by probe NAME", {
   if (!nzchar(.annotation_root)) skip("Probeset annotation sources not available")
   a <- .read_annotation()
