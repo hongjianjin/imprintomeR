@@ -70,6 +70,24 @@ test_that("chr11p15 is annotated as the two gametic 11p15.5 ICRs", {
   expect_equal(sum(cp$ICR_name == "KCNQ1OT1:TSS-DMR"), 31)
 })
 
+test_that("hg38 chr11p15_region mirrors hg19 with hg38 coordinates", {
+  if (!nzchar(.annotation_root)) skip("Probeset annotation sources not available")
+  a <- .read_annotation()
+  c19 <- a$hg19$chr11p15_region
+  c38 <- a$hg38$chr11p15_region
+  expect_false(is.null(c38))
+  expect_equal(colnames(c38), colnames(c19))
+  expect_equal(c38$ICR_name, c19$ICR_name)
+  expect_equal(c38$ICR_type, c19$ICR_type)
+  expect_equal(c38$ORIGIN, c19$ORIGIN)
+  expect_true(all(c38$Genome_Build == "hg38"))
+  expect_equal(c38$end - c38$start, c19$end - c19$start)
+  expect_false(any(c38$start == c19$start))
+  # Every hg38 row is a row of hg38 Rosenski_region.
+  key <- function(d) paste(d$CHR, d$start, d$end)
+  expect_true(all(key(c38) %in% key(a$hg38$Rosenski_region)))
+})
+
 test_that("hg38 selected carries the hg19 selected annotation by probe NAME", {
   if (!nzchar(.annotation_root)) skip("Probeset annotation sources not available")
   a <- .read_annotation()
