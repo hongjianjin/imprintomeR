@@ -758,7 +758,7 @@ methods::setMethod(
         stop("plot_type='radar' requires at least one numeric sample column in beta(x).")
       }
 
-      agg <- AggregateByLocus(beta_for_radar, probeset = probeset_name)
+      agg <- AggregateByLocus(beta_for_radar, probeset = probeset_name, genome = x@genome)
       if (!is.data.frame(agg) || nrow(agg) == 0L || ncol(agg) == 0L) {
         stop("plot_type='radar' could not compute aggregated loci from beta(x).")
       }

@@ -151,7 +151,9 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids) {
 #' @param probeset Character scalar naming a probeset key.
 #' @param ids_cutoff Numeric scalar threshold used to call imprinting
 #'   alteration by IDS.
-#' @param genome Genome build of the probeset annotation, `"hg19"` or `"hg38"`.
+#' @param genome Genome build of the probeset annotation, `"hg19"` or `"hg38"`
+#'   (default `"hg38"`). Ignored when `betaFile` is an `ImprintomeSet`, whose own
+#'   genome is used.
 #' @param dmr_type Optional character vector of `DMR_type` values to score,
 #'   for example `"gametic"` to restrict scoring to gametic ICRs or
 #'   `"secondary"` for secondary DMRs. Requires a `DMR_type` column in the
@@ -163,7 +165,7 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids) {
 AnalyzeImprintStatus <- function(betaFile, metaFile,
                                  probeset = probeset_options,
                                  ids_cutoff = 0.2,
-                                 genome = "hg19",
+                                 genome = "hg38",
                                  dmr_type = NULL) {
   # Support object-first usage while preserving legacy beta/meta inputs.
   if (methods::is(betaFile, "ImprintomeSet")) {

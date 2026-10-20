@@ -36,6 +36,49 @@ test_that("as.ImprintomeSet() keeps a supplied probeset and rejects unknown geno
   expect_error(as.ImprintomeSet(qcset, genome = NA_character_), "genome must be a single character value")
 })
 
+test_that("hg38 is the default genome for scoring, subsetting, aggregation and loading", {
+  expect_equal(formals(AnalyzeImprintStatus)$genome, "hg38")
+  expect_equal(formals(SubsetBeta_By_Probeset)$genome, "hg38")
+  expect_equal(formals(AggregateByLocus)$genome, "hg38")
+  expect_equal(formals(.load_probesets)$genome, "hg38")
+})
+
+test_that("default and hg19 calls read the matching build's probeset file", {
+  # Build-specific fixture panels that differ only in CHR, so the result shows
+  # which file was read.
+  probes <- c("cg1", "cg2", "cg3", "cg4")
+  panel_for <- function(chr) data.frame(
+    NAME = probes, CHR = chr, MAPINFO = 1:4,
+    ORIGIN = c("maternal", "maternal", "paternal", "paternal"),
+    Closest_TSS_gene_name = "G1", stringsAsFactors = FALSE
+  )
+  tmp_wd <- tempfile("imprintome_genome_routing_")
+  dir.create(file.path(tmp_wd, "inst", "extdata"), recursive = TRUE)
+  saveRDS(list(selected = panel_for("chr1")), file.path(tmp_wd, "inst", "extdata", "probesets_hg19.rds"))
+  saveRDS(list(selected = panel_for("chr2")), file.path(tmp_wd, "inst", "extdata", "probesets_hg38.rds"))
+  old_wd <- setwd(tmp_wd)
+  on.exit(setwd(old_wd), add = TRUE)
+
+  beta <- data.frame(S1 = c(0.1, 0.2, 0.8, 0.9), S2 = c(0.4, 0.5, 0.5, 0.6), row.names = probes)
+  expect_true(all(grepl("^chr2_", rownames(AggregateByLocus(beta, probeset = "selected")))))
+  expect_true(all(grepl("^chr1_", rownames(AggregateByLocus(beta, probeset = "selected", genome = "hg19")))))
+
+  sub38 <- suppressMessages(capture.output(r38 <- SubsetBeta_By_Probeset(beta, probeset = "selected")))
+  sub19 <- suppressMessages(capture.output(r19 <- SubsetBeta_By_Probeset(beta, probeset = "selected", genome = "hg19")))
+  expect_equal(unique(r38$probesets$CHR), "chr2")
+  expect_equal(unique(r19$probesets$CHR), "chr1")
+  expect_error(AggregateByLocus(beta, probeset = "selected", genome = "hg18"))
+})
+
+test_that("CLI --genome defaults to hg38", {
+  cli <- system.file("scripts", "run_imprintomeR.R", package = "imprintomeR")
+  skip_if_not(nzchar(cli) && file.exists(cli), "CLI script not available")
+  src <- readLines(cli, warn = FALSE)
+  opt <- grep('make_option\\(c\\("--genome"\\)', src, value = TRUE)
+  expect_length(opt, 1L)
+  expect_true(grepl('default = "hg38"', opt, fixed = TRUE))
+})
+
 test_that("setup_imprintome_data() covers both builds and skips files already present", {
   body_text <- paste(deparse(body(setup_imprintome_data)), collapse = "\n")
   expect_true(grepl("raw.githubusercontent.com/hongjianjin/imprintomeR/main/inst/extdata/", body_text, fixed = TRUE))

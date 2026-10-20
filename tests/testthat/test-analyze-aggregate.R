@@ -112,7 +112,10 @@ testthat::local_edition(1)
   old_wd <- getwd()
   tmp_wd <- file.path(tempdir(), paste0("imprintome_test_", as.integer(Sys.time()), "_", sample.int(100000, 1)))
   dir.create(file.path(tmp_wd, "inst", "extdata"), recursive = TRUE, showWarnings = FALSE)
-  saveRDS(list(selected = probeset_df), file.path(tmp_wd, "inst", "extdata", "probesets_hg19.rds"))
+  # Same synthetic panel for both builds, so default (hg38) and hg19 calls see it.
+  for (g in c("hg19", "hg38")) {
+    saveRDS(list(selected = probeset_df), file.path(tmp_wd, "inst", "extdata", paste0("probesets_", g, ".rds")))
+  }
 
   setwd(tmp_wd)
   on.exit(setwd(old_wd), add = TRUE)

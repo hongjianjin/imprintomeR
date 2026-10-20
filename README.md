@@ -28,7 +28,7 @@ This downloads any missing annotation files (total ~52 MB) from the `main` branc
 - CpG probe coordinates and annotations (hg19 and hg38): `anno.uniq_harmonized.liftover.rds`
 - ICR (Imprinted Gene Region) probeset panels: `probesets_hg19.rds` and `probesets_hg38.rds`
 
-`as.ImprintomeSet()` uses hg38 as its default reference genome (`genome = "hg38"`) and loads the matching probeset panels; pass `genome = "hg19"` for GRCh37 coordinates.
+hg38 (GRCh38) is the default reference genome throughout: `as.ImprintomeSet()`, `AnalyzeImprintStatus()`, `SubsetBeta_By_Probeset()`, `AggregateByLocus()`, and the CLI `--genome` option all default to `"hg38"` and load `probesets_hg38.rds`. `runImprintome()` uses the genome stored in the `ImprintomeSet`. Pass `genome = "hg19"` (or `--genome hg19`) for GRCh37 coordinates. Probe IDs, parental-origin labels, and `DMR_type` are the same in both builds for every probe-level panel except `Jima` (two extra probes in hg38), so scores do not depend on the build.
 
 Package data files are shipped under `inst/extdata/`.
 

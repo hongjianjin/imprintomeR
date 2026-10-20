@@ -8,7 +8,9 @@ AnalyzeImprintStatus(
   betaFile,
   metaFile,
   probeset = probeset_options,
-  ids_cutoff = 0.2
+  ids_cutoff = 0.2,
+  genome = "hg38",
+  dmr_type = NULL
 )
 }
 \arguments{
@@ -22,6 +24,15 @@ beta values, or an \code{ImprintomeSet} object.}
 
 \item{ids_cutoff}{Numeric scalar threshold used to call imprinting
 alteration by IDS.}
+
+\item{genome}{Genome build of the probeset annotation, \code{"hg19"} or \code{"hg38"}
+(default \code{"hg38"}). Ignored when \code{betaFile} is an \code{ImprintomeSet}, whose own
+genome is used.}
+
+\item{dmr_type}{Optional character vector of \code{DMR_type} values to score,
+for example \code{"gametic"} to restrict scoring to gametic ICRs or
+\code{"secondary"} for secondary DMRs. Requires a \code{DMR_type} column in the
+probeset. \code{NULL} (default) scores all probes.}
 }
 \value{
 Data frame with sample-level imprinting metrics and labels.

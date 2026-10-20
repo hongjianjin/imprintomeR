@@ -180,7 +180,10 @@ with_synthetic_probeset_fixture <- function(code) {
   dir.create(file.path(tmp_wd, "inst", "extdata"), recursive = TRUE, showWarnings = FALSE)
 
   d <- make_synthetic_imprintome_inputs()
-  saveRDS(list(selected = d$probeset), file.path(tmp_wd, "inst", "extdata", "probesets_hg19.rds"))
+  # Same synthetic panel for both builds, so default (hg38) and hg19 calls see it.
+  for (g in c("hg19", "hg38")) {
+    saveRDS(list(selected = d$probeset), file.path(tmp_wd, "inst", "extdata", paste0("probesets_", g, ".rds")))
+  }
 
   setwd(tmp_wd)
   on.exit(setwd(old_wd), add = TRUE)

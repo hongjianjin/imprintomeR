@@ -1,7 +1,7 @@
 # Auto-refactored from utilities2.R
 # Module: probeset
 
-.load_probesets <- function(genome = "hg19") {
+.load_probesets <- function(genome = "hg38") {
   genome <- match.arg(tolower(genome), c("hg19", "hg38"))
   probesets <- readRDS(.resolve_extdata_file(paste0("probesets_", genome, ".rds")))
   if (!is.list(probesets) || is.null(names(probesets)) || !length(probesets)) {
@@ -217,7 +217,7 @@ ExtractProbesByBeds <- function(bed = NULL, bedFile = NULL, probes.all = NULL, a
 ##################################################################
 
 #' @export
-SubsetBeta_By_Probeset <- function(beta, probeset=probeset_options, prefix=NULL, genome = "hg19"){
+SubsetBeta_By_Probeset <- function(beta, probeset=probeset_options, prefix=NULL, genome = "hg38"){
   beta_subset <- beta
   probesets <- NULL
   #print(probeset)

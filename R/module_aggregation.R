@@ -51,12 +51,14 @@ CalcAvgByGrp <- function(dat, meta = NULL) {
 #'
 #' @param beta Numeric beta matrix/data frame with probe IDs as row names and
 #'   samples in columns.
-#' @param probeset Character probeset key present in
-#'   `inst/extdata/probesets_hg19.rds`.
+#' @param probeset Character probeset key present in the bundled probeset file
+#'   for `genome` (`probesets_<genome>.rds`).
+#' @param genome Genome build of the probeset panels, `"hg19"` or `"hg38"`
+#'   (default `"hg38"`).
 #'
 #' @return Data frame with aggregated loci as rows and samples as columns.
 #' @export
-AggregateByLocus <- function(beta, probeset="selected"){
+AggregateByLocus <- function(beta, probeset="selected", genome = "hg38"){
   beta <- .resolve_beta_input(beta)
 
   if (!(is.data.frame(beta) || is.matrix(beta))) {
@@ -68,6 +70,10 @@ AggregateByLocus <- function(beta, probeset="selected"){
   if (!is.character(probeset) || length(probeset) != 1 || is.na(probeset) || !nzchar(probeset)) {
     stop("probeset must be a single non-empty character value.")
   }
+  if (!is.character(genome) || length(genome) != 1 || is.na(genome)) {
+    stop("genome must be a single character value: 'hg19' or 'hg38'.")
+  }
+  genome <- match.arg(tolower(genome), c("hg19", "hg38"))
 
   beta_df <- as.data.frame(beta, stringsAsFactors = FALSE, check.names = FALSE)
   numeric_cols <- vapply(beta_df, is.numeric, logical(1))
@@ -84,10 +90,10 @@ AggregateByLocus <- function(beta, probeset="selected"){
     stop("beta must include at least one numeric sample column.")
   }
 
-  probesets <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
+  probesets <- .load_probesets(genome)
 
   if (!(probeset %in% names(probesets))) {
-    stop("Unavailable probeset: ", probeset)
+    stop("Unavailable probeset for genome '", genome, "': ", probeset)
   }
 
   probeset1 <- probesets[[probeset]]

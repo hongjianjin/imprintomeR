@@ -45,7 +45,7 @@ option_list <- list(
     make_option(c("--ids-cutoff"), type = "double", default = 0.2,
         help = "IDS cutoff threshold for plot filtering [default: %default]"),
 
-    make_option(c("--genome"), type = "character", default = "hg19",
+    make_option(c("--genome"), type = "character", default = "hg38",
         help = "Genome version for probeset loading (hg19, hg38) [default: %default]"),
 
     make_option(c("--radar-all"), type = "logical", default = NULL,

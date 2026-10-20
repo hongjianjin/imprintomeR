@@ -4,14 +4,17 @@
 \alias{AggregateByLocus}
 \title{Aggregate Beta Matrix by Imprinting Locus}
 \usage{
-AggregateByLocus(beta, probeset = "selected")
+AggregateByLocus(beta, probeset = "selected", genome = "hg38")
 }
 \arguments{
 \item{beta}{Numeric beta matrix/data frame with probe IDs as row names and
 samples in columns.}
 
-\item{probeset}{Character probeset key present in
-\code{inst/extdata/probesets_hg19.rds}.}
+\item{probeset}{Character probeset key present in the bundled probeset file
+for \code{genome} (\verb{probesets_<genome>.rds}).}
+
+\item{genome}{Genome build of the probeset panels, \code{"hg19"} or \code{"hg38"}
+(default \code{"hg38"}).}
 }
 \value{
 Data frame with aggregated loci as rows and samples as columns.

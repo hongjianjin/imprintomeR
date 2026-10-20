@@ -180,7 +180,7 @@ The beta matrix should have probes as rows and samples as columns. Metadata shou
 | `--probeset` | selected | One of `selected`, `NanoImprint`, `Joshi`, `Court`, `Rosenski`, `Jima`, `chr11p15`. |
 | `--plot-types` | default | Comma-separated plot types, `default`, or `all`. |
 | `--ids-cutoff` | 0.2 | IDS cutoff passed to `runImprintome()`. |
-| `--genome` | hg19 | Genome build for bundled probesets. |
+| `--genome` | hg38 | Genome build for bundled probesets (`hg19` or `hg38`). Also used in output file names. |
 | `--skip-plots` | FALSE | Skip the ordinary plot workflow; explicit `--rainfall-all`, `--radar-all`, and `--beeswarm-chr-all` outputs still run. |
 | `--rainfall-all` | NULL | Pass `TRUE` to generate one multipage rainfall PDF containing every sample. |
 | `--radar-all` | NULL | Pass `TRUE` to generate one multipage radar PDF containing every sample. |
@@ -266,18 +266,20 @@ Each page shows only chromosomes with at least five usable (finite) probe values
 
 ## Imprintome Outputs
 
-A typical analysis directory contains:
+A typical analysis directory (default `--genome hg38`) contains:
 
 ```text
 imprintome_results/
 +-- run_imprintomeR.log
-+-- GSE240091_hg19_imprintomeSet.rds
-+-- GSE240091_hg19_results_AnalyzeImprintStatus.selected.tsv
-+-- GSE240091_hg19_polar.selected.pdf
-+-- GSE240091_hg19_heatmap_by_gene.selected.pdf
-+-- GSE240091_hg19_radar.<probeset>.<sample_id>.pdf
-+-- GSE240091_hg19_rainfall.<probeset>.<sample_id>.pdf
++-- GSE240091_hg38_imprintomeSet.rds
++-- GSE240091_hg38_results_AnalyzeImprintStatus.selected.tsv
++-- GSE240091_hg38_polar.selected.pdf
++-- GSE240091_hg38_heatmap_by_gene.selected.pdf
++-- GSE240091_hg38_radar.<probeset>.<sample_id>.pdf
++-- GSE240091_hg38_rainfall.<probeset>.<sample_id>.pdf
 ```
+
+With `--genome hg19` the names use `_hg19_` instead. Runs made before the default changed to hg38 wrote `_hg19_` files; pass `--genome hg19` to reuse those cached results.
 
 The main result table is stored as `AnalyzeImprintStatus.<probeset>` inside `results(x)` and exported as a genome-prefixed TSV file.
 
@@ -285,7 +287,7 @@ Example reload:
 
 ```r
 library(imprintomeR)
-x <- readRDS("imprintome_results/GSE240091_hg19_imprintomeSet.rds")
+x <- readRDS("imprintome_results/GSE240091_hg38_imprintomeSet.rds")
 names(results(x))
 status <- results(x)[["AnalyzeImprintStatus.selected"]]
 ```
