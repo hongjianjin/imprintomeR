@@ -177,7 +177,7 @@ methods::setMethod("merge", "MethQcSet", function(x, y, how = "inner", ...) {
   # ========================================================================
   final_samples <- colnames(beta_merged)
   meta_idx <- match(final_samples, meta_merged$Sample_Name)
-  meta_merged <- meta_merged[meta_idx, ]
+  meta_merged <- meta_merged[meta_idx, , drop = FALSE]
   rownames(meta_merged) <- NULL
 
   # ========================================================================

@@ -116,9 +116,32 @@ setClass(
   validity = .validate_ImprintomeSet
 )
 
+# Move a probe-ID column (NAME, TargetID, or ID) of a beta data.frame into its row
+# names, so that colnames(beta) are sample IDs only. Left unchanged when the column
+# is numeric or its values are missing or duplicated.
+.strip_beta_probe_id_column <- function(beta) {
+  if (!is.data.frame(beta)) {
+    return(beta)
+  }
+  id_col <- intersect(c("NAME", "TargetID", "ID"), colnames(beta))
+  if (!length(id_col)) {
+    return(beta)
+  }
+  id_col <- id_col[1]
+  ids <- as.character(beta[[id_col]])
+  if (is.numeric(beta[[id_col]]) || anyNA(ids) || anyDuplicated(ids)) {
+    return(beta)
+  }
+  rownames(beta) <- ids
+  beta[[id_col]] <- NULL
+  beta
+}
+
 #' Construct an ImprintomeSet Object
 #'
 #' @param beta Matrix or data.frame of beta values (rows = probes, columns = samples).
+#'   A probe-ID column named `NAME`, `TargetID`, or `ID` in a data.frame is moved
+#'   into the row names.
 #' @param meta data.frame containing sample metadata. Must include `Sample_Name`; `Sample_Group` is required unless `auto_group=TRUE`.
 #' @param probeset data.frame or list containing probeset annotation.
 #' @param genome Character scalar for genome build (for example, `"hg19"` or `"hg38"`).
@@ -151,6 +174,8 @@ ImprintomeSet <- function(beta,
     }
   }
   
+  beta <- .strip_beta_probe_id_column(beta)
+
   methods::new(
     "ImprintomeSet",
     beta = beta,

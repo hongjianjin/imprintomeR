@@ -1,1 +1,11 @@
 ^LICENSE\.md$
+^ICR_sources_README\.md$
+^tmp_.*\.R$
+^check_selected_panel_overlaps\.R$
+^generate_overlap4\.R$
+^liftover_nanoprint_hg38_to_hg19\.R$
+^recreate_selected_hg19\.R$
+^subset_merge_list_4_hg19\.R$
+^update_merge_list_assay\.R$
+^validate_nanoprint_liftover\.R$
+^validate_selected_hg19\.R$

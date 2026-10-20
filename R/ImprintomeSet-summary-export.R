@@ -17,6 +17,10 @@
 #' }
 #' @rdname summarize
 #' @export
+if (!methods::isGeneric("summarize")) {
+  methods::setGeneric("summarize", function(object, ...) standardGeneric("summarize"))
+}
+
 methods::setMethod(
   "summarize",
   signature(object = "ImprintomeSet"),
@@ -193,7 +197,7 @@ methods::setMethod(
     # Export results
     res_list <- results(x)
     res_names <- names(res_list)
-    if (is.null(res_names)) {
+    if (is.null(res_names) && length(res_list) > 0L) {
       res_names <- paste0("result_", seq_along(res_list))
       names(res_list) <- res_names
     }

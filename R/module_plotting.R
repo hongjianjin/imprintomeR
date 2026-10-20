@@ -1762,8 +1762,8 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
   # only keep common samples present in both meta and beta matrix
   rownames(meta) <- meta[, SAMPLEID]
   commonIDs <- intersect(colnames(beta), rownames(meta))
-  beta <- beta[, commonIDs]
-  meta <- meta[commonIDs, ]
+  beta <- beta[, commonIDs, drop = FALSE]
+  meta <- meta[commonIDs, , drop = FALSE]
   if(!is.null(probeset)){
     probesets <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
     if (probeset %in% names(probesets)) {
@@ -1782,8 +1782,11 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
     }
     chr <- paste0("CHR_", toupper(version))
     mapinfo <- paste0("MAPINFO_", toupper(version))
-    anno <- probes.all[probes.all$NAME %in% rownames(beta), c(chr, mapinfo, "UCSC_REFGENE_NAME")]
+    keep <- probes.all$NAME %in% rownames(beta)
+    anno <- probes.all[keep, c(chr, mapinfo, "UCSC_REFGENE_NAME")]
     colnames(anno) <- c("CHR", "MAPINFO", "GENE")
+    # The merge below joins on row names, so they must be probe IDs.
+    rownames(anno) <- as.character(probes.all$NAME[keep])
   }
   # merge beta and anno matrix, sort by chr_mapinfo
   beta_anno <- merge(x = beta, y = anno, by = "row.names", all = FALSE) #Inner join #all.x = TRUE)

@@ -11,6 +11,22 @@
 #' @name ImprintomeSet-accessors
 NULL
 
+if (!methods::isGeneric("beta")) {
+  methods::setGeneric("beta", function(x) standardGeneric("beta"))
+}
+
+if (!methods::isGeneric("meta")) {
+  methods::setGeneric("meta", function(x) standardGeneric("meta"))
+}
+
+if (!methods::isGeneric("beta<-")) {
+  methods::setGeneric("beta<-", function(x, value) standardGeneric("beta<-"))
+}
+
+if (!methods::isGeneric("meta<-")) {
+  methods::setGeneric("meta<-", function(x, value) standardGeneric("meta<-"))
+}
+
 #' @rdname ImprintomeSet-accessors
 #' @export
 methods::setMethod("beta", "ImprintomeSet", function(x) x@beta)

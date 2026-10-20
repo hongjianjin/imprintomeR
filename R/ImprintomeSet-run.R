@@ -7,6 +7,9 @@
 #' @param probeset Character scalar probeset name (for example, `"selected"`).
 #' @param ids_cutoff Numeric IDS cutoff passed to `AnalyzeImprintStatus()`.
 #' @param result_name Optional name for storing output in `results(x)`.
+#' @param dmr_type Optional character vector of `DMR_type` values passed to
+#'   `AnalyzeImprintStatus()`, for example `"gametic"`. `NULL` (default)
+#'   scores all probes.
 #' @param ... Reserved for future compatibility.
 #'
 #' @return Updated `ImprintomeSet` object with analysis table stored in
@@ -56,7 +59,7 @@ if (!methods::isGeneric("runImprintome")) {
 methods::setMethod(
   "runImprintome",
   signature(x = "ImprintomeSet"),
-  function(x, probeset = "selected", ids_cutoff = 0.2, result_name = NULL, ...) {
+  function(x, probeset = "selected", ids_cutoff = 0.2, result_name = NULL, dmr_type = NULL, ...) {
     methods::validObject(x)
 
     # Convert beta matrix to data frame with TargetID column (required by LoadBeta)
@@ -67,12 +70,17 @@ methods::setMethod(
       betaFile = beta_df,
       metaFile = meta(x),
       probeset = probeset,
-      ids_cutoff = ids_cutoff
+      ids_cutoff = ids_cutoff,
+      genome = genome(x),
+      dmr_type = dmr_type
     )
 
     current_results <- results(x)
     if (is.null(result_name) || !nzchar(result_name)) {
       result_name <- paste0("AnalyzeImprintStatus.", probeset)
+      if (!is.null(dmr_type)) {
+        result_name <- paste0(result_name, ".", paste(dmr_type, collapse = "+"))
+      }
     }
     current_results[[result_name]] <- analysis_table
     results(x) <- current_results

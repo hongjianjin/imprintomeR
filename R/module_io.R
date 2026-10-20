@@ -488,8 +488,17 @@ LoadMeta <- function(input) {
 #' @export
 LoadBeta <- function(input) {
   suppressMessages(suppressWarnings(library(data.table)))
+  if (is.matrix(input)) {
+    input <- as.data.frame(input, stringsAsFactors = FALSE, check.names = FALSE)
+  }
   if (is.data.frame(input)) {
     beta <- input
+    # An ImprintomeSet stores probe IDs as row names only; restore them as TargetID.
+    rn <- rownames(beta)
+    if (is.null(idx_matching_column(beta, c("TargetID", "NAME"))) &&
+        !is.null(rn) && !identical(rn, as.character(seq_len(nrow(beta))))) {
+      beta <- cbind(TargetID = rn, beta, stringsAsFactors = FALSE)
+    }
   } else if (is.character(input) && file.exists(input)) {
     if (grepl(".rds$", input, ignore.case = T)) {
       beta <- readRDS(input)

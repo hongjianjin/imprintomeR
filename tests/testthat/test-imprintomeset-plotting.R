@@ -228,9 +228,15 @@ testthat::test_that("beeswarm_chr retains chromosomes with at least five usable 
     stringsAsFactors = FALSE
   )
 
-  old_get_probeset <- .imprint_get_probeset_df
-  assign(".imprint_get_probeset_df", function(...) probeset, envir = .GlobalEnv)
-  on.exit(assign(".imprint_get_probeset_df", old_get_probeset, envir = .GlobalEnv), add = TRUE)
+  # Serve the probeset through a fixture file rather than by replacing
+  # .imprint_get_probeset_df, which a global-env mock cannot reach once the
+  # package namespace is loaded.
+  old_wd <- getwd()
+  tmp_wd <- tempfile("imprintome_threshold_")
+  dir.create(file.path(tmp_wd, "inst", "extdata"), recursive = TRUE)
+  saveRDS(list(threshold = probeset), file.path(tmp_wd, "inst", "extdata", "probesets_hg19.rds"))
+  setwd(tmp_wd)
+  on.exit(setwd(old_wd), add = TRUE)
 
   p <- .imprint_beeswarm_chr(
     beta_x, meta_x, SAMPLEID = "Sample_Name", probeset_name = "threshold", sample_id = "S1"

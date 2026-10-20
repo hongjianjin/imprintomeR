@@ -1,6 +1,38 @@
 # Auto-refactored from utilities2.R
 # Module: probeset
 
+.load_probesets <- function(genome = "hg19") {
+  genome <- match.arg(tolower(genome), c("hg19", "hg38"))
+  probesets <- readRDS(.resolve_extdata_file(paste0("probesets_", genome, ".rds")))
+  if (!is.list(probesets) || is.null(names(probesets)) || !length(probesets)) {
+    stop("Probeset annotation for genome '", genome, "' must be a named list.")
+  }
+  probesets
+}
+
+.validate_probeset_annotation <- function(probeset, name = "probeset", require_origin = TRUE) {
+  if (!is.data.frame(probeset) || !nrow(probeset)) {
+    stop("Probeset '", name, "' is empty or is not a data.frame.")
+  }
+  required <- "NAME"
+  if (require_origin) required <- c(required, "ORIGIN")
+  missing <- setdiff(required, colnames(probeset))
+  if (length(missing)) {
+    stop("Probeset '", name, "' is missing required column(s): ", paste(missing, collapse = ", "), ".")
+  }
+  if (anyNA(probeset$NAME) || any(!nzchar(as.character(probeset$NAME)))) {
+    stop("Probeset '", name, "' contains missing probe IDs.")
+  }
+  if (require_origin) {
+    origins <- tolower(trimws(as.character(probeset$ORIGIN)))
+    if (!any(grepl("maternal", origins), na.rm = TRUE) ||
+        !any(grepl("paternal", origins), na.rm = TRUE)) {
+      stop("Probeset '", name, "' must contain both maternal and paternal ORIGIN annotations for scoring.")
+    }
+  }
+  invisible(probeset)
+}
+
 #' @export
 AnnotateProbe2Gene <- function(probeIDs, probes.all = NULL, assay = "EPICV1", version = "HG19", verbose = FALSE, file = NULL) {
   if (is.null(probes.all)) {
@@ -186,15 +218,18 @@ ExtractProbesByBeds <- function(bed = NULL, bedFile = NULL, probes.all = NULL, a
 ##################################################################
 
 #' @export
-SubsetBeta_By_Probeset <- function(beta, probeset=probeset_options, prefix=NULL){
+SubsetBeta_By_Probeset <- function(beta, probeset=probeset_options, prefix=NULL, genome = "hg19"){
   beta_subset <- beta
   probesets <- NULL
   #print(probeset)
   if (!is.null(probeset)) {
-    probeset <- match.arg(probeset)
-    probesets_all <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
+    if (!is.character(probeset) || length(probeset) != 1L || is.na(probeset) || !nzchar(probeset)) {
+      stop("probeset must be a single non-empty character value.")
+    }
+    probesets_all <- .load_probesets(genome)
     if (probeset %in% names(probesets_all)){# c("chr11p15", "Jima", "Joshi", "NanoImprint","zambegrp", "all", "selected")) {
       probesets <- probesets_all[[probeset]]
+      .validate_probeset_annotation(probesets, probeset)
       rownames(probesets) <- probesets$NAME
       cat("\n\t[SubsetBeta] subset by probeset [query:", length(probesets$NAME))
     } else if (probeset %in% probeset_chrs ){  
@@ -202,12 +237,10 @@ SubsetBeta_By_Probeset <- function(beta, probeset=probeset_options, prefix=NULL)
       probesets <- probesets_all[["selected"]]
       probesets <- probesets[probesets$CHR %in% probeset,]
     } else{
-      cat("\n [SubsetBeta] ERROR:invalid probeset.")
-      q("no")   
+      stop("Unavailable probeset '", probeset, "' for genome '", genome, "'.")
     } 
     if(nrow(probesets)==0){
-      cat("\n [SubsetBeta] ERROR:invalid probeset. Return 0 matched probe.")
-      q("no")      
+      stop("Probeset '", probeset, "' contains no annotation rows.")
     }
       probes <- intersect(rownames(beta), probesets$NAME)
           probesets <- probesets[probes, ]

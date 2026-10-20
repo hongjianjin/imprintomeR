@@ -243,6 +243,7 @@ if (!methods::isGeneric("plot")) {
       linewidth = 0.8,
       color = "grey30"
     ) +
+    ggplot2::scale_color_discrete(name = "Allelic origin") +
     ggplot2::facet_wrap(~ID, nrow = 1, scales = "free_x", strip.position = "bottom") +
     ggplot2::scale_x_discrete(labels = function(x) {
       labels <- rep("", length(x))
@@ -375,6 +376,10 @@ methods::setMethod(
 
     args <- list(...)
     plot_type <- tolower(.imprint_get_arg_chr(args, "plot_type", "auto"))
+    # Accept the CamelCase function-style name, e.g. plot_type = "CircularHeatmap".
+    if (plot_type == "circularheatmap") {
+      plot_type <- "circular_heatmap"
+    }
     plot_name <- .imprint_get_arg_chr(args, "plot_name", NULL)
     result_name <- .imprint_get_arg_chr(args, "result_name", NULL)
     colorColumn <- .imprint_get_arg_chr(args, "colorColumn", "Sample_Group")
@@ -647,6 +652,19 @@ methods::setMethod(
       # Use same probeset subsetting logic as beeswarm: subset beta first, then visualize
       beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "circular_heatmap")
 
+      # Optional sample subsetting via Samples = c(...).
+      if (!is.null(args$Samples)) {
+        sample_cols <- colnames(beta_plot)[vapply(beta_plot, is.numeric, logical(1))]
+        samples <- intersect(as.character(args$Samples), sample_cols)
+        if (length(samples) == 0L) {
+          stop("No valid samples found in beta(x) for plot_type='circular_heatmap'.")
+        }
+        beta_plot <- beta_plot[, samples, drop = FALSE]
+        if (SAMPLEID %in% colnames(meta_x)) {
+          meta_x <- meta_x[as.character(meta_x[[SAMPLEID]]) %in% samples, , drop = FALSE]
+        }
+      }
+
       # Check if sectionColumn exists and has meaningful values (not all "Unknown")
       effective_section_column <- sectionColumn
       if (!sectionColumn %in% colnames(meta_x)) {
@@ -661,11 +679,33 @@ methods::setMethod(
         }
       }
 
+      # Annotate probes from the probeset panel itself (CHR/MAPINFO and nearest gene)
+      # rather than the full array annotation, which may not contain every probe.
+      probeset_df <- .imprint_get_probeset_df(probeset_name, plot_type = "circular_heatmap",
+                                              required_cols = c("NAME", "CHR", "MAPINFO"))
+      gene <- if ("Closest_TSS_gene_name" %in% colnames(probeset_df)) {
+        as.character(probeset_df$Closest_TSS_gene_name)
+      } else {
+        rep(NA_character_, nrow(probeset_df))
+      }
+      # Label probes without a gene name by probe ID; empty labels break the circos label track.
+      no_gene <- is.na(gene) | !nzchar(gene)
+      gene[no_gene] <- as.character(probeset_df$NAME[no_gene])
+      panel_anno <- data.frame(
+        NAME = as.character(probeset_df$NAME),
+        CHR_HG19 = .imprint_normalize_chr(probeset_df$CHR),
+        MAPINFO_HG19 = probeset_df$MAPINFO,
+        UCSC_REFGENE_NAME = gene,
+        stringsAsFactors = FALSE
+      )
+
       return(
         BetaCircularHeatmap(
           beta = beta_plot,
           meta = meta_x,
+          probes.all = panel_anno,
           probeset = NULL,
+          version = "HG19",
           SAMPLEID = SAMPLEID,
           sectionColumn = effective_section_column,
           outFile = outFile

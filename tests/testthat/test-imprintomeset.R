@@ -344,7 +344,8 @@ test_that("export uses 12 x 12 inch default for stored radar PDFs", {
   pdf_text <- paste(pdf_text, collapse = "")
 
   expect_true(file.exists(plot_file))
-  expect_match(pdf_text, "/MediaBox \\[0 0 864 864\\]", fixed = FALSE)
+  # PDF bytes are not valid text in a UTF-8 locale, so match on bytes.
+  expect_true(grepl("/MediaBox \\[0 0 864 864\\]", pdf_text, useBytes = TRUE))
 })
 
 test_that("Meth_QC returns deterministic tabular QC outputs", {
@@ -420,6 +421,30 @@ test_that("runImprintome updates results slot", {
     res <- results(x2)[["AnalyzeImprintStatus.selected"]]
     expect_true(is.data.frame(res))
     expect_true(all(c("IDS", "Angle", "Mechanism", "Status") %in% colnames(res)))
+  })
+})
+
+
+test_that("runImprintome names results by dmr_type when filtering", {
+  with_synthetic_probeset_fixture({
+    d <- make_synthetic_imprintome_inputs()
+    typed <- d$probeset
+    typed$DMR_type <- "gametic"
+    saveRDS(list(selected = typed), file.path("inst", "extdata", "probesets_hg19.rds"))
+
+    x <- ImprintomeSet(
+      beta = d$beta,
+      meta = d$meta,
+      probeset = d$probeset,
+      genome = "hg19",
+      assay = "EPICv1"
+    )
+
+    x2 <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2, dmr_type = "gametic")
+
+    expect_true("AnalyzeImprintStatus.selected.gametic" %in% names(results(x2)))
+    res <- results(x2)[["AnalyzeImprintStatus.selected.gametic"]]
+    expect_equal(unique(res$dmr_type), "gametic")
   })
 })
 

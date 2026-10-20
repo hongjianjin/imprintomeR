@@ -167,18 +167,95 @@ test_that("AnalyzeImprintStatus validates ids_cutoff and preserves output shape"
   })
 })
 
-test_that("AnalyzeImprintStatus falls back to 0.5 when maternal probes are missing", {
+test_that("AnalyzeImprintStatus rejects probesets missing a parental origin", {
   d <- .make_fixture()
   p_missing_mat <- d$probeset
   p_missing_mat$ORIGIN <- "paternal"
 
   .with_temp_probeset_file(p_missing_mat, {
-    expect_warning(
-      res <- AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2),
-      "No maternal probes found"
+    expect_error(
+      AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2),
+      "must contain both maternal and paternal ORIGIN annotations"
     )
-    expect_true(all(abs(res$maternal_median - 0.5) < 1e-8))
-    expect_equal(nrow(res), nrow(d$meta))
+  })
+})
+
+.make_dmr_fixture <- function() {
+  d <- .make_fixture()
+  extra <- c("cg00000005", "cg00000006")
+  beta_extra <- data.frame(
+    NAME = extra,
+    S1 = c(0.90, 0.10),
+    S2 = c(0.90, 0.10),
+    S3 = c(0.90, 0.10),
+    stringsAsFactors = FALSE
+  )
+  rownames(beta_extra) <- extra
+  d$beta <- rbind(d$beta, beta_extra)
+
+  probeset_extra <- data.frame(
+    NAME = extra,
+    CHR = c("chr14", "chr20"),
+    MAPINFO = c(20001, 30001),
+    ORIGIN = c("maternal", "paternal"),
+    Closest_TSS_gene_name = c("GENE2", "GENE3"),
+    stringsAsFactors = FALSE
+  )
+  rownames(probeset_extra) <- extra
+  d$probeset <- rbind(d$probeset, probeset_extra)
+  d$probeset$DMR_type <- c("gametic", "gametic", "gametic", "gametic", "secondary", "secondary")
+  d
+}
+
+test_that("AnalyzeImprintStatus scores only the requested DMR_type", {
+  d <- .make_dmr_fixture()
+  .with_temp_probeset_file(d$probeset, {
+    res_all <- AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2)
+    res_gam <- AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2, dmr_type = "gametic")
+
+    expect_equal(unique(res_all$dmr_type), "all")
+    expect_equal(unique(res_all$n_maternal_probes), 3)
+    expect_equal(unique(res_all$n_paternal_probes), 3)
+
+    expect_equal(unique(res_gam$dmr_type), "gametic")
+    expect_equal(unique(res_gam$n_maternal_probes), 2)
+    expect_equal(unique(res_gam$n_paternal_probes), 2)
+    expect_equal(res_gam$maternal_median[res_gam$Sample_Name == "S1"], round(median(c(0.30, 0.35)), 3))
+    expect_equal(res_gam$paternal_median[res_gam$Sample_Name == "S1"], round(median(c(0.70, 0.68)), 3))
+  })
+})
+
+test_that("AnalyzeImprintStatus default ignores DMR_type", {
+  d <- .make_dmr_fixture()
+  p_without_type <- d$probeset[, setdiff(colnames(d$probeset), "DMR_type")]
+  res_with <- .with_temp_probeset_file(d$probeset,
+    AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2))
+  res_without <- .with_temp_probeset_file(p_without_type,
+    AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2))
+  expect_equal(res_with, res_without)
+})
+
+test_that("AnalyzeImprintStatus dmr_type errors are informative", {
+  d <- .make_dmr_fixture()
+  p_without_type <- d$probeset[, setdiff(colnames(d$probeset), "DMR_type")]
+  .with_temp_probeset_file(p_without_type, {
+    expect_error(
+      AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", dmr_type = "gametic"),
+      "has no DMR_type column"
+    )
+  })
+
+  p_one_origin <- d$probeset
+  p_one_origin$DMR_type[p_one_origin$NAME == "cg00000006"] <- "ambiguous"
+  .with_temp_probeset_file(p_one_origin, {
+    expect_error(
+      AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", dmr_type = "secondary"),
+      "no matched probes for both maternal and paternal origins"
+    )
+    expect_error(
+      AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", dmr_type = character(0)),
+      "dmr_type must be NULL or a non-empty character vector"
+    )
   })
 })
 

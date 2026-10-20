@@ -151,13 +151,20 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids) {
 #' @param probeset Character scalar naming a probeset key.
 #' @param ids_cutoff Numeric scalar threshold used to call imprinting
 #'   alteration by IDS.
+#' @param genome Genome build of the probeset annotation, `"hg19"` or `"hg38"`.
+#' @param dmr_type Optional character vector of `DMR_type` values to score,
+#'   for example `"gametic"` to restrict scoring to gametic ICRs or
+#'   `"secondary"` for secondary DMRs. Requires a `DMR_type` column in the
+#'   probeset. `NULL` (default) scores all probes.
 #'
 #' @return Data frame with sample-level imprinting metrics and labels.
 
 #' @export
-AnalyzeImprintStatus <- function(betaFile, metaFile, 
+AnalyzeImprintStatus <- function(betaFile, metaFile,
                                  probeset = probeset_options,
-                                 ids_cutoff = 0.2) {
+                                 ids_cutoff = 0.2,
+                                 genome = "hg19",
+                                 dmr_type = NULL) {
   # Support object-first usage while preserving legacy beta/meta inputs.
   if (methods::is(betaFile, "ImprintomeSet")) {
     if (!missing(metaFile) && !is.null(metaFile)) {
@@ -166,6 +173,7 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
     obj <- betaFile
     betaFile <- beta(obj)
     metaFile <- meta(obj)
+    genome <- obj@genome
   }
 
   if (missing(metaFile) || is.null(metaFile)) {
@@ -178,12 +186,17 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   if (!is.numeric(ids_cutoff) || length(ids_cutoff) != 1 || is.na(ids_cutoff) || !is.finite(ids_cutoff)) {
     stop("ids_cutoff must be a single finite numeric value.")
   }
-  
+  genome <- match.arg(tolower(genome), c("hg19", "hg38"))
+  if (!is.null(dmr_type) &&
+      (!is.character(dmr_type) || !length(dmr_type) || anyNA(dmr_type) || any(!nzchar(dmr_type)))) {
+    stop("dmr_type must be NULL or a non-empty character vector.")
+  }
+
   # 1. Feature Alignment
   input <- LoadMetaBeta(metaFile, betaFile, probeset = NULL)
   meta <- input[["meta"]]
   beta <- input[["beta"]]
-  tmp  <- SubsetBeta_By_Probeset(beta, probeset = probeset, prefix = NULL)
+  tmp  <- SubsetBeta_By_Probeset(beta, probeset = probeset, prefix = NULL, genome = genome)
   
   probesets <- tmp[["probesets"]]
   used <- tmp[["beta"]]
@@ -200,35 +213,22 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   meta <- meta[sample_ids, , drop = FALSE]
   used <- used[, sample_ids, drop = FALSE]
 
-  if (is.null(probesets) || !is.data.frame(probesets) || nrow(probesets) == 0) {
-    warning("No probeset annotation rows found for [", probeset, "]. Defaulting both allelic medians to 0.5.")
+  .validate_probeset_annotation(probesets, probeset)
+  if (!is.null(dmr_type)) {
+    if (!"DMR_type" %in% colnames(probesets)) {
+      stop("Probeset '", probeset, "' has no DMR_type column; dmr_type filtering is unavailable.")
+    }
+    probesets <- probesets[probesets$DMR_type %in% dmr_type, , drop = FALSE]
   }
-  
-  maternal_probes <- character(0)
-  paternal_probes <- character(0)
-  if (!is.null(probesets) && nrow(probesets) > 0 && all(c("NAME", "ORIGIN") %in% colnames(probesets))) {
-    maternal_probes <- intersect(probesets$NAME[grep("maternal", probesets$ORIGIN)], rownames(used))
-    paternal_probes <- intersect(probesets$NAME[grep("paternal", probesets$ORIGIN)], rownames(used))
+  dmr_label <- if (is.null(dmr_type)) "all" else paste(dmr_type, collapse = "+")
+  maternal_probes <- intersect(probesets$NAME[grep("maternal", probesets$ORIGIN, ignore.case = TRUE)], rownames(used))
+  paternal_probes <- intersect(probesets$NAME[grep("paternal", probesets$ORIGIN, ignore.case = TRUE)], rownames(used))
+  if (!length(maternal_probes) || !length(paternal_probes)) {
+    stop("Probeset '", probeset, "' (dmr_type: ", dmr_label,
+         ") has no matched probes for both maternal and paternal origins in the beta matrix.")
   }
-  
-  # --- NEW LOGIC: Handle Missing Probesets ---
-  # If probes exist, subset them. If not, create a 0.5 matrix for all samples.
-  if (length(maternal_probes) > 0) {
-    maternal_beta <- used[maternal_probes, , drop = FALSE]
-  } else {
-    warning("No maternal probes found for [", probeset, "]. Defaulting to 0.5.")
-    maternal_beta <- matrix(0.5, nrow = 1, ncol = ncol(used), 
-                            dimnames = list("Placeholder_Mat", colnames(used)))
-  }
-  
-  if (length(paternal_probes) > 0) {
-    paternal_beta <- used[paternal_probes, , drop = FALSE]
-  } else {
-    warning("No paternal probes found for [", probeset, "]. Defaulting to 0.5.")
-    paternal_beta <- matrix(0.5, nrow = 1, ncol = ncol(used), 
-                            dimnames = list("Placeholder_Pat", colnames(used)))
-  }
-  # ------------------------------------------
+  maternal_beta <- used[maternal_probes, , drop = FALSE]
+  paternal_beta <- used[paternal_probes, , drop = FALSE]
 
   consistency_df <- compute_consistency(
     paternal_beta = paternal_beta,
@@ -267,6 +267,9 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   res <- data.frame(
     meta_selected,
     probeset        = probeset,
+    dmr_type        = dmr_label,
+    n_paternal_probes = length(paternal_probes),
+    n_maternal_probes = length(maternal_probes),
     paternal_median = round(pat_med, 3),
     maternal_median = round(mat_med, 3),
     consistency_df,
