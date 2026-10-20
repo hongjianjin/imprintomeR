@@ -22,7 +22,6 @@ testthat::local_edition(1)
   list(
     hg19 = readRDS(file.path(.annotation_root, "inst", "extdata", "probesets_hg19.rds")),
     hg38 = readRDS(file.path(.annotation_root, "inst", "extdata", "probesets_hg38.rds")),
-    hg38_regions = readRDS(file.path(.annotation_root, "inst", "extdata", "probesets_hg38_regions.rds")),
     monk = read.delim(file.path(.annotation_root, "tmp_ICR_sources", "Monk_2018", "Table1_germline_status.tsv"),
                       quote = "", stringsAsFactors = FALSE)
   )
@@ -78,7 +77,7 @@ test_that("MEG8:Int2-DMR probes are maternal in every panel and build", {
   a <- .read_annotation()
   meg8 <- c("cg06804177", "cg03664700", "cg26981637")
 
-  for (regions in list(a$hg19$Rosenski_region, a$hg38_regions$Rosenski_region)) {
+  for (regions in list(a$hg19$Rosenski_region, a$hg38$Rosenski_region)) {
     expect_equal(regions$ORIGIN[regions$ICR_name == "RTL1" & regions$CHR == "chr14"], "maternal")
   }
   for (build in list(a$hg19, a$hg38)) {

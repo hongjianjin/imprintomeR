@@ -5,7 +5,7 @@
 selected_hg19 <- readRDS("inst/extdata/probesets_hg19.rds")[["selected"]]
 panels_hg38 <- readRDS("inst/extdata/probesets_hg38.rds")
 anno <- readRDS("inst/extdata/anno.uniq_harmonized.liftover.rds")
-regions_hg38 <- readRDS("inst/extdata/probesets_hg38_regions.rds")[["Rosenski_region"]]
+regions_hg38 <- panels_hg38[["Rosenski_region"]]
 
 copied_cols <- c("Closest_TSS_gene_name", "ORIGIN", "ICR_name", "DMR_type", "DMR_type_source")
 stopifnot(

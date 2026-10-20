@@ -28,7 +28,6 @@ fix_probes <- function(panel, names, expected_n) {
 
 p19 <- readRDS("inst/extdata/probesets_hg19.rds")
 p38 <- readRDS("inst/extdata/probesets_hg38.rds")
-r38 <- readRDS("inst/extdata/probesets_hg38_regions.rds")
 
 # The hg19 Rosenski probes in the corrected interval must be exactly these three.
 rr19 <- p19$Rosenski_region[p19$Rosenski_region$ICR_name == "RTL1", ]
@@ -37,7 +36,7 @@ stopifnot(setequal(p19$Rosenski$NAME[in_rtl1], meg8_probes),
           rr19$start <= meg8$start_hg19, rr19$end >= meg8$end_hg19)
 
 p19$Rosenski_region <- fix_region_row(p19$Rosenski_region)
-r38$Rosenski_region <- fix_region_row(r38$Rosenski_region)
+p38$Rosenski_region <- fix_region_row(p38$Rosenski_region)
 p19$Rosenski <- fix_probes(p19$Rosenski, meg8_probes, 3L)
 p38$Rosenski <- fix_probes(p38$Rosenski, meg8_probes, 3L)
 # NanoImprint ORIGIN is transferred from the Rosenski probe panel by NAME
@@ -61,8 +60,7 @@ replace_file <- function(tmp, path, tries = 10L) {
 }
 outputs <- list(
   "inst/extdata/probesets_hg19.rds" = save_rds(p19),
-  "inst/extdata/probesets_hg38.rds" = save_rds(p38),
-  "inst/extdata/probesets_hg38_regions.rds" = save_rds(r38)
+  "inst/extdata/probesets_hg38.rds" = save_rds(p38)
 )
 for (path in names(outputs)) replace_file(outputs[[path]], path)
 
