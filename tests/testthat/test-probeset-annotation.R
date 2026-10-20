@@ -70,6 +70,35 @@ test_that("chr11p15 is annotated as the two gametic 11p15.5 ICRs", {
   expect_equal(sum(cp$ICR_name == "KCNQ1OT1:TSS-DMR"), 31)
 })
 
+test_that("hg38 probesets list the same panels as hg19, in the same order", {
+  if (!nzchar(.annotation_root)) skip("Probeset annotation sources not available")
+  a <- .read_annotation()
+  expect_equal(names(a$hg38), names(a$hg19))
+  expect_equal(names(a$hg38), c("Jima", "Joshi", "Court", "Rosenski", "selected", "NanoImprint",
+                                "chr11p15", "Rosenski_region", "chr11p15_region"))
+})
+
+test_that("hg38 chr11p15 carries the hg19 chr11p15 annotation by probe NAME", {
+  if (!nzchar(.annotation_root)) skip("Probeset annotation sources not available")
+  a <- .read_annotation()
+  c19 <- a$hg19$chr11p15
+  c38 <- a$hg38$chr11p15
+  expect_equal(colnames(c38), colnames(c19))
+  expect_equal(c38$NAME, c19$NAME)
+  for (cn in setdiff(colnames(c19), c("CHR", "MAPINFO"))) {
+    expect_equal(c38[[cn]], c19[[cn]])
+  }
+  expect_true(all(c38$CHR == "chr11"))
+  expect_true(all((c38$MAPINFO - c19$MAPINFO) %in% c(-21230, -21232)))
+  # Each probe lies in an hg38 chr11p15_region interval of its own ICR.
+  r38 <- a$hg38$chr11p15_region
+  in_icr <- vapply(seq_len(nrow(c38)), function(i) {
+    w <- r38$ICR_name == c38$ICR_name[i]
+    any(c38$MAPINFO[i] >= r38$start[w] & c38$MAPINFO[i] <= r38$end[w])
+  }, logical(1))
+  expect_true(all(in_icr))
+})
+
 test_that("hg38 chr11p15_region mirrors hg19 with hg38 coordinates", {
   if (!nzchar(.annotation_root)) skip("Probeset annotation sources not available")
   a <- .read_annotation()
