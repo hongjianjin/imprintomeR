@@ -4,7 +4,8 @@
   # Check for required data files
   required_files <- c(
     "anno.uniq_harmonized.liftover.rds",
-    "probesets_hg19.rds"
+    "probesets_hg19.rds",
+    "probesets_hg38.rds"
   )
 
   extdata_dir <- system.file("extdata", package = pkgname)
@@ -35,12 +36,14 @@
 #' @param verbose Logical. If TRUE, print download progress.
 #'
 #' @details
-#' The imprintomeR package requires two large annotation files:
-#' - `anno.uniq_harmonized.liftover.rds` (52 MB): CpG probe annotations and genomic coordinates
-#' - `probesets_hg19.rds` (256 KB): ICR probeset definitions
+#' The imprintomeR package requires three annotation files:
+#' - `anno.uniq_harmonized.liftover.rds` (~52 MB): CpG probe annotations with hg19 and hg38 coordinates
+#' - `probesets_hg19.rds` (~110 KB): ICR probeset panels, GRCh37/hg19 coordinates
+#' - `probesets_hg38.rds` (~115 KB): ICR probeset panels, GRCh38/hg38 coordinates
 #'
-#' These files are stored externally and downloaded on demand to keep the
-#' repository lean. They are cached in `inst/extdata/` after download.
+#' Missing files are downloaded from the `main` branch of the
+#' hongjianjin/imprintomeR GitHub repository and cached in the installed
+#' package's `extdata/` directory.
 #'
 #' @return Invisibly returns TRUE if successful, FALSE otherwise.
 #'
@@ -57,13 +60,17 @@
 setup_imprintome_data <- function(force = FALSE, verbose = TRUE) {
   extdata_dir <- system.file("extdata", package = "imprintomeR")
 
-  # Data file URLs (placeholder - update with actual hosting location)
-  data_urls <- list(
-    anno.uniq_harmonized.liftover.rds = "https://github.com/hongjianjin/imprintomeR/releases/download/v0.1.0/anno.uniq_harmonized.liftover.rds",
-    probesets_hg19.rds = "https://github.com/hongjianjin/imprintomeR/releases/download/v0.1.0/probesets_hg19.rds"
-  )
+  # Data files are served from the repository's main branch.
+  base_url <- "https://raw.githubusercontent.com/hongjianjin/imprintomeR/main/inst/extdata/"
+  data_files <- c("anno.uniq_harmonized.liftover.rds", "probesets_hg19.rds", "probesets_hg38.rds")
+  data_urls <- as.list(stats::setNames(paste0(base_url, data_files), data_files))
 
   success <- TRUE
+
+  # The annotation file is ~52 MB; allow more than R's default 60 s timeout.
+  old_timeout <- getOption("timeout")
+  options(timeout = max(600, old_timeout))
+  on.exit(options(timeout = old_timeout), add = TRUE)
 
   for (fname in names(data_urls)) {
     fpath <- file.path(extdata_dir, fname)
@@ -78,7 +85,14 @@ setup_imprintome_data <- function(force = FALSE, verbose = TRUE) {
 
     tryCatch(
       {
-        download.file(data_urls[[fname]], fpath, mode = "wb", quiet = !verbose)
+        # Download to a temporary file so an interrupted download never leaves
+        # a partial file that a later call would treat as already present.
+        tmp <- tempfile(fileext = ".rds")
+        on.exit(unlink(tmp), add = TRUE)
+        utils::download.file(data_urls[[fname]], tmp, mode = "wb", quiet = !verbose)
+        if (!file.copy(tmp, fpath, overwrite = TRUE)) {
+          stop("could not write ", fpath)
+        }
         if (verbose) cat("✓", fname, "downloaded successfully\n")
       },
       error = function(e) {

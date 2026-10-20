@@ -299,8 +299,7 @@ Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("selected", "Nano
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
-      cat("\nERROR: unavailable probeset & probes not given.\n")
-      q("no")
+      stop("unavailable probeset & probes not given.", call. = FALSE)
     }
     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name","ORIGIN")]   
     colnames(anno)[3] <- "GENE"

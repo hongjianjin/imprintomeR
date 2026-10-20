@@ -61,8 +61,7 @@ ExtractProbesByGenelist <- function(genes = NULL, probes.all = NULL, assay = "EP
     probes.all <- probes.all[idx, ]
   }
   if (is.null(genes)) {
-    cat("\nERROR: must provide a gene list as vector .\n")
-    q("no")
+    stop("must provide a gene list as vector .", call. = FALSE)
   }
   chr <- paste0("CHR_", toupper(version))
   mapinfo <- paste0("MAPINFO_", toupper(version))

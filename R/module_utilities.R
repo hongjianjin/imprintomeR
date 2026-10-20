@@ -500,9 +500,9 @@ Check_Meta_Color <- function(meta, groupColumn = "Sample_Group") {
       cat("\nINFO: custom color by group ?")
       if (length(unique(meta$COLOR)) != length(unique(meta[, groupColumn]))) {
         cat("[No].\n")
-        cat("\nPlease add COLORGROUP categorical column to your meta data file.")
-        cat("\nAnd ensure COLOR string matches its COLORGROUP category.\n")
-        q("no")
+        stop("meta$COLOR does not map one-to-one onto ", groupColumn, " groups. ",
+             "Add a COLORGROUP categorical column to the metadata and ensure each COLOR ",
+             "matches its COLORGROUP category.", call. = FALSE)
       } else {
         cat("[Yes].\n")
       }
@@ -611,8 +611,7 @@ Calculate_impvar <- function(betaFile, metaFile = NULL,  icr.bed=NULL, probeset=
         probeset1 <- probesets[[probeset]]
         rownames(probeset1) <- probeset1$NAME
     } else {
-        cat("\nERROR: unavailable probeset.\n")
-        q("no")
+        stop("unavailable probeset.", call. = FALSE)
     }
     commonProbes <- intersect(rownames(beta), probeset1$NAME)
     mapping <- beta[commonProbes, ]

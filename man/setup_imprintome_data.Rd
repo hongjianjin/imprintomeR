@@ -19,14 +19,16 @@ Downloads required annotation data files for the imprintomeR package.
 This is automatically called during package load if files are missing.
 }
 \details{
-The imprintomeR package requires two large annotation files:
+The imprintomeR package requires three annotation files:
 \itemize{
-\item \code{anno.uniq_harmonized.liftover.rds} (52 MB): CpG probe annotations and genomic coordinates
-\item \code{probesets_hg19.rds} (256 KB): ICR probeset definitions
+\item \code{anno.uniq_harmonized.liftover.rds} (~52 MB): CpG probe annotations with hg19 and hg38 coordinates
+\item \code{probesets_hg19.rds} (~110 KB): ICR probeset panels, GRCh37/hg19 coordinates
+\item \code{probesets_hg38.rds} (~115 KB): ICR probeset panels, GRCh38/hg38 coordinates
 }
 
-These files are stored externally and downloaded on demand to keep the
-repository lean. They are cached in \verb{inst/extdata/} after download.
+Missing files are downloaded from the \code{main} branch of the
+hongjianjin/imprintomeR GitHub repository and cached in the installed
+package's \verb{extdata/} directory.
 }
 \examples{
 \dontrun{

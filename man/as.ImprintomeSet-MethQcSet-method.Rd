@@ -4,15 +4,15 @@
 \alias{as.ImprintomeSet,MethQcSet-method}
 \title{Convert MethQcSet to ImprintomeSet}
 \usage{
-\S4method{as.ImprintomeSet}{MethQcSet}(x, probeset = NULL, genome = "hg19", ...)
+\S4method{as.ImprintomeSet}{MethQcSet}(x, probeset = NULL, genome = "hg38", ...)
 }
 \arguments{
 \item{x}{A \code{MethQcSet} object.}
 
-\item{probeset}{Optional data.frame or list of probe set annotation. If NULL, attempts
-to load platform-specific probeset from package data.}
+\item{probeset}{Optional data.frame or list of probe set annotation. If NULL, the
+bundled probeset panels for \code{genome} are loaded (\verb{probesets_<genome>.rds}).}
 
-\item{genome}{Character scalar for genome build ("hg19" or "hg38"). Default: "hg19".}
+\item{genome}{Character scalar for genome build ("hg19" or "hg38"). Default: "hg38".}
 
 \item{...}{Additional arguments (reserved for future use).}
 }
@@ -42,6 +42,7 @@ for downstream imprintome analysis.
 }
 
 \strong{Probeset Loading:}
-If probeset is NULL, attempts to load platform-specific probeset from
-package inst/extdata. Currently supports "450K", "EPIC", and "EPICv2".
+If probeset is NULL, the named list of bundled probeset panels for \code{genome}
+(hg19 or hg38) is loaded. Probe IDs are shared across 450K, EPIC, and
+EPICv2 (after aggregation), so the same panels serve every platform.
 }

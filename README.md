@@ -24,9 +24,11 @@ library(imprintomeR)
 setup_imprintome_data()  # Downloads annotation files on first use
 ```
 
-This downloads two annotation files (total ~52 MB):
-- CpG probe coordinates and annotations
-- ICR (Imprinted Gene Region) probeset definitions
+This downloads any missing annotation files (total ~52 MB) from the `main` branch of this repository:
+- CpG probe coordinates and annotations (hg19 and hg38): `anno.uniq_harmonized.liftover.rds`
+- ICR (Imprinted Gene Region) probeset panels: `probesets_hg19.rds` and `probesets_hg38.rds`
+
+`as.ImprintomeSet()` uses hg38 as its default reference genome (`genome = "hg38"`) and loads the matching probeset panels; pass `genome = "hg19"` for GRCh37 coordinates.
 
 Package data files are shipped under `inst/extdata/`.
 

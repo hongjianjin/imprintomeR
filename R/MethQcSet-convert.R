@@ -19,9 +19,9 @@ if (!methods::isGeneric("as.ImprintomeSet")) {
 #' for downstream imprintome analysis.
 #'
 #' @param x A `MethQcSet` object.
-#' @param probeset Optional data.frame or list of probe set annotation. If NULL, attempts
-#'   to load platform-specific probeset from package data.
-#' @param genome Character scalar for genome build ("hg19" or "hg38"). Default: "hg19".
+#' @param probeset Optional data.frame or list of probe set annotation. If NULL, the
+#'   bundled probeset panels for `genome` are loaded (`probesets_<genome>.rds`).
+#' @param genome Character scalar for genome build ("hg19" or "hg38"). Default: "hg38".
 #' @param ... Additional arguments (reserved for future use).
 #'
 #' @return An `ImprintomeSet` object with:
@@ -43,20 +43,22 @@ if (!methods::isGeneric("as.ImprintomeSet")) {
 #' - Warns if EPICv2 aggregation status is not confirmed
 #'
 #' **Probeset Loading:**
-#' If probeset is NULL, attempts to load platform-specific probeset from
-#' package inst/extdata. Currently supports "450K", "EPIC", and "EPICv2".
+#' If probeset is NULL, the named list of bundled probeset panels for `genome`
+#' (hg19 or hg38) is loaded. Probe IDs are shared across 450K, EPIC, and
+#' EPICv2 (after aggregation), so the same panels serve every platform.
 #'
 #' @export
-methods::setMethod("as.ImprintomeSet", "MethQcSet", function(x, probeset = NULL, genome = "hg19", ...) {
+methods::setMethod("as.ImprintomeSet", "MethQcSet", function(x, probeset = NULL, genome = "hg38", ...) {
   suppressMessages(suppressWarnings(library(GenomicRanges)))
 
   # Validate single platform
   if (is.na(x@platform) || !nzchar(x@platform)) {
     stop("MethQcSet platform is empty. Cannot convert.")
   }
-
-  # Standardize platform name for downstream use
-  platform_std <- toupper(gsub("v2|v1", "", x@platform))
+  if (!is.character(genome) || length(genome) != 1L || is.na(genome)) {
+    stop("genome must be a single character value: 'hg19' or 'hg38'.")
+  }
+  genome <- match.arg(tolower(genome), c("hg19", "hg38"))
 
   # =========================================================================
   # Enforce EPICv2 aggregation — must be done before conversion
@@ -84,44 +86,8 @@ methods::setMethod("as.ImprintomeSet", "MethQcSet", function(x, probeset = NULL,
   # Load or validate probeset
   # =========================================================================
   if (is.null(probeset)) {
-    # Attempt to load platform-specific probeset
-    tryCatch({
-      if (platform_std == "450K") {
-        probeset_file <- "inst/extdata/probesets_450k.rds"
-      } else if (platform_std == "EPIC") {
-        probeset_file <- "inst/extdata/probesets_hg19.rds"
-      } else if (platform_std == "EPICV2") {
-        probeset_file <- "inst/extdata/probesets_epicv2.rds"
-      } else {
-        probeset_file <- NULL
-      }
-
-      if (!is.null(probeset_file) && file.exists(probeset_file)) {
-        probeset_list <- readRDS(probeset_file)
-        # Use first probeset or ICR-specific one if available
-        probeset <- if (!is.null(probeset_list[[1]])) {
-          probeset_list[[1]]
-        } else if ("ICR" %in% names(probeset_list)) {
-          probeset_list[["ICR"]]
-        } else {
-          probeset_list
-        }
-      } else {
-        message("Probeset file not found for platform '", x@platform,
-                "'. Creating minimal probeset from beta row names.")
-        probeset <- data.frame(
-          NAME = rownames(x@beta),
-          stringsAsFactors = FALSE
-        )
-      }
-    }, error = function(e) {
-      message("Error loading probeset: ", conditionMessage(e),
-              ". Using minimal probeset.")
-      probeset <<- data.frame(
-        NAME = rownames(x@beta),
-        stringsAsFactors = FALSE
-      )
-    })
+    # Load the bundled panels for the requested genome build.
+    probeset <- .load_probesets(genome)
   }
 
   # =========================================================================

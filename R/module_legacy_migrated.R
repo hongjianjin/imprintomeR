@@ -49,12 +49,10 @@ AnalyzeImprintStatus0 <- function(betaFile,  metaFile,
  consistency_df <- as.data.frame(consistency_scores)
 
   if (length(maternal_probes) < 2) {
-    cat("\nERROR: less than 2 probes in maternal loci..\n")
-    q("no")
+    stop("less than 2 probes in maternal loci..", call. = FALSE)
   }
   if (length(paternal_probes) < 2) {
-    cat("\nERROR: less than 2 probes in paternal loci..\n")
-    q("no")
+    stop("less than 2 probes in paternal loci..", call. = FALSE)
   }
 
   if (!all(c("maternal", "paternal") %in% unique(probesets$ORIGIN))) {
@@ -180,12 +178,10 @@ AnalyzeImprintStatusV2 <- function(betaFile,
  consistency_df <- as.data.frame(consistency_scores)
 
   if (length(maternal_probes) < 2) {
-    cat("\nERROR: less than 2 probes in maternal loci..\n")
-    q("no")
+    stop("less than 2 probes in maternal loci..", call. = FALSE)
   }
   if (length(paternal_probes) < 2) {
-    cat("\nERROR: less than 2 probes in paternal loci..\n")
-    q("no")
+    stop("less than 2 probes in paternal loci..", call. = FALSE)
   }
 
   if (!all(c("maternal", "paternal") %in% unique(probesets$ORIGIN))) {
@@ -268,14 +264,12 @@ AnalyzeImprintStatusV2 <- function(betaFile,
 AnnotateProbesetCytoband <- function(probeset, assay = "EPICV1", version = "HG19", verbose = FALSE, file = NULL,uniqColumn= TRUE) {
   suppressMessages(library("bedr"))
   if (!check.binary("bedtools")) {
-    cat("\nERROR: bedtools not available.\n")
-    q("no")
+    stop("bedtools not available.", call. = FALSE)
   }
 
   cytobandFile <- paste0("/home/hjin/projects/ImprintomeR/package/inst/extdata/", tolower(version), "_cytoband_arm.txt")
   if (!file.exists(cytobandFile)) {
-    cat("\nERROR: cytoban file is missing.\n")
-    q("no")
+    stop("cytoban file is missing.", call. = FALSE)
   }
   cytoband <- read.table(cytobandFile, sep = "\t", header = TRUE, fill = TRUE, stringsAsFactors = FALSE, quote = "", row.names = NULL, check.names = F, comment.char = "")
   cytoband_beds <- paste(cytoband[, 1], ":", cytoband[, 2], "-", cytoband[, 3], sep = "")
@@ -1582,12 +1576,10 @@ CalcImprintMed <- function(betaFile, metaFile, probeset = "selected",prefix=NULL
   paternal_beta <- used[paternal_probes, ]
 
   if (length(maternal_probes) < 2) {
-    cat("\nERROR: less than 2 probes in maternal loci..\n")
-    q("no")
+    stop("less than 2 probes in maternal loci..", call. = FALSE)
   }
   if (length(paternal_probes) < 2) {
-    cat("\nERROR: less than 2 probes in paternal loci..\n")
-    q("no")
+    stop("less than 2 probes in paternal loci..", call. = FALSE)
   }
 
   if (!all(c("maternal", "paternal") %in% unique(probesets$ORIGIN))) {
@@ -1847,8 +1839,7 @@ CallConumee <- function(rgSetFile, metaFile, outdir="CNV",arrayType="EPICv2", ct
   # check meta data file
   meta<- LoadMeta(metaFile)
   if(!any (ctrlGrp %in% meta$Sample_Group )){
-    cat(paste0('\nError: ctrlGrp [',ctrlGrp,'] is not present in meta$Sample_Group\n'))
-    q("no")
+    stop(paste0('ctrlGrp [',ctrlGrp,'] is not present in meta$Sample_Group'), call. = FALSE)
   }else{
     cat(paste0('\nInfo: ctrlGrp [',ctrlGrp,'] found.\n'))
   }
@@ -2007,12 +1998,10 @@ Chr11p15_Classifier <- function(beta,meta, probeset = "chr11p15", prefix = NULL,
   H19_probes <- intersect(probesets$NAME[grep("H19", probesets$GROUP)], rownames(used))
   KCNQ1OT1_probes <- intersect(probesets$NAME[grep("KCNQ1OT1", probesets$GROUP)], rownames(used))
   if (length(H19_probes) < 2) {
-    cat("\nERROR: less than 2 probes in H19 locus..\n")
-    q("no")
+    stop("less than 2 probes in H19 locus..", call. = FALSE)
   }
   if (length(KCNQ1OT1_probes) < 2) {
-    cat("\nERROR: less than 2 probes in KCNQ1OT1 locus..\n")
-    q("no")
+    stop("less than 2 probes in KCNQ1OT1 locus..", call. = FALSE)
   }
 
   if (!all(unique(probesets$GROUP) %in% c("H19", "KCNQ1OT1"))) {
@@ -2079,12 +2068,10 @@ Chr11p15_Classifier2 <- function(beta,meta, probeset = "chr11p15", prefix = NULL
   H19_probes <- intersect(probesets$NAME[grep("H19", probesets$GROUP)], rownames(used))
   KCNQ1OT1_probes <- intersect(probesets$NAME[grep("KCNQ1OT1", probesets$GROUP)], rownames(used))
   if (length(H19_probes) < 2) {
-    cat("\nERROR: less than 2 probes in H19 locus..\n")
-    q("no")
+    stop("less than 2 probes in H19 locus..", call. = FALSE)
   }
   if (length(KCNQ1OT1_probes) < 2) {
-    cat("\nERROR: less than 2 probes in KCNQ1OT1 locus..\n")
-    q("no")
+    stop("less than 2 probes in KCNQ1OT1 locus..", call. = FALSE)
   }
 
   if (!all(unique(probesets$GROUP) %in% c("H19", "KCNQ1OT1"))) {
@@ -2164,12 +2151,10 @@ Chr11p15_Classifier3 <- function(beta,meta, probeset = "chr11p15", prefix = NULL
   H19_probes <- intersect(probesets$NAME[grep("H19", probesets$GROUP)], rownames(used))
   KCNQ1OT1_probes <- intersect(probesets$NAME[grep("KCNQ1OT1", probesets$GROUP)], rownames(used))
   if (length(H19_probes) < 2) {
-    cat("\nERROR: less than 2 probes in H19 locus..\n")
-    q("no")
+    stop("less than 2 probes in H19 locus..", call. = FALSE)
   }
   if (length(KCNQ1OT1_probes) < 2) {
-    cat("\nERROR: less than 2 probes in KCNQ1OT1 locus..\n")
-    q("no")
+    stop("less than 2 probes in KCNQ1OT1 locus..", call. = FALSE)
   }
 
   if (!all(unique(probesets$GROUP) %in% c("H19", "KCNQ1OT1"))) {
@@ -2337,8 +2322,7 @@ DETECT_LOH_BATCH <- function(metaFile,betaFile, normal_id=NULL, het_threshold = 
       normal_id <- meta$Sample_Name[grep("germline", meta$Sample_Group)[1]]
     }
     if(! normal_id %in% meta$Sample_Name){
-      cat(paste0('\nERROR: invalid normal_id',normal_id))
-      q('no')
+      stop(paste0('invalid normal_id',normal_id), call. = FALSE)
     }
 
     status <- data.frame(
@@ -2388,8 +2372,7 @@ DETECT_LOH_ICR <- function(beta, meta, chr="all", group="ORIGIN", mosaic_thresho
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
-      cat("\nERROR: unavailable probeset & probes not given.\n")
-      q("no")
+      stop("unavailable probeset & probes not given.", call. = FALSE)
     }
     if(group %in% colnames(probes)){
        anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name",group)]  
@@ -2620,12 +2603,10 @@ DIST_FAST <- function(sample, control, probeset = "selected", outPrefix = NULL, 
   if (probeset %in% names(probesets)) {
     probes <- probesets[[probeset]]$NAME
   } else if (is.null(probes)) {
-    cat("\nERROR: unavailable probeset & probes not given.\n")
-    q("no")
+    stop("unavailable probeset & probes not given.", call. = FALSE)
   }
   if (sum(probes %in% rownames(beta)) == 0) {
-    cat("\nERROR: invalid beta table .\n")
-    q("no")
+    stop("invalid beta table .", call. = FALSE)
   }
 
   controlSet <- control[["beta"]]
@@ -2713,8 +2694,7 @@ Filter_Dist_Prediction <- function(upd_score, dist_cutoff = 0.1, diff_cutoff = 0
   fmt2 <- all(c("Ref_Control_dist", "Ref_mUPD_dist", "Ref_pUPD_dist", "Ref_Control_p.value", "Ref_mUPD_p.value", "Ref_pUPD_p.value", "category") %in% colnames(upd_score))
   
   if (!fmt1 & !fmt2) {
-    cat("\nERROR: invalid UPD_score passed to function[Adjust_UPD_prediction]\n")
-    q("no")
+    stop("invalid UPD_score passed to function[Adjust_UPD_prediction]", call. = FALSE)
   }else if (fmt1){
     groups <- c("ROI", "mUPD", "pUPD")
   }else{
@@ -2768,8 +2748,7 @@ Filter_UPD_Prediction <- function(upd_score, kl_div_cutoff = 0.5, p_value_cutoff
   fmt2 <- all(c("Ref_Control_kl.div", "Ref_mUPD_kl.div", "Ref_pUPD_kl.div", "Ref_Control_p.value", "Ref_mUPD_p.value", "Ref_pUPD_p.value", "category") %in% colnames(upd_score))
   
   if (!fmt1 & !fmt2) {
-    cat("\nERROR: invalid UPD_score passed to function[Adjust_UPD_prediction]\n")
-    q("no")
+    stop("invalid UPD_score passed to function[Adjust_UPD_prediction]", call. = FALSE)
   }else if (fmt1){
     groups <- c("ROI", "mUPD", "pUPD")
   }else{
@@ -2899,12 +2878,10 @@ Imprintome_Classifier <- function(betaFile, metaFile, probeset = "selected",pref
   maternal_probes <- intersect(probesets$NAME[grep("maternal", probesets$ORIGIN)], rownames(used))
   paternal_probes <- intersect(probesets$NAME[grep("paternal", probesets$ORIGIN)], rownames(used))
   if (length(maternal_probes) < 2) {
-    cat("\nERROR: less than 2 probes in maternal loci..\n")
-    q("no")
+    stop("less than 2 probes in maternal loci..", call. = FALSE)
   }
   if (length(paternal_probes) < 2) {
-    cat("\nERROR: less than 2 probes in paternal loci..\n")
-    q("no")
+    stop("less than 2 probes in paternal loci..", call. = FALSE)
   }
 
   if (!all(c("maternal", "paternal") %in% unique(probesets$ORIGIN))) {
@@ -2988,12 +2965,10 @@ Imprintome_Classifier_v3 <- function(betaFile, metaFile, probeset = "selected",p
   paternal_beta <- used[paternal_probes, ]
 
   if (length(maternal_probes) < 2) {
-    cat("\nERROR: less than 2 probes in maternal loci..\n")
-    q("no")
+    stop("less than 2 probes in maternal loci..", call. = FALSE)
   }
   if (length(paternal_probes) < 2) {
-    cat("\nERROR: less than 2 probes in paternal loci..\n")
-    q("no")
+    stop("less than 2 probes in paternal loci..", call. = FALSE)
   }
 
   if (!all(c("maternal", "paternal") %in% unique(probesets$ORIGIN))) {
@@ -3079,12 +3054,10 @@ Imprintome_Classifier2 <- function(betaFile, metaFile, probeset = "selected",pre
   maternal_probes <- intersect(probesets$NAME[grep("maternal", probesets$ORIGIN)], rownames(used))
   paternal_probes <- intersect(probesets$NAME[grep("paternal", probesets$ORIGIN)], rownames(used))
   if (length(maternal_probes) < 2) {
-    cat("\nERROR: less than 2 probes in maternal loci..\n")
-    q("no")
+    stop("less than 2 probes in maternal loci..", call. = FALSE)
   }
   if (length(paternal_probes) < 2) {
-    cat("\nERROR: less than 2 probes in paternal loci..\n")
-    q("no")
+    stop("less than 2 probes in paternal loci..", call. = FALSE)
   }
 
   if (!all(c("maternal", "paternal") %in% unique(probesets$ORIGIN))) {
@@ -4310,8 +4283,7 @@ Predict_UPD_chr_v6 <-  function(meta, beta,mdlFile="final_std1_selected_v6_chr_r
   if(file.exists(rdsFile)){
       models <- readRDS(rdsFile)
   }else{
-    cat("\nError: model file not found.\n", rdsFile,"\n\n")
-    q("no")
+    stop("model file not found.\n", rdsFile, call. = FALSE)
   }
   outXlsx <- paste0(outPrefix,"_predict.all.xlsx")
   result <- Run_Pred_All(beta, meta, models, chrs=NULL, threshold_high=threshold_high,threshold_low=threshold_low,outPrefix=outPrefix)
@@ -4551,8 +4523,8 @@ Project2PCA <- function(newdata, PCAobj){
        model_probes <- intersect(model_probes,input_probes)
        rotation <- rotation[model_probes,] 
     }else{
-      cat("\nTerminated.\n")
-      q("no")
+      stop("PCA projection requires the training feature set; ", length(missing_probes),
+           " model probes are missing from newdata (at most 19 can be dropped).", call. = FALSE)
     }
   }
   data_used <- t(as.matrix(newdata[model_probes,]))
@@ -4685,8 +4657,7 @@ RunEnricment <- function(beta, meta, probeset="selected", prefix=NULL, method="s
   if (!is.null(gmtFile)){
     gmt <-  ReadGmtToList(gmtFile)
     if(!all(c("paternal","maternal")) %in% names(gmt)){
-      cat("\nERROR: invalid gmt file. two probesets are resuired: paternal, maternal.\n")
-      q("no")
+      stop("invalid gmt file. two probesets are resuired: paternal, maternal.", call. = FALSE)
     }
   }else if (!is.null(probeset)) {
       probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
@@ -4697,14 +4668,12 @@ RunEnricment <- function(beta, meta, probeset="selected", prefix=NULL, method="s
         # q("no")
       }
       if(! "ORIGIN" %in% colnames(probes)){
-        cat("\nERROR: ORIGIN unavailable in probeset.\n")
-         q("no")
+        stop("ORIGIN unavailable in probeset.", call. = FALSE)
       } 
       gmt <- list(paternal=probes$NAME[probes$ORIGIN %in% "paternal"], 
               maternal=probes$NAME[probes$ORIGIN %in% "maternal"])
   }else{
-     cat("\nERROR: neither a probeset or a gmtFile is provided.\n")
-     q("no")
+     stop("neither a probeset or a gmtFile is provided.", call. = FALSE)
   }
   print(lengths(gmt))
   if(tolower(method)=="singscore"){
@@ -4794,8 +4763,7 @@ RunPSEA <- function(beta, meta, probeset="selected", prefix=NULL,nrow_imputed_no
   if (!is.null(gmtFile)){
     gmt <-  ReadGmtToList(gmtFile)
     if(!all(c("paternal","maternal")) %in% names(gmt)){
-      cat("\nERROR: invalid gmt file. two probesets are resuired: paternal, maternal.\n")
-      q("no")
+      stop("invalid gmt file. two probesets are resuired: paternal, maternal.", call. = FALSE)
     }
   }else if (!is.null(probeset)) {
       probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
@@ -4806,14 +4774,12 @@ RunPSEA <- function(beta, meta, probeset="selected", prefix=NULL,nrow_imputed_no
         # q("no")
       }
       if(! "ORIGIN" %in% colnames(probes)){
-        cat("\nERROR: ORIGIN unavailable in probeset.\n")
-         q("no")
+        stop("ORIGIN unavailable in probeset.", call. = FALSE)
       } 
       gmt <- list(paternal=probes$NAME[probes$ORIGIN %in% "paternal"], 
               maternal=probes$NAME[probes$ORIGIN %in% "maternal"])
   }else{
-     cat("\nERROR: neither a probeset or a gmtFile is provided.\n")
-     q("no")
+     stop("neither a probeset or a gmtFile is provided.", call. = FALSE)
   }
   print(lengths(gmt))
   beta_imputed <- ImputeImprintedNorm(nrow=nrow_imputed_norm, ncol=ncol(beta))
@@ -4923,12 +4889,10 @@ UPD_SCORE_FAST <- function(sample, control, probeset = "selected", outPrefix = N
   if (probeset %in% names(probesets)) {
     probes <- probesets[[probeset]]$NAME
   } else if (is.null(probes)) {
-    cat("\nERROR: unavailable probeset & probes not given.\n")
-    q("no")
+    stop("unavailable probeset & probes not given.", call. = FALSE)
   }
   if (sum(probes %in% rownames(beta)) == 0) {
-    cat("\nERROR: invalid beta table .\n")
-    q("no")
+    stop("invalid beta table .", call. = FALSE)
   }
 
   controlSet <- control[["beta"]]
@@ -5005,8 +4969,7 @@ VizNineSquares  <- function(datFile, metaFile,
   #-----------------------------------------------
    if(class(datFile) != "data.frame"){
     if(! file.exists(datFile)){
-        cat(paste0('\nERROR: File not found.\n\t',datFile,"\n"))
-        q('no')
+        stop(paste0('File not found.\n\t',datFile), call. = FALSE)
     }
     dat <- read.table(datFile, sep="\t",header=TRUE,fill=TRUE,stringsAsFactors = FALSE, as.is=TRUE,row.names=NULL ,check.names=FALSE ,comment.char = "")
    }else{
@@ -5015,8 +4978,7 @@ VizNineSquares  <- function(datFile, metaFile,
   cat("\ndata dim:",nrow(dat)," rows x",ncol(dat),"cols")
   if(class(metaFile) != "data.frame"){
     if(! file.exists(metaFile)){
-        cat(paste0('\nERROR: File not found.\n\t',metaFile,"\n"))
-        q('no')
+        stop(paste0('File not found.\n\t',metaFile), call. = FALSE)
     } 
     meta <- LoadMeta(metaFile) 
     #read.table(metaFile, sep="\t",header=TRUE,fill=TRUE,stringsAsFactors = FALSE, as.is=TRUE,row.names=NULL ,check.names=FALSE ,comment.char = "")
@@ -5035,8 +4997,7 @@ VizNineSquares  <- function(datFile, metaFile,
   givenColumns <- c(ShapeColumn, IdColumn, groupColumn, X,Y)
   givenColumns <- givenColumns[!is.null(givenColumns)]
   if(! all(givenColumns %in% colnames(dat))){
-    cat(paste0('\nERROR: missing any given column(s) in input',paste(givenColumns,collapse=" "),"\n"))
-    q('no')
+    stop(paste0('missing any given column(s) in input',paste(givenColumns,collapse=" ")), call. = FALSE)
   }
 
 
@@ -5052,8 +5013,7 @@ VizNineSquares  <- function(datFile, metaFile,
   #commonIDs <- commonIDs[!is.na(commonIDs)]
 
   if(length(commonIDs)==0){
-    cat(paste0('\nERROR: meta IDs do not match dat IDs.\n'))
-    q('no')
+    stop(paste0('meta IDs do not match dat IDs.'), call. = FALSE)
   }else{
     cat(paste0('\nINFO: found ',length(commonIDs),' common IDs between meta and dat.'))
   }

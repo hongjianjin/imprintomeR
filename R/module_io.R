@@ -596,10 +596,10 @@ LoadMetaBeta <- function(metaFile, betaFile = NULL, probeset = NULL) {
     cat("\n\t[beta dim:", nrow(beta2), "x", ncol(beta2), "]")
     return(list(meta = meta1, beta = beta2, probesets = result[["probesets"]]))    
   }else{
-    cat("\n ERROR: beta column does not match meta$Sample_Name.\n")
-    print(head(meta$Sample_Name,n=5))
-    print(head(colnames(beta),n=5))
-    q("no")
+    stop("beta columns do not match meta$Sample_Name. First meta$Sample_Name values: ",
+         paste(head(meta$Sample_Name, n = 5), collapse = ", "),
+         "; first beta columns: ", paste(head(colnames(beta), n = 5), collapse = ", "),
+         call. = FALSE)
   }
 
 }

@@ -754,8 +754,7 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
-      cat("\nERROR: unavailable probeset & probes not given.\n")
-      q("no")
+      stop("unavailable probeset & probes not given.", call. = FALSE)
     }
     if("ORIGIN" %in% colnames(probes)){
        anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name","ORIGIN")]
@@ -892,8 +891,7 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
-      cat("\nERROR: unavailable probeset & probes not given.\n")
-      q("no")
+      stop("unavailable probeset & probes not given.", call. = FALSE)
     }
     if(group %in% colnames(probes)){
        anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name",group)]
@@ -1074,8 +1072,7 @@ BetaBeeswarm_chr <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFil
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
-      cat("\nERROR: unavailable probeset & probes not given.\n")
-      q("no")
+      stop("unavailable probeset & probes not given.", call. = FALSE)
     }
     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")]
     colnames(anno)[3] <- "GENE"
@@ -1168,8 +1165,7 @@ BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
-      cat("\nERROR: unavailable probeset & probes not given.\n")
-      q("no")
+      stop("unavailable probeset & probes not given.", call. = FALSE)
     }
     if("ORIGIN" %in% colnames(probes)){
        anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name","ORIGIN")]
@@ -1769,8 +1765,7 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
-      cat("\nERROR: unavailable probeset & probes not given.\n")
-      q("no")
+      stop("unavailable probeset & probes not given.", call. = FALSE)
     }
     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")]
     colnames(anno)[3] <- "GENE"
@@ -2240,8 +2235,7 @@ PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probe
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
-      cat("\nERROR: unavailable probeset & probes not given.\n")
-      q("no")
+      stop("unavailable probeset & probes not given.", call. = FALSE)
     }
     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name","ORIGIN")]
     colnames(anno)[3] <- "GENE"
@@ -2924,8 +2918,7 @@ BetaBeePlot_orgin2 <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = N
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
-      cat("\nERROR: unavailable probeset & probes not given.\n")
-      q("no")
+      stop("unavailable probeset & probes not given.", call. = FALSE)
     }
     if(group %in% colnames(probes)){
        anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name",group)]
@@ -3105,8 +3098,7 @@ Beeplot_chr_vs_other_single <- function(input, chrs = "chr1,chr11", prefix = NUL
     rownames(anno) <- probeset$NAME
     colnames(anno)[3:4] <- c("GENE", "CATEGORY")
   } else {
-    cat("\nError: ORIGIN column is missing in your probeset.\n")
-    q("no")
+    stop("ORIGIN column is missing in your probeset.", call. = FALSE)
   }
   beta <- input[["beta"]]
   meta <- input[["meta"]]
