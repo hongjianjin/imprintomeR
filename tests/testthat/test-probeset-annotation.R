@@ -56,6 +56,37 @@ test_that("selected DMR_type and ORIGIN agree with Monk 2018 Table 1", {
   expect_equal(sum(gametic & sel$ORIGIN == "paternal"), 49)
 })
 
+test_that("catalogue panels carry DMR_type consistent with Monk 2018 in both builds", {
+  if (!nzchar(.annotation_root)) skip("Probeset annotation sources not available")
+  a <- .read_annotation()
+  allowed <- c("gametic", "secondary", "ambiguous", "unclassified", "uncurated", "origin_conflict")
+  monk_name <- function(x) sub("^GNASXL:", "GNAS-XL:", x)
+  for (panel in c("Court", "Jima", "Joshi", "Rosenski", "NanoImprint")) {
+    for (build in c("hg19", "hg38")) {
+      p <- a[[build]][[panel]]
+      expect_true(all(c("ICR_name", "DMR_type", "DMR_type_source") %in% colnames(p)), info = paste(panel, build))
+      expect_true(all(p$DMR_type %in% allowed), info = paste(panel, build))
+      from_monk <- grepl("^Monk2018_Table1", p$DMR_type_source)
+      idx <- match(monk_name(p$ICR_name[from_monk]), a$monk$ICR_name)
+      expect_false(anyNA(idx), info = paste(panel, build))
+      # Monk-sourced probes take Monk's type unless their ORIGIN contradicts Monk's origin.
+      conflict <- !is.na(p$ORIGIN[from_monk]) & p$ORIGIN[from_monk] != a$monk$ORIGIN[idx]
+      expect_equal(p$DMR_type[from_monk][!conflict], a$monk$DMR_type[idx][!conflict], info = paste(panel, build))
+      expect_true(all(p$DMR_type[from_monk][conflict] == "origin_conflict"), info = paste(panel, build))
+      expect_equal(sum(p$DMR_type == "origin_conflict"), sum(conflict), info = paste(panel, build))
+    }
+    h19 <- a$hg19[[panel]]
+    h38 <- a$hg38[[panel]]
+    shared <- intersect(h19$NAME, h38$NAME)
+    for (cn in c("ICR_name", "DMR_type", "DMR_type_source")) {
+      expect_equal(h38[[cn]][match(shared, h38$NAME)], h19[[cn]][match(shared, h19$NAME)], info = paste(panel, cn))
+    }
+  }
+  expect_equal(sum(a$hg19$Jima$DMR_type == "origin_conflict"), 23)
+  expect_equal(sum(a$hg19$Joshi$DMR_type == "origin_conflict"), 9)
+  expect_equal(sum(a$hg19$Court$DMR_type == "origin_conflict"), 0)
+})
+
 test_that("chr11p15 is annotated as the two gametic 11p15.5 ICRs", {
   if (!nzchar(.annotation_root)) skip("Probeset annotation sources not available")
   a <- .read_annotation()

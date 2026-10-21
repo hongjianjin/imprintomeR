@@ -1,5 +1,5 @@
 # Annotate hg19 probe panels with ICR_name, DMR_type, and DMR_type_source.
-# Panels annotated: `selected` and `chr11p15`.
+# Panels annotated: `selected`, `chr11p15`, `Court`, `Jima`, `Joshi`, `Rosenski`, and `NanoImprint`.
 panels <- readRDS("inst/extdata/probesets_hg19.rds")
 regions <- panels[["Rosenski_region"]]
 monk <- read.delim("tmp_ICR_sources/Monk_2018/Table1_germline_status.tsv", quote = "", stringsAsFactors = FALSE)
@@ -48,8 +48,13 @@ region_monk <- vapply(seq_len(nrow(regions)), function(j) {
 # counterpart (SVOPL:alt-TSS-DMR), whose probes are assigned by Monk's extent.
 monk_without_rosenski <- setdiff(seq_len(nrow(monk)), region_monk)
 
-annotate_panel <- function(panel, name) {
-  stopifnot(!anyDuplicated(panel$NAME), !anyNA(panel$ORIGIN))
+annotate_panel <- function(panel, name, strict = TRUE) {
+  # strict: every probe has an ORIGIN and any disagreement with Monk stops the build
+  # (selected, chr11p15). Otherwise unresolved ORIGIN is allowed and probes whose ORIGIN
+  # contradicts the Monk methylation origin of their DMR are typed "origin_conflict",
+  # which keeps them out of dmr_type = "gametic"/"secondary" scoring.
+  stopifnot(!anyDuplicated(panel$NAME))
+  if (strict) stopifnot(!anyNA(panel$ORIGIN))
 
   # Assign each probe to the single hg19 Rosenski_region interval containing it.
   hit <- vapply(seq_len(nrow(panel)), function(i) {
@@ -73,33 +78,66 @@ annotate_panel <- function(panel, name) {
     ifelse(is.na(hit), "uncurated", unname(rosenski_type_map[regions$ICR_type[hit]]))
   )
   panel$DMR_type_source <- ifelse(in_monk, source_monk, ifelse(is.na(hit), NA_character_, source_rosenski))
+  flag_conflicts(panel, in_monk & !is.na(panel$ORIGIN) & panel$ORIGIN != monk$ORIGIN[monk_idx], name, strict)
+}
 
-  # Probe ORIGIN must agree with the Monk 2018 methylation origin of its DMR.
-  mismatch <- in_monk & panel$ORIGIN != monk$ORIGIN[monk_idx]
-  if (any(mismatch)) print(panel[mismatch, c("NAME", "CHR", "MAPINFO", "ORIGIN", "ICR_name", "DMR_type")])
-  stopifnot(!any(mismatch))
+# NanoImprint defines its own regions (the authors' hg38/T2T ROI files), already named
+# in hg38 NanoImprint$ICR_name with Monk et al. 2018 nomenclature; type them by that name.
+annotate_by_icr_name <- function(panel, icr_name, name) {
+  stopifnot(!anyDuplicated(panel$NAME), !anyNA(icr_name))
+  monk_name <- sub("^GNASXL:", "GNAS-XL:", icr_name)
+  monk_idx <- match(monk_name, monk$ICR_name)
+  if (anyNA(monk_idx)) stop(name, ": ICR_name not in Monk Table 1: ", paste(unique(icr_name[is.na(monk_idx)]), collapse = ", "))
+  panel$ICR_name <- icr_name
+  panel$DMR_type <- monk$DMR_type[monk_idx]
+  panel$DMR_type_source <- paste0(source_monk, " (NanoImprint ICR_name)")
+  flag_conflicts(panel, !is.na(panel$ORIGIN) & panel$ORIGIN != monk$ORIGIN[monk_idx], name, strict = FALSE)
+}
+
+flag_conflicts <- function(panel, conflict, name, strict) {
+  if (any(conflict)) {
+    cat("\n", name, ": ", sum(conflict), " probe(s) whose ORIGIN contradicts the Monk DMR origin\n", sep = "")
+    print(table(panel$ICR_name[conflict], panel$ORIGIN[conflict]))
+    if (strict) stop("ORIGIN disagrees with Monk et al. 2018 in strict panel ", name)
+    panel$DMR_type[conflict] <- "origin_conflict"
+  }
   panel
 }
 
-type_levels <- c("gametic", "secondary", "ambiguous", "unclassified", "uncurated")
+type_levels <- c("gametic", "secondary", "ambiguous", "unclassified", "uncurated", "origin_conflict")
 count_types <- function(panel) {
-  unclass(table(factor(panel$DMR_type, levels = type_levels), factor(panel$ORIGIN, levels = c("maternal", "paternal"))))
+  origin <- ifelse(is.na(panel$ORIGIN), "NA", panel$ORIGIN)
+  unclass(table(factor(panel$DMR_type, levels = type_levels), factor(origin, levels = c("maternal", "paternal", "NA"))))
 }
 
-# Expected maternal / paternal counts per DMR_type, in type_levels order.
+# Expected maternal / paternal / NA-origin counts per DMR_type, in type_levels order.
+z <- integer(6)
 expected <- list(
-  selected = list(n = 782L, maternal = c(505L, 68L, 4L, 0L, 78L), paternal = c(49L, 68L, 8L, 0L, 2L)),
-  chr11p15 = list(n = 82L, maternal = c(31L, 0L, 0L, 0L, 0L), paternal = c(51L, 0L, 0L, 0L, 0L))
+  selected = list(n = 782L, strict = TRUE, maternal = c(505L, 68L, 4L, 0L, 78L, 0L), paternal = c(49L, 68L, 8L, 0L, 2L, 0L), na = z),
+  chr11p15 = list(n = 82L, strict = TRUE, maternal = c(31L, 0L, 0L, 0L, 0L, 0L), paternal = c(51L, 0L, 0L, 0L, 0L, 0L), na = z),
+  Court = list(n = 1027L, strict = FALSE, maternal = c(516L, 72L, 5L, 0L, 273L, 0L), paternal = c(56L, 80L, 15L, 0L, 10L, 0L), na = z),
+  Jima = list(n = 1833L, strict = FALSE, maternal = c(481L, 0L, 0L, 0L, 344L, 23L), paternal = c(14L, 0L, 4L, 0L, 221L, 0L),
+              na = c(6L, 94L, 9L, 0L, 637L, 0L)),
+  Joshi = list(n = 844L, strict = FALSE, maternal = c(390L, 67L, 2L, 0L, 173L, 0L), paternal = c(0L, 68L, 8L, 0L, 127L, 9L), na = z),
+  Rosenski = list(n = 1050L, strict = FALSE, maternal = c(591L, 85L, 5L, 151L, 0L, 0L), paternal = c(71L, 97L, 15L, 0L, 0L, 0L),
+                  na = c(0L, 0L, 0L, 35L, 0L, 0L)),
+  NanoImprint = list(n = 325L, strict = FALSE, maternal = c(188L, 40L, 0L, 0L, 0L, 0L), paternal = c(43L, 54L, 0L, 0L, 0L, 0L), na = z)
 )
 
+nano_hg38 <- readRDS("inst/extdata/probesets_hg38.rds")[["NanoImprint"]]
 for (name in names(expected)) {
   stopifnot(nrow(panels[[name]]) == expected[[name]]$n)
-  annotated <- annotate_panel(panels[[name]], name)
+  annotated <- if (name == "NanoImprint") {
+    annotate_by_icr_name(panels[[name]], nano_hg38$ICR_name[match(panels[[name]]$NAME, nano_hg38$NAME)], name)
+  } else {
+    annotate_panel(panels[[name]], name, strict = expected[[name]]$strict)
+  }
   counts <- count_types(annotated)
   cat("\n==", name, "\n")
   print(counts)
   stopifnot(all(counts[, "maternal"] == expected[[name]]$maternal),
-            all(counts[, "paternal"] == expected[[name]]$paternal))
+            all(counts[, "paternal"] == expected[[name]]$paternal),
+            all(counts[, "NA"] == expected[[name]]$na))
   panels[[name]] <- annotated
 }
 
@@ -118,9 +156,8 @@ for (name in names(expected)) {
   stopifnot(
     nrow(check[[name]]) == expected[[name]]$n,
     all(c("ICR_name", "DMR_type", "DMR_type_source") %in% colnames(check[[name]])),
-    !anyNA(check[[name]]$DMR_type)
+    !anyNA(check[[name]]$DMR_type),
+    all(check[[name]]$DMR_type %in% type_levels)
   )
-  g <- check[[name]]$DMR_type == "gametic"
-  cat("\n", name, ": gametic probes by ICR_name and ORIGIN\n", sep = "")
-  print(table(check[[name]]$ICR_name[g], check[[name]]$ORIGIN[g]))
 }
+cat("\nAnnotated panels:", paste(names(expected), collapse = ", "), "\n")
