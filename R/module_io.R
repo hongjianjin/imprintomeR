@@ -526,7 +526,7 @@ LoadBeta <- function(input) {
 
 ##################################################################
 probeset_chrs <- c("chr1","chr6","chr7","chr14","chr15","chr19","chr11","chr20")#
-probeset_options <- c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", probeset_chrs )
+probeset_options <- c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", "chr20q13", probeset_chrs )
 
 ##################################################################
 

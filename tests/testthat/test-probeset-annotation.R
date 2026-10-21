@@ -106,7 +106,7 @@ test_that("hg38 probesets list the same panels as hg19, in the same order", {
   a <- .read_annotation()
   expect_equal(names(a$hg38), names(a$hg19))
   expect_equal(names(a$hg38), c("Jima", "Joshi", "Court", "Rosenski", "selected", "NanoImprint",
-                                "chr11p15", "Rosenski_region", "chr11p15_region"))
+                                "chr11p15", "chr20q13", "Rosenski_region", "chr11p15_region", "chr20q13_region"))
 })
 
 test_that("hg38 chr11p15 carries the hg19 chr11p15 annotation by probe NAME", {
@@ -184,7 +184,7 @@ test_that("probe-level panels carry INFINIUM_DESIGN_TYPE from the probe annotati
   if (!nzchar(.annotation_root)) skip("Probeset annotation sources not available")
   a <- .read_annotation()
   anno <- readRDS(file.path(.annotation_root, "inst", "extdata", "anno.uniq_harmonized.liftover.rds"))
-  probe_panels <- c("Jima", "Joshi", "Court", "Rosenski", "selected", "NanoImprint", "chr11p15")
+  probe_panels <- c("Jima", "Joshi", "Court", "Rosenski", "selected", "NanoImprint", "chr11p15", "chr20q13")
   for (build in c("hg19", "hg38")) {
     for (panel in probe_panels) {
       p <- a[[build]][[panel]]
@@ -193,10 +193,49 @@ test_that("probe-level panels carry INFINIUM_DESIGN_TYPE from the probe annotati
       expect_equal(p$INFINIUM_DESIGN_TYPE, anno$INFINIUM_DESIGN_TYPE[match(p$NAME, anno$NAME)],
                    info = paste(panel, build))
     }
-    for (panel in c("Rosenski_region", "chr11p15_region")) {
+    for (panel in c("Rosenski_region", "chr11p15_region", "chr20q13_region")) {
       expect_false("INFINIUM_DESIGN_TYPE" %in% colnames(a[[build]][[panel]]), info = paste(panel, build))
     }
   }
   sel <- a$hg38$selected
   expect_equal(as.integer(table(sel$INFINIUM_DESIGN_TYPE)), c(290L, 492L))
+})
+
+test_that("chr20q13 is the GNAS locus panel with gametic and secondary DMRs in both builds", {
+  if (!nzchar(.annotation_root)) skip("Probeset annotation sources not available")
+  a <- .read_annotation()
+  g19 <- a$hg19$chr20q13
+  g38 <- a$hg38$chr20q13
+  expect_equal(nrow(g19), 143)
+  expect_equal(g38$NAME, g19$NAME)
+  for (cn in c("ORIGIN", "ICR_name", "DMR_type", "DMR_type_source", "INFINIUM_DESIGN_TYPE", "GROUP", "Arm")) {
+    expect_equal(g38[[cn]], g19[[cn]], info = cn)
+  }
+  expect_true(all(g19$CHR == "chr20") && all(g38$CHR == "chr20"))
+  counts <- table(g19$ICR_name)
+  expect_equal(as.integer(counts[c("GNAS-NESP:TSS-DMR", "GNAS-AS1:TSS-DMR", "GNAS-XL:Ex1-DMR", "GNAS A/B:TSS-DMR")]),
+               c(27L, 61L, 8L, 47L))
+  expect_true(all(g19$ORIGIN[g19$ICR_name == "GNAS-NESP:TSS-DMR"] == "paternal"))
+  expect_true(all(g19$ORIGIN[g19$ICR_name != "GNAS-NESP:TSS-DMR"] == "maternal"))
+  expect_true(all(g19$DMR_type[g19$ICR_name %in% c("GNAS-NESP:TSS-DMR", "GNAS A/B:TSS-DMR")] == "secondary"))
+  expect_true(all(g19$DMR_type[g19$ICR_name %in% c("GNAS-AS1:TSS-DMR", "GNAS-XL:Ex1-DMR")] == "gametic"))
+  # Same probes and annotation as the curated Rosenski panel, and consistent with selected.
+  r <- a$hg19$Rosenski[grepl("GNAS", a$hg19$Rosenski$ICR_name), ]
+  expect_true(setequal(r$NAME, g19$NAME))
+  s <- a$hg19$selected
+  k <- s$NAME %in% g19$NAME
+  expect_equal(sum(k), 126)
+  expect_equal(s$ORIGIN[k], g19$ORIGIN[match(s$NAME[k], g19$NAME)])
+  # Each probe lies in a chr20q13_region interval of its own ICR, in both builds.
+  for (build in c("hg19", "hg38")) {
+    p <- a[[build]]$chr20q13
+    r <- a[[build]]$chr20q13_region
+    expect_equal(nrow(r), 5)
+    inside <- vapply(seq_len(nrow(p)), function(i) {
+      w <- r$ICR_name == p$ICR_name[i]
+      any(p$MAPINFO[i] >= r$start[w] & p$MAPINFO[i] <= r$end[w])
+    }, logical(1))
+    expect_true(all(inside), info = build)
+  }
+  expect_equal(a$hg38$chr20q13_region$ICR_name, a$hg19$chr20q13_region$ICR_name)
 })

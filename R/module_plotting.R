@@ -2223,7 +2223,7 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
 #' @return A data frame with metrics, directional interpretations, and mutation calls.
 #'
 
-PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probeset=c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15"), outFile=NULL) {
+PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probeset=c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", "chr20q13"), outFile=NULL) {
   library(ggplot2)
   suppressMessages(suppressWarnings(library("dplyr")))
   library(stringr)

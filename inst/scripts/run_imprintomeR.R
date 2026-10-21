@@ -37,7 +37,7 @@ option_list <- list(
         help = "Output directory for results (will be created if not exists) [REQUIRED]"),
 
     make_option(c("--probeset"), type = "character", default = "selected",
-        help = "ICR probeset: selected, NanoImprint, Joshi, Court, Rosenski, Jima, chr11p15 [default: %default]"),
+        help = "ICR probeset: selected, NanoImprint, Joshi, Court, Rosenski, Jima, chr11p15, chr20q13 [default: %default]"),
 
     make_option(c("--plot-types"), type = "character", default = "default",
         help = "Comma-separated plot types, or default/all. Supported: polar, beeswarm, beeswarm_origin, beeswarm_chr, heatmap_by_probe, heatmap_by_gene, circular_heatmap, rainfall, radar, mirror_density, violin, cor_heatmap [default: %default]"),
@@ -203,7 +203,7 @@ tryCatch({
     }
 
     # Validate probeset
-    valid_probesets <- c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15")
+    valid_probesets <- c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", "chr20q13")
     if (!args$probeset %in% valid_probesets) {
         errors <- c(errors, paste0("ERROR: Invalid probeset '", args$probeset,
                                    "'. Must be one of: ", paste(valid_probesets, collapse = ", ")))
