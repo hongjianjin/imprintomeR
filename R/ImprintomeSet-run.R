@@ -7,9 +7,13 @@
 #' @param probeset Character scalar probeset name (for example, `"selected"`).
 #' @param ids_cutoff Numeric IDS cutoff passed to `AnalyzeImprintStatus()`.
 #' @param result_name Optional name for storing output in `results(x)`.
-#' @param dmr_type Optional character vector of `DMR_type` values passed to
-#'   `AnalyzeImprintStatus()`, for example `"gametic"`. `NULL` (default)
-#'   scores all probes.
+#' @param dmr_type `DMR_type` selection passed to `AnalyzeImprintStatus()`.
+#'   `NULL` (default) uses the panel default: gametic ICRs only for the core
+#'   `selected` panel, all probes for other panels. Use `"all"` for all probes
+#'   or, for example, `"secondary"` to score secondary DMRs separately. An
+#'   explicit value is added to the default result name (for example
+#'   `AnalyzeImprintStatus.selected.all`); the `dmr_type` column of the result
+#'   records the selection applied.
 #' @param reference,reference_group,reference_samples,reference_beta Reference
 #'   centring options passed to `AnalyzeImprintStatus()`. By default (`"auto"`),
 #'   external controls (`reference_beta`) or in-cohort controls

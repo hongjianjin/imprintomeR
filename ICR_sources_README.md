@@ -530,8 +530,9 @@ For origin-aware scoring:
    - `NanoImprint` (both builds; 10 of its labels come from a nearest-gene rule, see above)
 3. `Jima` and `Rosenski` can be scored, but only probes with a maternal or paternal `ORIGIN` contribute. In Jima, 41% of probes (746 in hg19, 748 in hg38) are unresolved, and S1 is a broad candidate-ICR catalogue rather than a curated set of gametic ICRs. Use Jima for discovery and sensitivity analyses, not as the default scoring panel.
 4. None of the current panels is restricted to gametic ICRs: each mixes gametic ICRs with secondary DMRs. Every probe-level panel (hg19 and hg38) carries a `DMR_type` column (see "`DMR_type` annotation of `selected`" and "`DMR_type` annotation of the catalogue panels"):
-   - `dmr_type = "gametic"` for core scoring, e.g. `runImprintome(x, probeset = "selected", dmr_type = "gametic")`;
-   - `dmr_type = "secondary"` to report secondary DMRs separately.
+   - gametic ICRs are the default for the core `selected` panel: `runImprintome(x, probeset = "selected")` scores `dmr_type = "gametic"`. Re-scoring the Supplementary Table S2 cohorts showed that this moves the GSE52576 sperm samples from "Global-Hypo" to the androgenetic-like "Pat-Gain+Mat-Loss" and improves detection of 11p15 tumours, without new control calls;
+   - `dmr_type = "secondary"` to report secondary DMRs separately, and `dmr_type = "all"` for all probes (the earlier default);
+   - other panels are scored on all probes unless `dmr_type` is given.
 
    The gametic paternal class is essentially 11p15.5 H19/IGF2, so report its probe count (`n_paternal_probes`) alongside the scores. `Joshi` has no gametic paternal probes, so `dmr_type = "gametic"` on `Joshi` stops with an informative error. The region-level panels have no `DMR_type` column.
 5. Require both maternal and paternal annotations to be present in the matched beta matrix; the scoring functions stop with an error otherwise.

@@ -28,9 +28,13 @@
 
 \item{result_name}{Optional name for storing output in \code{results(x)}.}
 
-\item{dmr_type}{Optional character vector of \code{DMR_type} values passed to
-\code{AnalyzeImprintStatus()}, for example \code{"gametic"}. \code{NULL} (default)
-scores all probes.}
+\item{dmr_type}{\code{DMR_type} selection passed to \code{AnalyzeImprintStatus()}.
+\code{NULL} (default) uses the panel default: gametic ICRs only for the core
+\code{selected} panel, all probes for other panels. Use \code{"all"} for all probes
+or, for example, \code{"secondary"} to score secondary DMRs separately. An
+explicit value is added to the default result name (for example
+\code{AnalyzeImprintStatus.selected.all}); the \code{dmr_type} column of the result
+records the selection applied.}
 
 \item{reference, reference_group, reference_samples, reference_beta}{Reference
 centring options passed to \code{AnalyzeImprintStatus()}. By default (\code{"auto"}),

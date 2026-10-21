@@ -54,6 +54,9 @@ option_list <- list(
     make_option(c("--reference-file"), type = "character", default = NA,
         help = "External control reference: a beta matrix file or an .rds from BuildReferenceProfile(). Without any controls the fixed 0.5 reference is used [default: none]"),
 
+    make_option(c("--dmr-type"), type = "character", default = NA,
+        help = "DMR types to score: all, or comma-separated DMR_type values such as gametic or secondary. Default: panel default (gametic ICRs only for selected, all probes for other panels)"),
+
     make_option(c("--infinium-type"), type = "character", default = "all",
         help = "Infinium probe design types to score: all, I, II, balanced [default: %default]"),
 
@@ -216,6 +219,14 @@ tryCatch({
         }
     }
 
+    if (!is.na(args$`dmr-type`)) {
+        dmr <- trimws(strsplit(args$`dmr-type`, ",")[[1]])
+        allowed <- c("all", "gametic", "secondary", "ambiguous", "unclassified", "uncurated")
+        if (!length(dmr) || any(!dmr %in% allowed) || ("all" %in% dmr && length(dmr) > 1L)) {
+            errors <- c(errors, paste0("ERROR: Invalid --dmr-type '", args$`dmr-type`,
+                                       "'. Use 'all' or comma-separated values from: ", paste(allowed[-1], collapse = ", ")))
+        }
+    }
     if (!args$`infinium-type` %in% c("all", "I", "II", "balanced")) {
         errors <- c(errors, paste0("ERROR: Invalid --infinium-type '", args$`infinium-type`,
                                    "'. Must be one of: all, I, II, balanced"))
@@ -239,7 +250,8 @@ tryCatch({
     list(
         reference_group = if (is.na(args$`reference-group`)) NULL else trimws(strsplit(args$`reference-group`, ",")[[1]]),
         reference_file = if (is.na(args$`reference-file`)) NULL else normalizePath(args$`reference-file`, winslash = "/"),
-        infinium_type = args$`infinium-type`
+        infinium_type = args$`infinium-type`,
+        dmr_type = if (is.na(args$`dmr-type`)) NULL else trimws(strsplit(args$`dmr-type`, ",")[[1]])
     )
 }
 
@@ -582,6 +594,7 @@ tryCatch({
                 result_name = paste0("AnalyzeImprintStatus.", probeset),
                 reference_group = scoring$reference_group,
                 reference_beta = scoring$reference_file,
+                dmr_type = scoring$dmr_type,
                 infinium_type = if (is.null(scoring$infinium_type)) "all" else scoring$infinium_type
             )
         })
@@ -650,12 +663,26 @@ tryCatch({
         identical(cache_info$probeset, probeset) &&
         identical(tolower(cache_info$genome), tolower(genome)) &&
         isTRUE(all.equal(as.numeric(cache_info$ids_cutoff), as.numeric(ids_cutoff))) &&
-        .same_scoring(cache_info$scoring, scoring)
+        .same_scoring(cache_info$scoring, scoring) &&
+        identical(.applied_dmr_type(result_list[[result_name]]), .expected_dmr_type(probeset, scoring$dmr_type))
+}
+
+# DMR_type selection recorded in a cached result; results from before the dmr_type
+# column existed scored all probes.
+.applied_dmr_type <- function(result) {
+    if (is.data.frame(result) && "dmr_type" %in% colnames(result) && nrow(result)) as.character(result$dmr_type[1]) else "all"
+}
+
+# Selection a run will apply: the requested --dmr-type, otherwise the panel default
+# (gametic ICRs only for selected, all probes for other panels).
+.expected_dmr_type <- function(probeset, dmr_type) {
+    if (!is.null(dmr_type)) return(paste(dmr_type, collapse = "+"))
+    if (identical(probeset, "selected")) "gametic" else "all"
 }
 
 # Results cached before the scoring options existed used the defaults.
 .same_scoring <- function(cached, requested) {
-    defaults <- list(reference_group = NULL, reference_file = NULL, infinium_type = "all")
+    defaults <- list(reference_group = NULL, reference_file = NULL, infinium_type = "all", dmr_type = NULL)
     fill <- function(x) utils::modifyList(defaults, if (is.null(x)) list() else x)
     identical(fill(cached)[names(defaults)], fill(requested)[names(defaults)])
 }

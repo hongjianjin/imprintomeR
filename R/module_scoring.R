@@ -145,6 +145,13 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
 # Reference centring helpers
 
 .min_reference_samples <- 3L
+
+# Default DMR_type selection per panel: the core `selected` panel is scored on gametic
+# ICRs only (secondary DMRs are tissue-variable and unmethylated in sperm); other
+# panels are scored on all probes.
+.default_dmr_type <- function(probeset) {
+  if (identical(probeset, "selected")) "gametic" else NULL
+}
 .recommended_reference_samples <- 5L
 
 # Per-probe medians of a probe-by-sample matrix, keeping probe names.
@@ -305,10 +312,17 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
 #' @param genome Genome build of the probeset annotation, `"hg19"` or `"hg38"`
 #'   (default `"hg38"`). Ignored when `betaFile` is an `ImprintomeSet`, whose own
 #'   genome is used.
-#' @param dmr_type Optional character vector of `DMR_type` values to score,
-#'   for example `"gametic"` to restrict scoring to gametic ICRs or
-#'   `"secondary"` for secondary DMRs. Requires a `DMR_type` column in the
-#'   probeset. `NULL` (default) scores all probes.
+#' @param dmr_type `DMR_type` values to score:
+#'   - `NULL` (default): the panel default. The core `selected` panel is scored
+#'     on gametic ICRs only (`"gametic"`); every other panel, and any panel
+#'     without a `DMR_type` column, is scored on all probes.
+#'   - `"all"`: all probes, including secondary DMRs (the earlier default for
+#'     `selected`).
+#'   - one or more `DMR_type` values, for example `"gametic"` or
+#'     `"secondary"` (secondary DMRs reported separately). Requires a
+#'     `DMR_type` column in the probeset.
+#'
+#'   The `dmr_type` output column records the selection that was applied.
 #' @param reference How the balanced reference state is defined.
 #'   - `"auto"` (default): use control samples when they are supplied, either
 #'     external (`reference_beta`) or in-cohort (`reference_group`/
@@ -386,6 +400,9 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
       (!is.character(dmr_type) || !length(dmr_type) || anyNA(dmr_type) || any(!nzchar(dmr_type)))) {
     stop("dmr_type must be NULL or a non-empty character vector.")
   }
+  if ("all" %in% dmr_type && length(dmr_type) > 1L) {
+    stop("dmr_type = \"all\" cannot be combined with other DMR_type values.")
+  }
   reference <- match.arg(reference)
   infinium_type <- match.arg(infinium_type)
   for (arg in c("reference_group", "reference_samples")) {
@@ -417,6 +434,13 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   used <- used[, sample_ids, drop = FALSE]
 
   .validate_probeset_annotation(probesets, probeset)
+  if (is.null(dmr_type)) {
+    # Panel default: gametic ICRs for the core panel when it is DMR-type annotated.
+    dmr_type <- .default_dmr_type(probeset)
+    if (!is.null(dmr_type) && !"DMR_type" %in% colnames(probesets)) dmr_type <- NULL
+  } else if (identical(dmr_type, "all")) {
+    dmr_type <- NULL
+  }
   if (!is.null(dmr_type)) {
     if (!"DMR_type" %in% colnames(probesets)) {
       stop("Probeset '", probeset, "' has no DMR_type column; dmr_type filtering is unavailable.")

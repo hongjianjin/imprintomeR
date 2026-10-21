@@ -213,7 +213,7 @@ test_that("AnalyzeImprintStatus rejects probesets missing a parental origin", {
 test_that("AnalyzeImprintStatus scores only the requested DMR_type", {
   d <- .make_dmr_fixture()
   .with_temp_probeset_file(d$probeset, {
-    res_all <- AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2)
+    res_all <- AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2, dmr_type = "all")
     res_gam <- AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2, dmr_type = "gametic")
 
     expect_equal(unique(res_all$dmr_type), "all")
@@ -228,14 +228,31 @@ test_that("AnalyzeImprintStatus scores only the requested DMR_type", {
   })
 })
 
-test_that("AnalyzeImprintStatus default ignores DMR_type", {
+test_that("AnalyzeImprintStatus scores the core selected panel on gametic ICRs by default", {
+  expect_equal(.default_dmr_type("selected"), "gametic")
+  expect_null(.default_dmr_type("chr11p15"))
+  d <- .make_dmr_fixture()
+  .with_temp_probeset_file(d$probeset, {
+    res_default <- AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2)
+    res_gam <- AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2, dmr_type = "gametic")
+    expect_equal(res_default, res_gam)
+    expect_equal(unique(res_default$dmr_type), "gametic")
+    expect_equal(unique(res_default$n_paternal_probes), 2)
+    # Chromosome subsets of selected are not the core panel and keep all probes.
+    res_chr <- AnalyzeImprintStatus(d$beta, d$meta, probeset = "chr11", ids_cutoff = 0.2)
+    expect_equal(unique(res_chr$dmr_type), "all")
+  })
+})
+
+test_that("AnalyzeImprintStatus default scores all probes when the panel has no DMR_type", {
   d <- .make_dmr_fixture()
   p_without_type <- d$probeset[, setdiff(colnames(d$probeset), "DMR_type")]
-  res_with <- .with_temp_probeset_file(d$probeset,
-    AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2))
+  res_all <- .with_temp_probeset_file(d$probeset,
+    AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2, dmr_type = "all"))
   res_without <- .with_temp_probeset_file(p_without_type,
     AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2))
-  expect_equal(res_with, res_without)
+  expect_equal(res_all, res_without)
+  expect_equal(unique(res_without$dmr_type), "all")
 })
 
 test_that("AnalyzeImprintStatus dmr_type errors are informative", {
@@ -258,6 +275,10 @@ test_that("AnalyzeImprintStatus dmr_type errors are informative", {
     expect_error(
       AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", dmr_type = character(0)),
       "dmr_type must be NULL or a non-empty character vector"
+    )
+    expect_error(
+      AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", dmr_type = c("all", "gametic")),
+      "cannot be combined"
     )
   })
 })

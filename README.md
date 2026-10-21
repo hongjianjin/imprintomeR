@@ -271,6 +271,14 @@ x <- runImprintome(
 names(results(x))
 ```
 
+The core `selected` panel is scored on gametic ICRs only by default (`dmr_type = NULL`, recorded as `"gametic"` in the `dmr_type` column). Secondary DMRs are tissue-variable and unmethylated in sperm, so including them can mislabel samples; for example, sperm from GSE52576 scores as "Global-Hypo" with all probes but as androgenetic-like "Pat-Gain+Mat-Loss" with gametic ICRs. Use `dmr_type = "all"` for all probes (the earlier default) or `dmr_type = "secondary"` to report secondary DMRs separately; other panels are scored on all probes unless `dmr_type` is given. From the command line: `--dmr-type all` or `--dmr-type secondary`.
+
+```r
+x <- runImprintome(x, probeset = "selected")                       # gametic ICRs (default)
+x <- runImprintome(x, probeset = "selected", dmr_type = "all")     # stored as AnalyzeImprintStatus.selected.all
+x <- runImprintome(x, probeset = "selected", dmr_type = "secondary")
+```
+
 #### Reference centring and Infinium design types
 
 Normal tissue does not always sit at 0.5: Infinium type I/II probe differences and tissue-specific secondary DMRs can move healthy samples away from the balanced state. Control samples can replace the fixed 0.5 with a per-probe reference (the median beta of each probe across the controls). The reference is chosen in this order:

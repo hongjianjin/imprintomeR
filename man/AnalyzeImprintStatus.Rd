@@ -34,10 +34,19 @@ alteration by IDS.}
 (default \code{"hg38"}). Ignored when \code{betaFile} is an \code{ImprintomeSet}, whose own
 genome is used.}
 
-\item{dmr_type}{Optional character vector of \code{DMR_type} values to score,
-for example \code{"gametic"} to restrict scoring to gametic ICRs or
-\code{"secondary"} for secondary DMRs. Requires a \code{DMR_type} column in the
-probeset. \code{NULL} (default) scores all probes.}
+\item{dmr_type}{\code{DMR_type} values to score:
+\itemize{
+\item \code{NULL} (default): the panel default. The core \code{selected} panel is scored
+on gametic ICRs only (\code{"gametic"}); every other panel, and any panel
+without a \code{DMR_type} column, is scored on all probes.
+\item \code{"all"}: all probes, including secondary DMRs (the earlier default for
+\code{selected}).
+\item one or more \code{DMR_type} values, for example \code{"gametic"} or
+\code{"secondary"} (secondary DMRs reported separately). Requires a
+\code{DMR_type} column in the probeset.
+}
+
+The \code{dmr_type} output column records the selection that was applied.}
 
 \item{reference}{How the balanced reference state is defined.
 \itemize{
