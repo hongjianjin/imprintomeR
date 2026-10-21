@@ -165,6 +165,7 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
     }
     profile <- reference_beta[!is.na(reference_beta)]
     attr(profile, "n_samples") <- attr(reference_beta, "n_samples", exact = TRUE)
+    attr(profile, "normalization") <- attr(reference_beta, "normalization", exact = TRUE)
     return(profile)
   }
   ref <- LoadBeta(reference_beta)
@@ -228,6 +229,8 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
     ref <- matrix(profile[probes], nrow = length(probes), ncol = ncol(used),
                   dimnames = list(probes, colnames(used)))
     n_lab <- if (is.null(n_ref)) "" else paste0(", n=", n_ref)
+    norm <- attr(profile, "normalization", exact = TRUE)
+    if (!is.null(norm) && !identical(norm, "unspecified")) n_lab <- paste0(n_lab, ", ", norm)
     return(list(matrix = ref, label = paste0("external controls", n_lab),
                 n = rep(if (is.null(n_ref)) NA_integer_ else as.integer(n_ref), ncol(used)), probes = probes))
   }
@@ -521,8 +524,9 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
 #' normal samples) can centre cohorts that have no controls of their own. Save
 #' it with `saveRDS()` to reuse it across studies.
 #'
-#' @param beta Probe-by-sample beta matrix, data frame, file path, or an
-#'   `ImprintomeSet`.
+#' @param beta Probe-by-sample beta matrix, data frame, file path, a
+#'   `MethQcSet` (EPICv2 data must be aggregated first with
+#'   `aggregate_probes()`), or an `ImprintomeSet`.
 #' @param samples Optional character vector of control sample names; `NULL` uses
 #'   all samples.
 #' @param probeset Optional probeset name. The profile is limited to its probes.
@@ -531,12 +535,24 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
 #' @param genome Genome build of the probeset annotation, `"hg19"` or `"hg38"`
 #'   (default `"hg38"`). Ignored when `beta` is an `ImprintomeSet`, whose own
 #'   genome is used.
+#' @param normalization Beta normalization of the control data, for example
+#'   `"noob"` (see [runMethQC()]). Taken from `qc_params(beta)$normalization`
+#'   when `beta` is a `MethQcSet` and this argument is `NULL`. It is recorded in
+#'   the profile and reported in the `reference` column of scoring results, so
+#'   that a profile can be matched to cohorts preprocessed the same way.
 #'
 #' @return Named numeric vector of per-probe median beta values, with attributes
-#'   `n_samples`, `genome`, and `probeset`.
+#'   `n_samples`, `genome`, `probeset`, and `normalization` (`"unspecified"` when
+#'   unknown).
 #' @export
-BuildReferenceProfile <- function(beta, samples = NULL, probeset = NULL, genome = "hg38") {
-  if (methods::is(beta, "ImprintomeSet")) {
+BuildReferenceProfile <- function(beta, samples = NULL, probeset = NULL, genome = "hg38", normalization = NULL) {
+  if (methods::is(beta, "MethQcSet")) {
+    if (identical(toupper(beta@platform), "EPICV2") && !identical(beta@aggregation_status, "epicv2_aggregated")) {
+      stop("EPICv2 data must be aggregated before building a reference profile. Run: qcset <- aggregate_probes(qcset)")
+    }
+    if (is.null(normalization)) normalization <- beta@qc_params$normalization
+    beta <- beta@beta
+  } else if (methods::is(beta, "ImprintomeSet")) {
     genome <- beta@genome
     beta <- beta(beta)
   }
@@ -567,6 +583,7 @@ BuildReferenceProfile <- function(beta, samples = NULL, probeset = NULL, genome 
   attr(profile, "n_samples") <- ncol(ref)
   attr(profile, "genome") <- genome
   attr(profile, "probeset") <- if (is.null(probeset)) "all panels" else probeset
+  attr(profile, "normalization") <- if (is.null(normalization)) "unspecified" else as.character(normalization)[1]
   profile
 }
 #=====================================

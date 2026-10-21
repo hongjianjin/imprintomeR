@@ -164,11 +164,11 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
   new_qc_tables[["qc_matrix"]] <- NULL
   new_qc_tables[["detection_recall_rate"]] <- NULL
 
-  # Store QC parameters
-  new_qc_params <- list(
+  # Store QC parameters, keeping preprocessing entries (e.g. normalization) set by runMethQC()
+  new_qc_params <- utils::modifyList(x@qc_params, list(
     pcutoff = pcutoff,
     method  = "detection_pval_statistics"
-  )
+  ))
 
   # Update and return
   x@qc_tables <- new_qc_tables

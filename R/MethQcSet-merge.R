@@ -80,6 +80,13 @@ methods::setMethod("merge", "MethQcSet", function(x, y, how = "inner", ...) {
     )
   }
 
+  # Warn if objects were normalized differently (objects without a record are not compared)
+  normalizations <- unlist(lapply(all_objects, function(obj) obj@qc_params$normalization))
+  if (length(unique(normalizations)) > 1L) {
+    warning("Merging MethQcSet objects with different beta normalization (",
+            paste(unique(normalizations), collapse = ", "), "); beta values are not directly comparable.")
+  }
+
   # Warn if any non-aggregated EPICv2
   for (i in seq_along(all_objects)) {
     if (platforms[i] == "EPICv2" && all_objects[[i]]@aggregation_status != "epicv2_aggregated") {

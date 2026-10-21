@@ -39,6 +39,9 @@ option_list <- list(
     make_option(c("--platform"), type = "character", default = NA,
         help = "Override platform detection (EPIC, EPICv2, 450K). If NA, auto-detect from IDAT files [default: auto-detect]"),
 
+    make_option(c("--normalization"), type = "character", default = "noob",
+        help = "Beta normalization: noob, noob_swan or raw (unnormalized, as in earlier versions) [default: %default]"),
+
     make_option(c("--plot-types"), type = "character", default = "intensity,detection_pval,probe_coverage,beta_density",
         help = "QC plot types to generate: 'intensity', 'detection_pval', 'probe_coverage', 'qc_bar', 'beta_density', or 'all'. [default: intensity,detection_pval,probe_coverage,beta_density]"),
 
@@ -65,7 +68,9 @@ parser <- OptionParser(
         "  # With custom thresholds and plots:\n",
         "  Rscript run_meth_QC.R -m meta.tsv -b /path/to/idats -o qc_output -p 0.03 -i 12 --plot-types all -v\n\n",
         "  # Override platform (no auto-detect):\n",
-        "  Rscript run_meth_QC.R -m meta.tsv -b /path/to/idats -o qc_output --platform EPIC\n",
+        "  Rscript run_meth_QC.R -m meta.tsv -b /path/to/idats -o qc_output --platform EPIC\n\n",
+        "  # Noob + SWAN normalization:\n",
+        "  Rscript run_meth_QC.R -m meta.tsv -o qc_output --normalization noob_swan\n",
         sep = ""
     )
 )
@@ -152,6 +157,11 @@ suppressPackageStartupMessages({
     if (!is.na(args$platform) && !args$platform %in% c("EPIC", "EPICv2", "450K", "27K")) {
         errors <- c(errors, paste0("ERROR: Invalid platform '", args$platform,
                                    "'. Must be one of: EPIC, EPICv2, 450K, 27K"))
+    }
+
+    if (!args$normalization %in% c("noob", "noob_swan", "raw")) {
+        errors <- c(errors, paste0("ERROR: Invalid normalization '", args$normalization,
+                                   "'. Must be one of: noob, noob_swan, raw"))
     }
 
     if (length(errors) > 0) {
@@ -423,6 +433,14 @@ tryCatch({
                 pcutoff = args$pcutoff
             )
             runmethqc_args <- names(formals(runMethQC))
+            if ("normalization" %in% runmethqc_args) {
+                run_args$normalization <- args$normalization
+            } else if (!identical(args$normalization, "raw")) {
+                .log_message(
+                    "The loaded imprintomeR::runMethQC() does not support normalization; beta values are unnormalized (raw). Reinstall/update imprintomeR.",
+                    level = "WARN"
+                )
+            }
             if (all(c("save_qc_report", "outdir", "prefix") %in% runmethqc_args)) {
                 run_args$save_qc_report <- !isTRUE(args$`no-qc-report`)
                 run_args$outdir <- platform_outdir

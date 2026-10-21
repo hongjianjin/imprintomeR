@@ -161,6 +161,10 @@ qcset <- runMethQC(meta_epic)  # platform auto-resolved from meta$Platform
 # qcset <- runMethQC(meta_epic, outdir = "qc_output", prefix = "epic")
 # Use save_qc_report = FALSE to suppress default QC plot/report PDFs.
 
+# Beta normalization (default "noob"; also "noob_swan", or "raw" as in earlier versions).
+# The method is recorded in qc_params(qcset)$normalization.
+# qcset <- runMethQC(meta_epic, normalization = "noob_swan")
+
 # Option B: platform already known
 # qcset <- runMethQC(meta, platform = "EPIC")
 
@@ -200,6 +204,7 @@ Key MethQcSet features:
 - **Platform validation**: Prevents mixing 450K, EPICv1, EPICv2
 - **QC metrics**: Detection p-values, intensity summaries (mMed/uMed/aveMed merged into `QC_matrix`), probe coverage
 - **Default QC plot/report PDFs**: `runMethQC(..., outdir = "qc_output", prefix = "epic")` writes root-level review PDFs (`{prefix}_QC_detection_pval.pdf`, `{prefix}_QC_probe_coverage.pdf`, `{prefix}_QC_minfiDensity_all.pdf`) plus secondary report PDFs in `plots/` (`{prefix}_QC_intensity.pdf`, `{prefix}_QC_betaDensity_all/pass/fail.pdf`, `{prefix}_QC_minfiDensity_pass/fail.pdf`); use `save_qc_report = FALSE` to suppress them
+- **Beta normalization**: `runMethQC(..., normalization = "noob")` (default) applies minfi noob background and dye-bias correction; `"noob_swan"` adds SWAN type I/II adjustment (fixed seed, reproducible); `"raw"` keeps unnormalized beta. All three normalize each sample on its own and work on 450K, EPIC and EPICv2. Detection p-values, intensities and predicted sex always use unnormalized data. The method is stored in `qc_params(qcset)$normalization` and carried into `BuildReferenceProfile()` profiles; use the same method for cohorts and the reference profiles they are centred on. EPICv2 needs the `IlluminaHumanMethylationEPICv2manifest` and `IlluminaHumanMethylationEPICv2anno.20a1.hg38` packages (Bioconductor >= 3.19); `runMethQC()` sets the EPICv2 minfi annotation automatically, because earlier minfi releases do not recognize the array. From the command line: `run_meth_QC.R --normalization noob_swan`.
 - **Canonical `qc_tables` keys** (populated by `runMethQC()`):
   - `QC_matrix` — per-sample detection stats, intensity, predictedSex, `Final.QC`
   - `recall_rate` — per-probe % detected across all / PASS / FAIL samples

@@ -4,11 +4,18 @@
 \alias{BuildReferenceProfile}
 \title{Build a Reusable Control Reference Profile}
 \usage{
-BuildReferenceProfile(beta, samples = NULL, probeset = NULL, genome = "hg38")
+BuildReferenceProfile(
+  beta,
+  samples = NULL,
+  probeset = NULL,
+  genome = "hg38",
+  normalization = NULL
+)
 }
 \arguments{
-\item{beta}{Probe-by-sample beta matrix, data frame, file path, or an
-\code{ImprintomeSet}.}
+\item{beta}{Probe-by-sample beta matrix, data frame, file path, a
+\code{MethQcSet} (EPICv2 data must be aggregated first with
+\code{aggregate_probes()}), or an \code{ImprintomeSet}.}
 
 \item{samples}{Optional character vector of control sample names; \code{NULL} uses
 all samples.}
@@ -20,10 +27,17 @@ so one profile serves all panels.}
 \item{genome}{Genome build of the probeset annotation, \code{"hg19"} or \code{"hg38"}
 (default \code{"hg38"}). Ignored when \code{beta} is an \code{ImprintomeSet}, whose own
 genome is used.}
+
+\item{normalization}{Beta normalization of the control data, for example
+\code{"noob"} (see \code{\link[=runMethQC]{runMethQC()}}). Taken from \code{qc_params(beta)$normalization}
+when \code{beta} is a \code{MethQcSet} and this argument is \code{NULL}. It is recorded in
+the profile and reported in the \code{reference} column of scoring results, so
+that a profile can be matched to cohorts preprocessed the same way.}
 }
 \value{
 Named numeric vector of per-probe median beta values, with attributes
-\code{n_samples}, \code{genome}, and \code{probeset}.
+\code{n_samples}, \code{genome}, \code{probeset}, and \code{normalization} (\code{"unspecified"} when
+unknown).
 }
 \description{
 Summarizes a set of control samples into per-probe median beta values. The

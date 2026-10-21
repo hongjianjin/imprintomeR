@@ -8,6 +8,7 @@ runMethQC(
   meta,
   platform = NA,
   pcutoff = 0.05,
+  normalization = c("noob", "noob_swan", "raw"),
   save_qc_report = TRUE,
   plot_types = c("intensity", "detection_pval", "probe_coverage", "beta_density"),
   outdir = ".",
@@ -41,6 +42,17 @@ run \code{check_platform(meta)} first.}
 
 \item{pcutoff}{Numeric. Maximum mean detection p-value to pass QC (default: 0.05).}
 
+\item{normalization}{Beta-value normalization:
+\itemize{
+\item \code{"noob"} (default): background and dye-bias correction
+(\code{minfi::preprocessNoob(dyeMethod = "single")});
+\item \code{"noob_swan"}: noob followed by SWAN, which adjusts Infinium type I/II
+differences (\code{minfi::preprocessSWAN()}, run with a fixed seed so results
+are reproducible);
+\item \code{"raw"}: unnormalized beta (\code{minfi::preprocessRaw()}), the behaviour of
+earlier package versions.
+}}
+
 \item{save_qc_report}{Logical. If \code{TRUE}, write package-native QC plot PDFs
 and density-report PDFs. Default: \code{TRUE}.}
 
@@ -60,16 +72,35 @@ the resolved platform name is used.}
 \value{
 A \code{MethQcSet} object with:
 \itemize{
-\item \code{beta} slot populated from \code{minfi::getBeta()}
+\item \code{beta} slot populated from \code{minfi::getBeta()} after \code{normalization}
 \item \code{detection_pval} slot populated from \code{minfi::detectionP()}
 \item \code{qc_tables} slot populated with QC metrics
 \item \code{platform} slot set to the resolved platform string
+\item \code{qc_params} slot recording \code{normalization} and the minfi
+\code{array_annotation}
 }
 }
 \description{
 Factory function that reads IDAT files for all samples in \code{meta}, extracts
-beta values and detection p-values via minfi, constructs a \code{MethQcSet}
-object, and computes QC metrics. Returns a fully populated \code{MethQcSet}.
+normalized beta values and detection p-values via minfi, constructs a
+\code{MethQcSet} object, and computes QC metrics. Returns a fully populated
+\code{MethQcSet}.
+}
+\details{
+Beta values are normalized with \code{normalization}; all three methods work on
+450K, EPIC and EPICv2 arrays and normalize each sample on its own, so a
+sample's beta values do not depend on which other samples are in the cohort.
+Detection p-values, probe intensities and predicted sex are always computed
+from the unnormalized data. The method is recorded in
+\code{qc_params(x)$normalization}. Normalization changes beta values and hence
+IDS, so compare cohorts, and build reference profiles
+(\code{\link[=BuildReferenceProfile]{BuildReferenceProfile()}}), with the same method.
+
+EPICv2 arrays are not recognized by minfi releases before Bioconductor 3.19;
+for platform \code{"EPICv2"} (or an unrecognized array with more than 1.1 million
+probes) the minfi annotation is set to \code{IlluminaHumanMethylationEPICv2} /
+\verb{20a1.hg38}. This requires the \code{IlluminaHumanMethylationEPICv2manifest} and
+\code{IlluminaHumanMethylationEPICv2anno.20a1.hg38} packages.
 }
 \examples{
 \dontrun{

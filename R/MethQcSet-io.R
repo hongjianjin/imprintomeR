@@ -173,14 +173,91 @@ check_platform <- function(meta, max_retries = 5) {
 }
 
 # ============================================================================
+# IDAT preprocessing helpers used by runMethQC()
+# ============================================================================
+
+.methqc_read_idats <- function(meta, ...) {
+  minfi::read.metharray.exp(targets = meta, force = TRUE, ...)
+}
+
+.epicv2_minfi_annotation <- c(array = "IlluminaHumanMethylationEPICv2", annotation = "20a1.hg38")
+.epicv2_minfi_packages <- c("IlluminaHumanMethylationEPICv2manifest", "IlluminaHumanMethylationEPICv2anno.20a1.hg38")
+
+# minfi releases before Bioconductor 3.19 label EPICv2 arrays "Unknown"; set the EPICv2
+# annotation explicitly so that the manifest is found. Applies to platform "EPICv2" or to
+# an unrecognized array with more than 1.1 million probes (EPICv2 has 1,105,209).
+.methqc_set_array_annotation <- function(rgSet, platform) {
+  ann <- minfi::annotation(rgSet)
+  unknown <- identical(unname(ann["array"]), "Unknown")
+  is_epicv2 <- identical(toupper(as.character(platform)), "EPICV2") || (unknown && nrow(rgSet) > 1100000)
+  if (!is_epicv2 || identical(unname(ann["array"]), unname(.epicv2_minfi_annotation["array"]))) {
+    return(rgSet)
+  }
+  missing <- .epicv2_minfi_packages[!vapply(.epicv2_minfi_packages, requireNamespace, logical(1), quietly = TRUE)]
+  if (length(missing)) {
+    stop("EPICv2 preprocessing requires the Bioconductor package(s) ", paste(missing, collapse = ", "),
+         " (Bioconductor >= 3.19; on earlier releases install the source tarballs from bioconductor.org).",
+         call. = FALSE)
+  }
+  minfi::annotation(rgSet) <- .epicv2_minfi_annotation
+  rgSet
+}
+
+# Evaluate `expr` with a fixed RNG seed, restoring the caller's RNG state afterwards.
+.with_fixed_seed <- function(seed, expr) {
+  had_seed <- exists(".Random.seed", envir = globalenv(), inherits = FALSE)
+  old_seed <- if (had_seed) get(".Random.seed", envir = globalenv()) else NULL
+  on.exit({
+    if (had_seed) assign(".Random.seed", old_seed, envir = globalenv())
+    else if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) rm(".Random.seed", envir = globalenv())
+  })
+  set.seed(seed)
+  expr
+}
+
+# Raw MethylSet (for intensity and sex QC), normalized beta, and detection p-values aligned
+# to the beta rows.
+.methqc_preprocess <- function(rgSet, normalization = c("noob", "noob_swan", "raw")) {
+  normalization <- match.arg(normalization)
+  raw <- minfi::preprocessRaw(rgSet)
+  normalized <- switch(normalization,
+    raw = raw,
+    noob = minfi::preprocessNoob(rgSet, dyeMethod = "single"),
+    noob_swan = .with_fixed_seed(1L, minfi::preprocessSWAN(rgSet, mSet = minfi::preprocessNoob(rgSet, dyeMethod = "single")))
+  )
+  beta <- minfi::getBeta(normalized)
+  det_pval <- minfi::detectionP(rgSet)
+  det_pval <- det_pval[match(rownames(beta), rownames(det_pval)), , drop = FALSE]
+  rownames(det_pval) <- rownames(beta)
+  list(raw = raw, beta = beta, det_pval = det_pval,
+       array_annotation = paste(minfi::annotation(rgSet), collapse = ":"))
+}
+
+# ============================================================================
 # runMethQC() - Public factory: load IDAT, detect/resolve platform, run QC
 # ============================================================================
 
 #' Load IDAT Files, Run Quality Control, and Create a MethQcSet
 #'
 #' Factory function that reads IDAT files for all samples in `meta`, extracts
-#' beta values and detection p-values via minfi, constructs a `MethQcSet`
-#' object, and computes QC metrics. Returns a fully populated `MethQcSet`.
+#' normalized beta values and detection p-values via minfi, constructs a
+#' `MethQcSet` object, and computes QC metrics. Returns a fully populated
+#' `MethQcSet`.
+#'
+#' Beta values are normalized with `normalization`; all three methods work on
+#' 450K, EPIC and EPICv2 arrays and normalize each sample on its own, so a
+#' sample's beta values do not depend on which other samples are in the cohort.
+#' Detection p-values, probe intensities and predicted sex are always computed
+#' from the unnormalized data. The method is recorded in
+#' `qc_params(x)$normalization`. Normalization changes beta values and hence
+#' IDS, so compare cohorts, and build reference profiles
+#' ([BuildReferenceProfile()]), with the same method.
+#'
+#' EPICv2 arrays are not recognized by minfi releases before Bioconductor 3.19;
+#' for platform `"EPICv2"` (or an unrecognized array with more than 1.1 million
+#' probes) the minfi annotation is set to `IlluminaHumanMethylationEPICv2` /
+#' `20a1.hg38`. This requires the `IlluminaHumanMethylationEPICv2manifest` and
+#' `IlluminaHumanMethylationEPICv2anno.20a1.hg38` packages.
 #'
 #' @param meta A `data.frame` with columns:
 #'   \describe{
@@ -204,6 +281,14 @@ check_platform <- function(meta, max_retries = 5) {
 #'       `Platform` column in meta is ignored.}
 #'   }
 #' @param pcutoff Numeric. Maximum mean detection p-value to pass QC (default: 0.05).
+#' @param normalization Beta-value normalization:
+#'   - `"noob"` (default): background and dye-bias correction
+#'     (`minfi::preprocessNoob(dyeMethod = "single")`);
+#'   - `"noob_swan"`: noob followed by SWAN, which adjusts Infinium type I/II
+#'     differences (`minfi::preprocessSWAN()`, run with a fixed seed so results
+#'     are reproducible);
+#'   - `"raw"`: unnormalized beta (`minfi::preprocessRaw()`), the behaviour of
+#'     earlier package versions.
 #' @param save_qc_report Logical. If `TRUE`, write package-native QC plot PDFs
 #'   and density-report PDFs. Default: `TRUE`.
 #' @param plot_types Character vector or comma-separated string of package-native
@@ -218,10 +303,12 @@ check_platform <- function(meta, max_retries = 5) {
 #'
 #' @return A `MethQcSet` object with:
 #'   \itemize{
-#'     \item `beta` slot populated from `minfi::getBeta()`
+#'     \item `beta` slot populated from `minfi::getBeta()` after `normalization`
 #'     \item `detection_pval` slot populated from `minfi::detectionP()`
 #'     \item `qc_tables` slot populated with QC metrics
 #'     \item `platform` slot set to the resolved platform string
+#'     \item `qc_params` slot recording `normalization` and the minfi
+#'       `array_annotation`
 #'   }
 #'
 #' @examples
@@ -256,10 +343,12 @@ check_platform <- function(meta, max_retries = 5) {
 #'
 #' @export
 runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
+                      normalization = c("noob", "noob_swan", "raw"),
                       save_qc_report = TRUE,
                       plot_types = c("intensity", "detection_pval", "probe_coverage", "beta_density"),
                       outdir = ".", prefix = NULL, ...) {
   if (!is.data.frame(meta)) stop("meta must be a data.frame.")
+  normalization <- match.arg(normalization)
 
   # ------------------------------------------------------------------
   # Step 0: Normalize legacy column names to package conventions.
@@ -280,7 +369,9 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
     stop("meta must contain a 'Basename' column with IDAT file path prefixes.")
   }
 
+  # minfi also reads gzipped IDATs, as distributed by GEO.
   missing_files <- meta$Basename[!file.exists(paste0(meta$Basename, "_Red.idat")) &
+                                   !file.exists(paste0(meta$Basename, "_Red.idat.gz")) &
                                    !file.exists(paste0(meta$Basename, ".idat"))]
   if (length(missing_files) > 0) {
     stop("IDAT files not found for ", length(missing_files), " sample(s):\n",
@@ -292,15 +383,17 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
   # ------------------------------------------------------------------
   message("Loading IDAT files for ", nrow(meta), " samples (platform: ", resolved_platform, ")...")
 
-  rgSet <- minfi::read.metharray.exp(targets = meta, force = TRUE, ...)
+  rgSet <- .methqc_read_idats(meta, ...)
+  rgSet <- .methqc_set_array_annotation(rgSet, resolved_platform)
 
   # ------------------------------------------------------------------
-  # Step 4: Extract beta and detection p-values
+  # Step 4: Extract normalized beta and detection p-values
   # ------------------------------------------------------------------
-  message("Preprocessing and extracting beta values...")
-  mSet    <- minfi::preprocessRaw(rgSet)
-  beta    <- minfi::getBeta(mSet)
-  det_pval <- minfi::detectionP(rgSet)
+  message("Preprocessing and extracting beta values (normalization: ", normalization, ")...")
+  pre      <- .methqc_preprocess(rgSet, normalization)
+  mSet     <- pre$raw
+  beta     <- pre$beta
+  det_pval <- pre$det_pval
 
   # Align beta column names to sample identifier.
   # Prefer Sample_Name; accept legacy SAMPLE_NAME for older metadata.
@@ -317,7 +410,8 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
     meta            = meta,
     platform        = resolved_platform,
     beta            = beta,
-    detection_pval  = det_pval
+    detection_pval  = det_pval,
+    qc_params       = list(normalization = normalization, array_annotation = pre$array_annotation)
   )
 
   message("Computing QC metrics...")
