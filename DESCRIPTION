@@ -25,6 +25,7 @@ Collate:
     'module_io.R'
     'module_probeset.R'
     'module_scoring.R'
+    'module_icr.R'
     'module_aggregation.R'
     'module_plotting.R'
     'MethQcSet-class.R'

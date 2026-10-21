@@ -21,6 +21,17 @@
 #'   fixed 0.5 reference only when no controls are available.
 #' @param infinium_type Infinium design types to score (`"all"`, `"I"`, `"II"`
 #'   or `"balanced"`), passed to `AnalyzeImprintStatus()`.
+#' @param balance `"probe"` (default) or `"icr"` for the ICR-balanced
+#'   sample-level IDS/Angle, passed to `AnalyzeImprintStatus()`; `"icr"` adds
+#'   `.icr` to the default result name.
+#' @param min_probes Minimum probes per ICR for ICR-balanced and per-ICR
+#'   scoring (default 3).
+#' @param icr Logical. If `TRUE`, also score each ICR with
+#'   [AnalyzeICRStatus()] (all annotated ICRs, with the same reference) and
+#'   store the per-ICR table as `ICRStatus.<probeset>` and its per-sample
+#'   multi-locus summary ([SummarizeICRStatus()]) as `ICRSummary.<probeset>`.
+#' @param delta_cutoff,z_cutoff Thresholds for altered-ICR calls, passed to
+#'   [AnalyzeICRStatus()] when `icr = TRUE`.
 #' @param ... Reserved for future compatibility.
 #'
 #' @return Updated `ImprintomeSet` object with analysis table stored in
@@ -73,7 +84,8 @@ methods::setMethod(
   function(x, probeset = "selected", ids_cutoff = 0.2, result_name = NULL, dmr_type = NULL,
            reference = c("auto", "controls", "fixed"), reference_group = NULL,
            reference_samples = NULL, reference_beta = NULL,
-           infinium_type = c("all", "I", "II", "balanced"), ...) {
+           infinium_type = c("all", "I", "II", "balanced"), balance = c("probe", "icr"),
+           min_probes = 3L, icr = FALSE, delta_cutoff = 0.15, z_cutoff = 3, ...) {
     methods::validObject(x)
 
     # Convert beta matrix to data frame with TargetID column (required by LoadBeta)
@@ -91,7 +103,9 @@ methods::setMethod(
       reference_group = reference_group,
       reference_samples = reference_samples,
       reference_beta = reference_beta,
-      infinium_type = infinium_type
+      infinium_type = infinium_type,
+      balance = balance,
+      min_probes = min_probes
     )
 
     current_results <- results(x)
@@ -107,8 +121,29 @@ methods::setMethod(
       if (analysis_table$infinium_type[1] != "all") {
         result_name <- paste0(result_name, ".type", analysis_table$infinium_type[1])
       }
+      if (analysis_table$balance[1] == "icr") {
+        result_name <- paste0(result_name, ".icr")
+      }
     }
     current_results[[result_name]] <- analysis_table
+
+    if (isTRUE(icr)) {
+      icr_table <- AnalyzeICRStatus(
+        betaFile = beta_df,
+        metaFile = meta(x),
+        probeset = probeset,
+        genome = genome(x),
+        reference = reference,
+        reference_group = reference_group,
+        reference_samples = reference_samples,
+        reference_beta = reference_beta,
+        min_probes = min_probes,
+        delta_cutoff = delta_cutoff,
+        z_cutoff = z_cutoff
+      )
+      current_results[[paste0("ICRStatus.", probeset)]] <- icr_table
+      current_results[[paste0("ICRSummary.", probeset)]] <- SummarizeICRStatus(icr_table)
+    }
     results(x) <- current_results
 
     x

@@ -57,6 +57,12 @@ option_list <- list(
     make_option(c("--dmr-type"), type = "character", default = NA,
         help = "DMR types to score: all, or comma-separated DMR_type values such as gametic or secondary. Default: panel default (gametic ICRs only for selected, all probes for other panels)"),
 
+    make_option(c("--balance"), type = "character", default = "probe",
+        help = "Pooling for the sample-level IDS: probe (median over probes) or icr (ICR-balanced: median within each ICR, then across ICRs) [default: %default]"),
+
+    make_option(c("--icr"), action = "store_true", default = FALSE,
+        help = "Also score each ICR (AnalyzeICRStatus) and write the per-ICR table and its per-sample multi-locus summary"),
+
     make_option(c("--infinium-type"), type = "character", default = "all",
         help = "Infinium probe design types to score: all, I, II, balanced [default: %default]"),
 
@@ -92,7 +98,9 @@ parser <- OptionParser(
         "  # All plots, custom probeset and IDS cutoff:\n",
         "  Rscript run_imprintomeR.R -r qcset.rds -o analysis --plot-types all --probeset Joshi --ids-cutoff 0.3 -v\n\n",
         "  # Centre on in-cohort controls and balance Infinium I/II probes:\n",
-        "  Rscript run_imprintomeR.R -r qcset.rds -o analysis --reference-group control --infinium-type balanced\n",
+        "  Rscript run_imprintomeR.R -r qcset.rds -o analysis --reference-group control --infinium-type balanced\n\n",
+        "  # Per-ICR scores and ICR-balanced IDS:\n",
+        "  Rscript run_imprintomeR.R -r qcset.rds -o analysis --icr --balance icr\n",
         sep = ""
     )
 )
@@ -227,6 +235,9 @@ tryCatch({
                                        "'. Use 'all' or comma-separated values from: ", paste(allowed[-1], collapse = ", ")))
         }
     }
+    if (!args$balance %in% c("probe", "icr")) {
+        errors <- c(errors, paste0("ERROR: Invalid --balance '", args$balance, "'. Must be one of: probe, icr"))
+    }
     if (!args$`infinium-type` %in% c("all", "I", "II", "balanced")) {
         errors <- c(errors, paste0("ERROR: Invalid --infinium-type '", args$`infinium-type`,
                                    "'. Must be one of: all, I, II, balanced"))
@@ -251,7 +262,9 @@ tryCatch({
         reference_group = if (is.na(args$`reference-group`)) NULL else trimws(strsplit(args$`reference-group`, ",")[[1]]),
         reference_file = if (is.na(args$`reference-file`)) NULL else normalizePath(args$`reference-file`, winslash = "/"),
         infinium_type = args$`infinium-type`,
-        dmr_type = if (is.na(args$`dmr-type`)) NULL else trimws(strsplit(args$`dmr-type`, ",")[[1]])
+        dmr_type = if (is.na(args$`dmr-type`)) NULL else trimws(strsplit(args$`dmr-type`, ",")[[1]]),
+        balance = args$balance,
+        icr = isTRUE(args$icr)
     )
 }
 
@@ -595,6 +608,8 @@ tryCatch({
                 reference_group = scoring$reference_group,
                 reference_beta = scoring$reference_file,
                 dmr_type = scoring$dmr_type,
+                balance = if (is.null(scoring$balance)) "probe" else scoring$balance,
+                icr = isTRUE(scoring$icr),
                 infinium_type = if (is.null(scoring$infinium_type)) "all" else scoring$infinium_type
             )
         })
@@ -682,7 +697,8 @@ tryCatch({
 
 # Results cached before the scoring options existed used the defaults.
 .same_scoring <- function(cached, requested) {
-    defaults <- list(reference_group = NULL, reference_file = NULL, infinium_type = "all", dmr_type = NULL)
+    defaults <- list(reference_group = NULL, reference_file = NULL, infinium_type = "all", dmr_type = NULL,
+                     balance = "probe", icr = FALSE)
     fill <- function(x) utils::modifyList(defaults, if (is.null(x)) list() else x)
     identical(fill(cached)[names(defaults)], fill(requested)[names(defaults)])
 }
@@ -1124,14 +1140,22 @@ tryCatch({
     write.table(result_list[[result_name]], result_file, sep = "\t", quote = FALSE,
                 row.names = FALSE, col.names = TRUE)
 
+    # Per-ICR table and multi-locus summary (--icr).
+    icr_names <- intersect(paste0(c("ICRStatus.", "ICRSummary."), probeset), names(result_list))
+    icr_files <- file.path(outdir, paste0(artifact_prefix, "_results_", icr_names, ".tsv"))
+    for (k in seq_along(icr_names)) {
+        write.table(result_list[[icr_names[k]]], icr_files[k], sep = "\t", quote = FALSE,
+                    row.names = FALSE, col.names = TRUE)
+    }
+
     if (isTRUE(save_rds)) {
         saveRDS(.strip_plot_payload(imp_set), imprintome_rds)
     }
 
     manifest <- data.frame(
-        category = c("results", if (isTRUE(save_rds)) "data" else character()),
-        name = c(result_name, if (isTRUE(save_rds)) "ImprintomeSet" else character()),
-        file = c(result_file, if (isTRUE(save_rds)) imprintome_rds else character()),
+        category = c("results", rep("results", length(icr_names)), if (isTRUE(save_rds)) "data" else character()),
+        name = c(result_name, icr_names, if (isTRUE(save_rds)) "ImprintomeSet" else character()),
+        file = c(result_file, icr_files, if (isTRUE(save_rds)) imprintome_rds else character()),
         status = "written",
         stringsAsFactors = FALSE
     )

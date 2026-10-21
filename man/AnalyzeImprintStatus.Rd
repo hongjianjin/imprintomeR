@@ -15,7 +15,9 @@ AnalyzeImprintStatus(
   reference_group = NULL,
   reference_samples = NULL,
   reference_beta = NULL,
-  infinium_type = c("all", "I", "II", "balanced")
+  infinium_type = c("all", "I", "II", "balanced"),
+  balance = c("probe", "icr"),
+  min_probes = 3L
 )
 }
 \arguments{
@@ -92,12 +94,27 @@ type I and type II probes, then average them.
 
 Anything other than \code{"all"} requires an \code{INFINIUM_DESIGN_TYPE} column in
 the probeset.}
+
+\item{balance}{How probes are pooled into each parental class:
+\itemize{
+\item \code{"probe"} (default): the median over all probes of the class, so that
+probe-rich ICRs weigh more;
+\item \code{"icr"}: ICR-balanced, the median within each ICR (see
+\code{\link[=AnalyzeICRStatus]{AnalyzeICRStatus()}}) followed by the median across the class's ICRs, so
+that each ICR counts once. Requires an \code{ICR_name} column; probes outside
+annotated ICRs are not used. Cannot be combined with
+\code{infinium_type = "balanced"}.
+}}
+
+\item{min_probes}{Minimum number of probes for an ICR to count when
+\code{balance = "icr"} (default 3).}
 }
 \value{
 Data frame with sample-level imprinting metrics and labels.
 \code{paternal_deviation} and \code{maternal_deviation} are the coordinates that IDS
 and Angle are computed from. \code{reference} and \code{n_reference_samples} describe
-the reference used.
+the reference used. \code{balance} records the pooling, and \code{n_paternal_icrs} /
+\code{n_maternal_icrs} the numbers of ICRs used when \code{balance = "icr"}.
 }
 \description{
 Computes maternal/paternal medians, IDS, angle, mechanism, status, and

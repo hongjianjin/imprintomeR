@@ -43,6 +43,7 @@ Package data files are shipped under `inst/extdata/`.
   - [Step 2: Create Analysis Container (ImprintomeSet)](#step-2-create-analysis-container-imprintomeset)
   - [Step 3: Run Imprinting Analysis](#step-3-run-imprinting-analysis)
     - [Reference centring and Infinium design types](#reference-centring-and-infinium-design-types)
+    - [Per-ICR scores and ICR-balanced IDS](#per-icr-scores-and-icr-balanced-ids)
   - [Step 4: Summarize, Visualize, Export](#step-4-7-summarize-visualize-export)
 - [Detailed Examples](#detailed-examples)
   - [MethQcSet: Platform-Specific Preprocessing](#methqcset-platform-specific-preprocessing)
@@ -303,6 +304,28 @@ x <- runImprintome(x, probeset = "chr11p15", reference_beta = ref)
 ```
 
 From the command line: `--reference-group control`, `--reference-file adrenal_reference.rds`, and `--infinium-type balanced`.
+
+#### Per-ICR scores and ICR-balanced IDS
+
+The sample-level IDS pools all probes of a parental class, so probe-rich ICRs dominate it and single-locus or single-chromosome defects can be missed. Three complementary views are available:
+
+- **Per-ICR deviations** (`AnalyzeICRStatus()`): for every sample and ICR with at least 3 probes, the median of (beta − reference) over the ICR's probes. Each ICR has one parental origin, so its deviation is a gain or loss on one axis.
+  - **Altered call:** |deviation| ≥ 0.15, plus |z| ≥ 3 against the controls when controls are given (`reference_group`/`control_group`).
+  - **Summary:** `SummarizeICRStatus()` counts altered ICRs per sample and flags multi-locus imprinting disturbance (`MLID`) when altered ICRs lie on at least two chromosomes.
+  - **Heatmap:** `PlotICRHeatmap()` draws samples × ICRs.
+- **ICR-balanced IDS/Angle** (`balance = "icr"`): the median within each ICR, then the median across the class's ICRs, so that each ICR counts once.
+- **Locus panels** (`chr11p15`, `chr20q13`): two-axis IDS/Angle for a single imprinted domain.
+
+```r
+icr <- AnalyzeICRStatus(x, probeset = "selected", reference_group = "control")
+SummarizeICRStatus(icr)                       # altered ICRs and MLID flag per sample
+PlotICRHeatmap(icr, outFile = "icr_heatmap.pdf")
+
+x <- runImprintome(x, probeset = "selected", balance = "icr", icr = TRUE)
+# results: AnalyzeImprintStatus.selected.icr, ICRStatus.selected, ICRSummary.selected
+```
+
+From the command line: `--icr` writes the per-ICR table and summary, and `--balance icr` the ICR-balanced IDS.
 
 ### Step 4-7: Summarize, Visualize, Export
 

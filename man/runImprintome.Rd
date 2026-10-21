@@ -16,6 +16,11 @@
   reference_samples = NULL,
   reference_beta = NULL,
   infinium_type = c("all", "I", "II", "balanced"),
+  balance = c("probe", "icr"),
+  min_probes = 3L,
+  icr = FALSE,
+  delta_cutoff = 0.15,
+  z_cutoff = 3,
   ...
 )
 }
@@ -44,6 +49,21 @@ fixed 0.5 reference only when no controls are available.}
 
 \item{infinium_type}{Infinium design types to score (\code{"all"}, \code{"I"}, \code{"II"}
 or \code{"balanced"}), passed to \code{AnalyzeImprintStatus()}.}
+
+\item{balance}{\code{"probe"} (default) or \code{"icr"} for the ICR-balanced
+sample-level IDS/Angle, passed to \code{AnalyzeImprintStatus()}; \code{"icr"} adds
+\code{.icr} to the default result name.}
+
+\item{min_probes}{Minimum probes per ICR for ICR-balanced and per-ICR
+scoring (default 3).}
+
+\item{icr}{Logical. If \code{TRUE}, also score each ICR with
+\code{\link[=AnalyzeICRStatus]{AnalyzeICRStatus()}} (all annotated ICRs, with the same reference) and
+store the per-ICR table as \verb{ICRStatus.<probeset>} and its per-sample
+multi-locus summary (\code{\link[=SummarizeICRStatus]{SummarizeICRStatus()}}) as \verb{ICRSummary.<probeset>}.}
+
+\item{delta_cutoff, z_cutoff}{Thresholds for altered-ICR calls, passed to
+\code{\link[=AnalyzeICRStatus]{AnalyzeICRStatus()}} when \code{icr = TRUE}.}
 
 \item{...}{Reserved for future compatibility.}
 }

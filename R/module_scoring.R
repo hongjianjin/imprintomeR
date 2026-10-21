@@ -358,10 +358,22 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
 #'   Anything other than `"all"` requires an `INFINIUM_DESIGN_TYPE` column in
 #'   the probeset.
 #'
+#' @param balance How probes are pooled into each parental class:
+#'   - `"probe"` (default): the median over all probes of the class, so that
+#'     probe-rich ICRs weigh more;
+#'   - `"icr"`: ICR-balanced, the median within each ICR (see
+#'     [AnalyzeICRStatus()]) followed by the median across the class's ICRs, so
+#'     that each ICR counts once. Requires an `ICR_name` column; probes outside
+#'     annotated ICRs are not used. Cannot be combined with
+#'     `infinium_type = "balanced"`.
+#' @param min_probes Minimum number of probes for an ICR to count when
+#'   `balance = "icr"` (default 3).
+#'
 #' @return Data frame with sample-level imprinting metrics and labels.
 #'   `paternal_deviation` and `maternal_deviation` are the coordinates that IDS
 #'   and Angle are computed from. `reference` and `n_reference_samples` describe
-#'   the reference used.
+#'   the reference used. `balance` records the pooling, and `n_paternal_icrs` /
+#'   `n_maternal_icrs` the numbers of ICRs used when `balance = "icr"`.
 
 #' @export
 AnalyzeImprintStatus <- function(betaFile, metaFile,
@@ -373,29 +385,16 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
                                  reference_group = NULL,
                                  reference_samples = NULL,
                                  reference_beta = NULL,
-                                 infinium_type = c("all", "I", "II", "balanced")) {
-  # Support object-first usage while preserving legacy beta/meta inputs.
-  if (methods::is(betaFile, "ImprintomeSet")) {
-    if (!missing(metaFile) && !is.null(metaFile)) {
-      stop("When betaFile is an ImprintomeSet, metaFile must be missing or NULL.")
-    }
-    obj <- betaFile
-    betaFile <- beta(obj)
-    metaFile <- meta(obj)
-    genome <- obj@genome
-  }
-
-  if (missing(metaFile) || is.null(metaFile)) {
-    stop("metaFile is required unless betaFile is an ImprintomeSet.")
-  }
-
+                                 infinium_type = c("all", "I", "II", "balanced"),
+                                 balance = c("probe", "icr"),
+                                 min_probes = 3L) {
+  if (missing(metaFile)) metaFile <- NULL
   if (!is.character(probeset) || length(probeset) != 1 || is.na(probeset) || !nzchar(probeset)) {
     stop("probeset must be a single non-empty character value.")
   }
   if (!is.numeric(ids_cutoff) || length(ids_cutoff) != 1 || is.na(ids_cutoff) || !is.finite(ids_cutoff)) {
     stop("ids_cutoff must be a single finite numeric value.")
   }
-  genome <- match.arg(tolower(genome), c("hg19", "hg38"))
   if (!is.null(dmr_type) &&
       (!is.character(dmr_type) || !length(dmr_type) || anyNA(dmr_type) || any(!nzchar(dmr_type)))) {
     stop("dmr_type must be NULL or a non-empty character vector.")
@@ -405,6 +404,13 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   }
   reference <- match.arg(reference)
   infinium_type <- match.arg(infinium_type)
+  balance <- match.arg(balance)
+  if (balance == "icr" && infinium_type == "balanced") {
+    stop("infinium_type = \"balanced\" cannot be combined with balance = \"icr\"; use \"I\" or \"II\" to filter design types.")
+  }
+  if (!is.numeric(min_probes) || length(min_probes) != 1L || is.na(min_probes) || min_probes < 1) {
+    stop("min_probes must be a single positive number.")
+  }
   for (arg in c("reference_group", "reference_samples")) {
     value <- get(arg)
     if (!is.null(value) && (!is.character(value) || !length(value) || anyNA(value))) {
@@ -412,28 +418,13 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
     }
   }
 
-  # 1. Feature Alignment
-  input <- LoadMetaBeta(metaFile, betaFile, probeset = NULL)
-  meta <- input[["meta"]]
-  beta <- input[["beta"]]
-  tmp  <- SubsetBeta_By_Probeset(beta, probeset = probeset, prefix = NULL, genome = genome)
-  
-  probesets <- tmp[["probesets"]]
-  used <- tmp[["beta"]]
-  used <- na.omit(used)
+  # 1. Feature Alignment (an ImprintomeSet supplies its own beta, metadata and genome)
+  inp <- .load_scoring_input(betaFile, metaFile, probeset, genome)
+  meta <- inp$meta
+  used <- inp$used
+  probesets <- inp$probesets
+  sample_ids <- inp$sample_ids
 
-  if (is.null(used) || ncol(used) == 0) {
-    stop("No sample columns available after preprocessing.")
-  }
-
-  sample_ids <- intersect(meta$Sample_Name, colnames(used))
-  if (length(sample_ids) == 0) {
-    stop("No overlapping samples between metadata and processed beta matrix.")
-  }
-  meta <- meta[sample_ids, , drop = FALSE]
-  used <- used[, sample_ids, drop = FALSE]
-
-  .validate_probeset_annotation(probesets, probeset)
   if (is.null(dmr_type)) {
     # Panel default: gametic ICRs for the core panel when it is DMR-type annotated.
     dmr_type <- .default_dmr_type(probeset)
@@ -488,8 +479,27 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   design_of <- function(probes) {
     if (infinium_type == "balanced") probesets$INFINIUM_DESIGN_TYPE[match(probes, probesets$NAME)] else NULL
   }
-  mat_dev <- .class_deviation(maternal_beta, maternal_ref, design_of(maternal_probes))
-  pat_dev <- .class_deviation(paternal_beta, paternal_ref, design_of(paternal_probes))
+  n_mat_icrs <- n_pat_icrs <- NA_integer_
+  if (balance == "probe") {
+    mat_dev <- .class_deviation(maternal_beta, maternal_ref, design_of(maternal_probes))
+    pat_dev <- .class_deviation(paternal_beta, paternal_ref, design_of(paternal_probes))
+  } else {
+    # ICR-balanced: median within each ICR, then median across the class's ICRs.
+    if (!"ICR_name" %in% colnames(probesets)) {
+      stop("Probeset '", probeset, "' has no ICR_name column; balance = \"icr\" is unavailable.")
+    }
+    icr_of <- function(probes) probesets$ICR_name[match(probes, probesets$NAME)]
+    mat <- .balanced_deviation(maternal_beta, maternal_ref, icr_of(maternal_probes), min_probes)
+    pat <- .balanced_deviation(paternal_beta, paternal_ref, icr_of(paternal_probes), min_probes)
+    if (!mat$n_icrs || !pat$n_icrs) {
+      stop("Probeset '", probeset, "' (dmr_type: ", dmr_label, ") has no maternal or no paternal ICR with at least ",
+           min_probes, " matched probes; balance = \"icr\" is unavailable.")
+    }
+    mat_dev <- stats::setNames(mat$deviation, colnames(maternal_beta))
+    pat_dev <- stats::setNames(pat$deviation, colnames(paternal_beta))
+    n_mat_icrs <- mat$n_icrs
+    n_pat_icrs <- pat$n_icrs
+  }
 
   # 3. Euclidean Distance (IDS) calculation (same as compute_ids() on deviations)
   ids <- sqrt(pat_dev^2 + mat_dev^2)
@@ -523,6 +533,9 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
     n_reference_samples = ref$n,
     n_paternal_probes = length(paternal_probes),
     n_maternal_probes = length(maternal_probes),
+    balance         = balance,
+    n_paternal_icrs = n_pat_icrs,
+    n_maternal_icrs = n_mat_icrs,
     paternal_median = round(pat_med, 3),
     maternal_median = round(mat_med, 3),
     paternal_deviation = round(pat_dev, 3),
