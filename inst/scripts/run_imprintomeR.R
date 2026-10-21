@@ -48,6 +48,15 @@ option_list <- list(
     make_option(c("--genome"), type = "character", default = "hg38",
         help = "Genome version for probeset loading (hg19, hg38) [default: %default]"),
 
+    make_option(c("--reference-group"), type = "character", default = NA,
+        help = "Comma-separated Sample_Group value(s) used as in-cohort controls for reference centring [default: none]"),
+
+    make_option(c("--reference-file"), type = "character", default = NA,
+        help = "External control reference: a beta matrix file or an .rds from BuildReferenceProfile(). Without any controls the fixed 0.5 reference is used [default: none]"),
+
+    make_option(c("--infinium-type"), type = "character", default = "all",
+        help = "Infinium probe design types to score: all, I, II, balanced [default: %default]"),
+
     make_option(c("--radar-all"), type = "logical", default = NULL,
         help = "Generate one multipage radar PDF for all samples when TRUE [default: NULL]"),
 
@@ -78,7 +87,9 @@ parser <- OptionParser(
         "  # From beta + metadata files:\n",
         "  Rscript run_imprintomeR.R -b /data/beta.txt -m /data/meta.txt -o analysis --plot-types polar,heatmap_by_gene\n\n",
         "  # All plots, custom probeset and IDS cutoff:\n",
-        "  Rscript run_imprintomeR.R -r qcset.rds -o analysis --plot-types all --probeset Joshi --ids-cutoff 0.3 -v\n",
+        "  Rscript run_imprintomeR.R -r qcset.rds -o analysis --plot-types all --probeset Joshi --ids-cutoff 0.3 -v\n\n",
+        "  # Centre on in-cohort controls and balance Infinium I/II probes:\n",
+        "  Rscript run_imprintomeR.R -r qcset.rds -o analysis --reference-group control --infinium-type balanced\n",
         sep = ""
     )
 )
@@ -205,10 +216,31 @@ tryCatch({
         }
     }
 
+    if (!args$`infinium-type` %in% c("all", "I", "II", "balanced")) {
+        errors <- c(errors, paste0("ERROR: Invalid --infinium-type '", args$`infinium-type`,
+                                   "'. Must be one of: all, I, II, balanced"))
+    }
+    if (!is.na(args$`reference-group`) && !is.na(args$`reference-file`)) {
+        errors <- c(errors, "ERROR: Use either --reference-group or --reference-file, not both")
+    }
+    if (!is.na(args$`reference-file`) && !file.exists(args$`reference-file`)) {
+        errors <- c(errors, paste0("ERROR: Reference file not found: ", args$`reference-file`))
+    }
+
     if (length(errors) > 0) {
         for (err in errors) cat(err, "\n")
         stop("Validation failed. See errors above.")
     }
+}
+
+# Scoring options passed to runImprintome(). They are also stored with cached results
+# so that a rerun with different options recomputes the analysis.
+.scoring_options <- function(args) {
+    list(
+        reference_group = if (is.na(args$`reference-group`)) NULL else trimws(strsplit(args$`reference-group`, ",")[[1]]),
+        reference_file = if (is.na(args$`reference-file`)) NULL else normalizePath(args$`reference-file`, winslash = "/"),
+        infinium_type = args$`infinium-type`
+    )
 }
 
 .load_input_data <- function(beta_file, meta_file, rds_file, verbose = FALSE) {
@@ -537,7 +569,7 @@ tryCatch({
 # PHASE 4: CORE ANALYSIS (runImprintome)
 # ============================================================================
 
-.run_core_analysis <- function(imp_set, probeset, ids_cutoff, verbose = FALSE) {
+.run_core_analysis <- function(imp_set, probeset, ids_cutoff, scoring = list(), verbose = FALSE) {
     if (verbose) .log_message("Running imprinting analysis...", verbose = verbose)
 
     imp_set_analyzed <- tryCatch({
@@ -545,7 +577,13 @@ tryCatch({
             # CRITICAL: Pass probeset name to runImprintome() to determine result name
             # probeset parameter controls BOTH which probes filter results AND the result name
             # Result will be stored as "AnalyzeImprintStatus.{probeset}"
-            runImprintome(imp_set, probeset = probeset, ids_cutoff = ids_cutoff)
+            runImprintome(
+                imp_set, probeset = probeset, ids_cutoff = ids_cutoff,
+                result_name = paste0("AnalyzeImprintStatus.", probeset),
+                reference_group = scoring$reference_group,
+                reference_beta = scoring$reference_file,
+                infinium_type = if (is.null(scoring$infinium_type)) "all" else scoring$infinium_type
+            )
         })
     }, error = function(e) {
         stop("Imprinting analysis failed: ", conditionMessage(e))
@@ -557,7 +595,8 @@ tryCatch({
         attr(result_list[[result_name]], "imprintomeR_cache") <- list(
             probeset = probeset,
             genome = as.character(imp_set_analyzed@genome)[1],
-            ids_cutoff = as.numeric(ids_cutoff)[1]
+            ids_cutoff = as.numeric(ids_cutoff)[1],
+            scoring = scoring
         )
         results(imp_set_analyzed) <- result_list
     }
@@ -595,7 +634,7 @@ tryCatch({
     imp_set
 }
 
-.cached_result_matches <- function(imp_set, probeset, genome, ids_cutoff) {
+.cached_result_matches <- function(imp_set, probeset, genome, ids_cutoff, scoring = list()) {
     if (!identical(tolower(as.character(imp_set@genome)[1]), tolower(genome))) {
         return(FALSE)
     }
@@ -610,7 +649,15 @@ tryCatch({
     is.list(cache_info) &&
         identical(cache_info$probeset, probeset) &&
         identical(tolower(cache_info$genome), tolower(genome)) &&
-        isTRUE(all.equal(as.numeric(cache_info$ids_cutoff), as.numeric(ids_cutoff)))
+        isTRUE(all.equal(as.numeric(cache_info$ids_cutoff), as.numeric(ids_cutoff))) &&
+        .same_scoring(cache_info$scoring, scoring)
+}
+
+# Results cached before the scoring options existed used the defaults.
+.same_scoring <- function(cached, requested) {
+    defaults <- list(reference_group = NULL, reference_file = NULL, infinium_type = "all")
+    fill <- function(x) utils::modifyList(defaults, if (is.null(x)) list() else x)
+    identical(fill(cached)[names(defaults)], fill(requested)[names(defaults)])
 }
 
 # ============================================================================
@@ -1211,7 +1258,7 @@ main <- function() {
             requested_result <- paste0("AnalyzeImprintStatus.", args$probeset)
 
             if (.cached_result_matches(
-                imp_set, args$probeset, args$genome, args$`ids-cutoff`
+                imp_set, args$probeset, args$genome, args$`ids-cutoff`, .scoring_options(args)
             )) {
                 imp_set <- .activate_probeset(
                     imp_set, args$probeset, args$genome, verbose = args$verbose
@@ -1234,6 +1281,7 @@ main <- function() {
                     imp_set,
                     probeset = args$probeset,
                     ids_cutoff = args$`ids-cutoff`,
+                    scoring = .scoring_options(args),
                     verbose = args$verbose
                 )
 
@@ -1295,6 +1343,7 @@ main <- function() {
                 imp_set,
                 probeset = args$probeset,
                 ids_cutoff = args$`ids-cutoff`,
+                scoring = .scoring_options(args),
                 verbose = args$verbose
             )
 

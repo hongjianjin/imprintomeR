@@ -10,6 +10,12 @@
   probeset = "selected",
   ids_cutoff = 0.2,
   result_name = NULL,
+  dmr_type = NULL,
+  reference = c("auto", "controls", "fixed"),
+  reference_group = NULL,
+  reference_samples = NULL,
+  reference_beta = NULL,
+  infinium_type = c("all", "I", "II", "balanced"),
   ...
 )
 }
@@ -21,6 +27,19 @@
 \item{ids_cutoff}{Numeric IDS cutoff passed to \code{AnalyzeImprintStatus()}.}
 
 \item{result_name}{Optional name for storing output in \code{results(x)}.}
+
+\item{dmr_type}{Optional character vector of \code{DMR_type} values passed to
+\code{AnalyzeImprintStatus()}, for example \code{"gametic"}. \code{NULL} (default)
+scores all probes.}
+
+\item{reference, reference_group, reference_samples, reference_beta}{Reference
+centring options passed to \code{AnalyzeImprintStatus()}. By default (\code{"auto"}),
+external controls (\code{reference_beta}) or in-cohort controls
+(\code{reference_group}/\code{reference_samples}) are used when supplied, and the
+fixed 0.5 reference only when no controls are available.}
+
+\item{infinium_type}{Infinium design types to score (\code{"all"}, \code{"I"}, \code{"II"}
+or \code{"balanced"}), passed to \code{AnalyzeImprintStatus()}.}
 
 \item{...}{Reserved for future compatibility.}
 }

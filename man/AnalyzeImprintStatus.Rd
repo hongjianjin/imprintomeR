@@ -10,7 +10,12 @@ AnalyzeImprintStatus(
   probeset = probeset_options,
   ids_cutoff = 0.2,
   genome = "hg38",
-  dmr_type = NULL
+  dmr_type = NULL,
+  reference = c("auto", "controls", "fixed"),
+  reference_group = NULL,
+  reference_samples = NULL,
+  reference_beta = NULL,
+  infinium_type = c("all", "I", "II", "balanced")
 )
 }
 \arguments{
@@ -33,9 +38,57 @@ genome is used.}
 for example \code{"gametic"} to restrict scoring to gametic ICRs or
 \code{"secondary"} for secondary DMRs. Requires a \code{DMR_type} column in the
 probeset. \code{NULL} (default) scores all probes.}
+
+\item{reference}{How the balanced reference state is defined.
+\itemize{
+\item \code{"auto"} (default): use control samples when they are supplied, either
+external (\code{reference_beta}) or in-cohort (\code{reference_group}/
+\code{reference_samples}). Fall back to the fixed 0.5 only when no controls are
+given, or when fewer than 3 are available (with a warning).
+\item \code{"controls"}: require a control reference; too few controls is an error.
+\item \code{"fixed"}: always use 0.5, the original behaviour.
+}
+
+With controls, each probe's reference is the median beta of that probe
+across the controls. Paternal and maternal deviations are medians of
+\code{beta - reference}, and IDS and Angle are computed from these deviations
+instead of from \code{median - 0.5}.}
+
+\item{reference_group}{Optional \code{Sample_Group} value(s) whose samples form an
+in-cohort control reference. Each control is itself scored against the
+other controls (leave-one-out).}
+
+\item{reference_samples}{Optional character vector of in-cohort control sample
+names, used instead of \code{reference_group}.}
+
+\item{reference_beta}{Optional external control reference, used when the
+cohort has no (or too few) controls. It can be one of:
+\itemize{
+\item a probe-by-sample beta matrix or data frame;
+\item a beta file path;
+\item a per-probe profile from \code{\link[=BuildReferenceProfile]{BuildReferenceProfile()}}, given as the object or
+as an \code{.rds} path.
+}
+
+It should match the cohort's tissue, array type and preprocessing. Probes
+absent from the reference are dropped.}
+
+\item{infinium_type}{Infinium probe design types to score:
+\itemize{
+\item \code{"all"} (default): all probes;
+\item \code{"I"} or \code{"II"}: only that design type;
+\item \code{"balanced"}: compute each parental-class deviation separately within
+type I and type II probes, then average them.
+}
+
+Anything other than \code{"all"} requires an \code{INFINIUM_DESIGN_TYPE} column in
+the probeset.}
 }
 \value{
 Data frame with sample-level imprinting metrics and labels.
+\code{paternal_deviation} and \code{maternal_deviation} are the coordinates that IDS
+and Angle are computed from. \code{reference} and \code{n_reference_samples} describe
+the reference used.
 }
 \description{
 Computes maternal/paternal medians, IDS, angle, mechanism, status, and

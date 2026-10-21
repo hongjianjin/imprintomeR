@@ -179,3 +179,24 @@ test_that("MEG8:Int2-DMR probes are maternal in every panel and build", {
   }
   expect_equal(a$hg19$selected$ICR_name[a$hg19$selected$NAME == "cg06804177"], "MEG8:Int2-DMR")
 })
+
+test_that("probe-level panels carry INFINIUM_DESIGN_TYPE from the probe annotation", {
+  if (!nzchar(.annotation_root)) skip("Probeset annotation sources not available")
+  a <- .read_annotation()
+  anno <- readRDS(file.path(.annotation_root, "inst", "extdata", "anno.uniq_harmonized.liftover.rds"))
+  probe_panels <- c("Jima", "Joshi", "Court", "Rosenski", "selected", "NanoImprint", "chr11p15")
+  for (build in c("hg19", "hg38")) {
+    for (panel in probe_panels) {
+      p <- a[[build]][[panel]]
+      expect_true("INFINIUM_DESIGN_TYPE" %in% colnames(p), info = paste(panel, build))
+      expect_true(all(p$INFINIUM_DESIGN_TYPE %in% c("I", "II")), info = paste(panel, build))
+      expect_equal(p$INFINIUM_DESIGN_TYPE, anno$INFINIUM_DESIGN_TYPE[match(p$NAME, anno$NAME)],
+                   info = paste(panel, build))
+    }
+    for (panel in c("Rosenski_region", "chr11p15_region")) {
+      expect_false("INFINIUM_DESIGN_TYPE" %in% colnames(a[[build]][[panel]]), info = paste(panel, build))
+    }
+  }
+  sel <- a$hg38$selected
+  expect_equal(as.integer(table(sel$INFINIUM_DESIGN_TYPE)), c(290L, 492L))
+})

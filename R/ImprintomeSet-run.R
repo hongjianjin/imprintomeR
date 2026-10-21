@@ -10,6 +10,13 @@
 #' @param dmr_type Optional character vector of `DMR_type` values passed to
 #'   `AnalyzeImprintStatus()`, for example `"gametic"`. `NULL` (default)
 #'   scores all probes.
+#' @param reference,reference_group,reference_samples,reference_beta Reference
+#'   centring options passed to `AnalyzeImprintStatus()`. By default (`"auto"`),
+#'   external controls (`reference_beta`) or in-cohort controls
+#'   (`reference_group`/`reference_samples`) are used when supplied, and the
+#'   fixed 0.5 reference only when no controls are available.
+#' @param infinium_type Infinium design types to score (`"all"`, `"I"`, `"II"`
+#'   or `"balanced"`), passed to `AnalyzeImprintStatus()`.
 #' @param ... Reserved for future compatibility.
 #'
 #' @return Updated `ImprintomeSet` object with analysis table stored in
@@ -59,7 +66,10 @@ if (!methods::isGeneric("runImprintome")) {
 methods::setMethod(
   "runImprintome",
   signature(x = "ImprintomeSet"),
-  function(x, probeset = "selected", ids_cutoff = 0.2, result_name = NULL, dmr_type = NULL, ...) {
+  function(x, probeset = "selected", ids_cutoff = 0.2, result_name = NULL, dmr_type = NULL,
+           reference = c("auto", "controls", "fixed"), reference_group = NULL,
+           reference_samples = NULL, reference_beta = NULL,
+           infinium_type = c("all", "I", "II", "balanced"), ...) {
     methods::validObject(x)
 
     # Convert beta matrix to data frame with TargetID column (required by LoadBeta)
@@ -72,7 +82,12 @@ methods::setMethod(
       probeset = probeset,
       ids_cutoff = ids_cutoff,
       genome = genome(x),
-      dmr_type = dmr_type
+      dmr_type = dmr_type,
+      reference = reference,
+      reference_group = reference_group,
+      reference_samples = reference_samples,
+      reference_beta = reference_beta,
+      infinium_type = infinium_type
     )
 
     current_results <- results(x)
@@ -80,6 +95,13 @@ methods::setMethod(
       result_name <- paste0("AnalyzeImprintStatus.", probeset)
       if (!is.null(dmr_type)) {
         result_name <- paste0(result_name, ".", paste(dmr_type, collapse = "+"))
+      }
+      # Suffixes only for non-default choices, so default result names are unchanged.
+      if (!startsWith(analysis_table$reference[1], "fixed")) {
+        result_name <- paste0(result_name, ".ref-controls")
+      }
+      if (analysis_table$infinium_type[1] != "all") {
+        result_name <- paste0(result_name, ".type", analysis_table$infinium_type[1])
       }
     }
     current_results[[result_name]] <- analysis_table

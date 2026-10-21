@@ -102,28 +102,33 @@ classify_mechanism <- function(angle_degrees, ids = NULL, roi_cutoff = 0.2) {
 #' Compute Allelic Consistency Metrics Per Sample
 #'
 #' Calculates paternal/maternal concordance and average consistency for each
-#' sample based on direction relative to 0.5.
+#' sample based on direction relative to a reference (0.5 by default).
 #'
 #' @param paternal_beta Numeric matrix/data frame of paternal probes (rows) by
 #'   samples (columns).
 #' @param maternal_beta Numeric matrix/data frame of maternal probes (rows) by
 #'   samples (columns).
 #' @param sample_ids Character vector of sample IDs to evaluate.
+#' @param paternal_reference,maternal_reference Reference methylation that
+#'   direction is measured against: a scalar (default `0.5`), a per-probe
+#'   vector, or a probe-by-sample matrix with the same layout as the beta input.
 #'
 #' @return Data frame with columns `pat_cons`, `mat_cons`, and `consistency`.
 #' @export
-compute_consistency <- function(paternal_beta, maternal_beta, sample_ids) {
+compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
+                                paternal_reference = 0.5, maternal_reference = 0.5) {
+  ref_column <- function(ref, sid) if (is.matrix(ref)) ref[, sid] else ref
   consistency_scores <- t(sapply(sample_ids, function(sid) {
     p_vals <- paternal_beta[, sid]
     m_vals <- maternal_beta[, sid]
+    p_dev <- p_vals - ref_column(paternal_reference, sid)
+    m_dev <- m_vals - ref_column(maternal_reference, sid)
 
-    p_med <- median(p_vals, na.rm = TRUE)
-    m_med <- median(m_vals, na.rm = TRUE)
-    p_dir <- if (p_med > 0.5) 1 else -1
-    m_dir <- if (m_med > 0.5) 1 else -1
+    p_dir <- if (median(p_dev, na.rm = TRUE) > 0) 1 else -1
+    m_dir <- if (median(m_dev, na.rm = TRUE) > 0) 1 else -1
 
-    p_concordance <- if (length(p_vals) > 0) sum((p_vals - 0.5) * p_dir >= 0, na.rm = TRUE) / length(p_vals) else 1
-    m_concordance <- if (length(m_vals) > 0) sum((m_vals - 0.5) * m_dir >= 0, na.rm = TRUE) / length(m_vals) else 1
+    p_concordance <- if (length(p_vals) > 0) sum(p_dev * p_dir >= 0, na.rm = TRUE) / length(p_vals) else 1
+    m_concordance <- if (length(m_vals) > 0) sum(m_dev * m_dir >= 0, na.rm = TRUE) / length(m_vals) else 1
 
     c(
       pat_cons = p_concordance,
@@ -133,6 +138,149 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids) {
   }))
 
   as.data.frame(consistency_scores)
+}
+
+
+#================================================================
+# Reference centring helpers
+
+.min_reference_samples <- 3L
+.recommended_reference_samples <- 5L
+
+# Per-probe medians of a probe-by-sample matrix, keeping probe names.
+.row_medians <- function(x) {
+  stats::setNames(matrixStats::rowMedians(as.matrix(x), na.rm = TRUE), rownames(x))
+}
+
+# Turn an external reference (beta matrix/data frame, file path, or a profile from
+# BuildReferenceProfile()) into a named per-probe vector with attribute n_samples.
+.as_reference_profile <- function(reference_beta) {
+  if (is.character(reference_beta) && length(reference_beta) == 1L &&
+      grepl("\\.rds$", reference_beta, ignore.case = TRUE) && file.exists(reference_beta)) {
+    reference_beta <- readRDS(reference_beta)
+  }
+  if (is.numeric(reference_beta) && is.null(dim(reference_beta))) {
+    if (is.null(names(reference_beta)) || anyNA(names(reference_beta))) {
+      stop("A reference profile must be a numeric vector named by probe ID.")
+    }
+    profile <- reference_beta[!is.na(reference_beta)]
+    attr(profile, "n_samples") <- attr(reference_beta, "n_samples", exact = TRUE)
+    return(profile)
+  }
+  ref <- LoadBeta(reference_beta)
+  ref <- ref[, vapply(ref, is.numeric, logical(1)), drop = FALSE]
+  if (!ncol(ref)) stop("reference_beta has no numeric sample columns.")
+  profile <- .row_medians(ref)
+  profile <- profile[!is.na(profile)]
+  attr(profile, "n_samples") <- ncol(ref)
+  profile
+}
+
+# Resolve the per-probe reference as a probe-by-sample matrix aligned to `used`.
+# Order of preference: external controls, then in-cohort controls, then the fixed
+# 0.5 (used only when no controls are available, unless reference = "fixed").
+.resolve_reference <- function(used, meta, reference, reference_group, reference_samples, reference_beta) {
+  fixed <- list(matrix = NULL, label = "fixed (0.5)", n = rep(0L, ncol(used)), probes = rownames(used))
+  has_external <- !is.null(reference_beta)
+  has_internal <- !is.null(reference_group) || !is.null(reference_samples)
+  if (!is.null(reference_group) && !is.null(reference_samples)) {
+    stop("Supply either reference_group or reference_samples, not both.")
+  }
+  if (has_external && has_internal) {
+    stop("Supply either an external reference (reference_beta) or in-cohort controls ",
+         "(reference_group/reference_samples), not both.")
+  }
+  if (reference == "fixed") {
+    if (has_external || has_internal) warning("reference = \"fixed\": supplied controls are ignored and 0.5 is used.")
+    return(fixed)
+  }
+  if (!has_external && !has_internal) {
+    if (reference == "controls") {
+      stop("reference = \"controls\" requires reference_group, reference_samples or reference_beta.")
+    }
+    return(fixed)
+  }
+
+  # Too few controls: an error when controls were demanded, otherwise fall back to 0.5.
+  too_few <- function(n, what) {
+    msg <- paste0(what, " has ", n, " sample(s); at least ", .min_reference_samples,
+                  " are needed for a control reference")
+    if (reference == "controls") stop(msg, ".")
+    warning(msg, "; falling back to the fixed 0.5 reference.")
+    fixed
+  }
+  few <- function(n) {
+    if (n < .recommended_reference_samples) {
+      warning("Control reference built from ", n, " samples; at least ",
+              .recommended_reference_samples, " tissue-matched controls are recommended.")
+    }
+  }
+
+  if (has_external) {
+    profile <- .as_reference_profile(reference_beta)
+    n_ref <- attr(profile, "n_samples", exact = TRUE)
+    if (!is.null(n_ref) && n_ref < .min_reference_samples) return(too_few(n_ref, "reference_beta"))
+    if (!is.null(n_ref)) few(n_ref)
+    probes <- intersect(rownames(used), names(profile))
+    if (!length(probes)) stop("reference_beta shares no probes with the scored probeset.")
+    dropped <- nrow(used) - length(probes)
+    if (dropped) message("[AnalyzeImprintStatus] ", dropped, " probe(s) absent from reference_beta were dropped.")
+    ref <- matrix(profile[probes], nrow = length(probes), ncol = ncol(used),
+                  dimnames = list(probes, colnames(used)))
+    n_lab <- if (is.null(n_ref)) "" else paste0(", n=", n_ref)
+    return(list(matrix = ref, label = paste0("external controls", n_lab),
+                n = rep(if (is.null(n_ref)) NA_integer_ else as.integer(n_ref), ncol(used)), probes = probes))
+  }
+
+  if (!is.null(reference_samples)) {
+    unknown <- setdiff(reference_samples, colnames(used))
+    if (length(unknown)) {
+      stop("reference_samples not found among scored samples: ", paste(unknown, collapse = ", "))
+    }
+    controls <- unique(reference_samples)
+    what <- "reference_samples"
+  } else {
+    if (!"Sample_Group" %in% colnames(meta)) stop("reference_group requires a Sample_Group column in the metadata.")
+    controls <- intersect(meta$Sample_Name[meta$Sample_Group %in% reference_group], colnames(used))
+    what <- paste0("reference_group '", paste(reference_group, collapse = "+"), "'")
+  }
+  if (length(controls) < .min_reference_samples) return(too_few(length(controls), what))
+  few(length(controls))
+
+  # Non-control samples share the median over all controls. Each control is scored
+  # against the median of the other controls (leave-one-out), not against itself.
+  base <- .row_medians(used[, controls, drop = FALSE])
+  ref <- matrix(base, nrow = nrow(used), ncol = ncol(used), dimnames = dimnames(used))
+  n <- rep(length(controls), ncol(used))
+  names(n) <- colnames(used)
+  for (sid in controls) {
+    ref[, sid] <- .row_medians(used[, setdiff(controls, sid), drop = FALSE])
+    n[sid] <- length(controls) - 1L
+  }
+  list(matrix = ref, label = paste0("in-cohort controls, n=", length(controls)),
+       n = unname(n), probes = rownames(used))
+}
+
+# Per-sample deviation of one parental class from its reference: the median over
+# probes of (beta - reference). With the fixed reference this is median(beta) - 0.5.
+# With `design`, the deviation is computed within Infinium type I and type II probes
+# separately and the two are averaged, so type composition does not drive the score.
+.class_deviation <- function(beta, ref = NULL, design = NULL) {
+  deviation <- function(rows) {
+    b <- as.matrix(beta[rows, , drop = FALSE])
+    if (is.null(ref)) {
+      apply(b, 2, median, na.rm = TRUE) - 0.5
+    } else {
+      apply(b - ref[rows, , drop = FALSE], 2, median, na.rm = TRUE)
+    }
+  }
+  if (is.null(design)) {
+    out <- deviation(rownames(beta))
+  } else {
+    per_type <- lapply(split(rownames(beta), design), deviation)
+    out <- Reduce(`+`, per_type) / length(per_type)
+  }
+  stats::setNames(out, colnames(beta))
 }
 
 
@@ -158,15 +306,57 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids) {
 #'   for example `"gametic"` to restrict scoring to gametic ICRs or
 #'   `"secondary"` for secondary DMRs. Requires a `DMR_type` column in the
 #'   probeset. `NULL` (default) scores all probes.
+#' @param reference How the balanced reference state is defined.
+#'   - `"auto"` (default): use control samples when they are supplied, either
+#'     external (`reference_beta`) or in-cohort (`reference_group`/
+#'     `reference_samples`). Fall back to the fixed 0.5 only when no controls are
+#'     given, or when fewer than 3 are available (with a warning).
+#'   - `"controls"`: require a control reference; too few controls is an error.
+#'   - `"fixed"`: always use 0.5, the original behaviour.
+#'
+#'   With controls, each probe's reference is the median beta of that probe
+#'   across the controls. Paternal and maternal deviations are medians of
+#'   `beta - reference`, and IDS and Angle are computed from these deviations
+#'   instead of from `median - 0.5`.
+#' @param reference_group Optional `Sample_Group` value(s) whose samples form an
+#'   in-cohort control reference. Each control is itself scored against the
+#'   other controls (leave-one-out).
+#' @param reference_samples Optional character vector of in-cohort control sample
+#'   names, used instead of `reference_group`.
+#' @param reference_beta Optional external control reference, used when the
+#'   cohort has no (or too few) controls. It can be one of:
+#'   - a probe-by-sample beta matrix or data frame;
+#'   - a beta file path;
+#'   - a per-probe profile from [BuildReferenceProfile()], given as the object or
+#'     as an `.rds` path.
+#'
+#'   It should match the cohort's tissue, array type and preprocessing. Probes
+#'   absent from the reference are dropped.
+#' @param infinium_type Infinium probe design types to score:
+#'   - `"all"` (default): all probes;
+#'   - `"I"` or `"II"`: only that design type;
+#'   - `"balanced"`: compute each parental-class deviation separately within
+#'     type I and type II probes, then average them.
+#'
+#'   Anything other than `"all"` requires an `INFINIUM_DESIGN_TYPE` column in
+#'   the probeset.
 #'
 #' @return Data frame with sample-level imprinting metrics and labels.
+#'   `paternal_deviation` and `maternal_deviation` are the coordinates that IDS
+#'   and Angle are computed from. `reference` and `n_reference_samples` describe
+#'   the reference used.
 
 #' @export
 AnalyzeImprintStatus <- function(betaFile, metaFile,
                                  probeset = probeset_options,
                                  ids_cutoff = 0.2,
                                  genome = "hg38",
-                                 dmr_type = NULL) {
+                                 dmr_type = NULL,
+                                 reference = c("auto", "controls", "fixed"),
+                                 reference_group = NULL,
+                                 reference_samples = NULL,
+                                 reference_beta = NULL,
+                                 infinium_type = c("all", "I", "II", "balanced")) {
   # Support object-first usage while preserving legacy beta/meta inputs.
   if (methods::is(betaFile, "ImprintomeSet")) {
     if (!missing(metaFile) && !is.null(metaFile)) {
@@ -192,6 +382,14 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   if (!is.null(dmr_type) &&
       (!is.character(dmr_type) || !length(dmr_type) || anyNA(dmr_type) || any(!nzchar(dmr_type)))) {
     stop("dmr_type must be NULL or a non-empty character vector.")
+  }
+  reference <- match.arg(reference)
+  infinium_type <- match.arg(infinium_type)
+  for (arg in c("reference_group", "reference_samples")) {
+    value <- get(arg)
+    if (!is.null(value) && (!is.character(value) || !length(value) || anyNA(value))) {
+      stop(arg, " must be NULL or a non-empty character vector.")
+    }
   }
 
   # 1. Feature Alignment
@@ -223,31 +421,54 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
     probesets <- probesets[probesets$DMR_type %in% dmr_type, , drop = FALSE]
   }
   dmr_label <- if (is.null(dmr_type)) "all" else paste(dmr_type, collapse = "+")
-  maternal_probes <- intersect(probesets$NAME[grep("maternal", probesets$ORIGIN, ignore.case = TRUE)], rownames(used))
-  paternal_probes <- intersect(probesets$NAME[grep("paternal", probesets$ORIGIN, ignore.case = TRUE)], rownames(used))
+  if (infinium_type != "all") {
+    if (!"INFINIUM_DESIGN_TYPE" %in% colnames(probesets)) {
+      stop("Probeset '", probeset, "' has no INFINIUM_DESIGN_TYPE column; infinium_type filtering is unavailable.")
+    }
+    if (infinium_type %in% c("I", "II")) {
+      probesets <- probesets[probesets$INFINIUM_DESIGN_TYPE %in% infinium_type, , drop = FALSE]
+    }
+  }
+
+  # Reference: external or in-cohort controls when supplied, otherwise 0.5.
+  ref <- .resolve_reference(used, meta, reference, reference_group, reference_samples, reference_beta)
+
+  maternal_probes <- intersect(probesets$NAME[grep("maternal", probesets$ORIGIN, ignore.case = TRUE)], ref$probes)
+  paternal_probes <- intersect(probesets$NAME[grep("paternal", probesets$ORIGIN, ignore.case = TRUE)], ref$probes)
   if (!length(maternal_probes) || !length(paternal_probes)) {
-    stop("Probeset '", probeset, "' (dmr_type: ", dmr_label,
+    stop("Probeset '", probeset, "' (dmr_type: ", dmr_label, ", infinium_type: ", infinium_type,
          ") has no matched probes for both maternal and paternal origins in the beta matrix.")
   }
   maternal_beta <- used[maternal_probes, , drop = FALSE]
   paternal_beta <- used[paternal_probes, , drop = FALSE]
+  maternal_ref <- if (is.null(ref$matrix)) NULL else ref$matrix[maternal_probes, sample_ids, drop = FALSE]
+  paternal_ref <- if (is.null(ref$matrix)) NULL else ref$matrix[paternal_probes, sample_ids, drop = FALSE]
 
   consistency_df <- compute_consistency(
     paternal_beta = paternal_beta,
     maternal_beta = maternal_beta,
-    sample_ids = sample_ids
+    sample_ids = sample_ids,
+    paternal_reference = if (is.null(paternal_ref)) 0.5 else paternal_ref,
+    maternal_reference = if (is.null(maternal_ref)) 0.5 else maternal_ref
   )
 
-  # 2. Metric Calculation (Median aggregation) 
+  # 2. Metric Calculation (Median aggregation)
   # Note: apply on 1-row matrix works correctly here
   mat_med <- apply(maternal_beta, 2, median, na.rm = TRUE)
   pat_med <- apply(paternal_beta, 2, median, na.rm = TRUE)
 
-  # 3. Euclidean Distance (IDS) calculation
-  ids <- compute_ids(pat_med, mat_med)
+  # Deviations from the reference; with the fixed reference these equal median - 0.5.
+  design_of <- function(probes) {
+    if (infinium_type == "balanced") probesets$INFINIUM_DESIGN_TYPE[match(probes, probesets$NAME)] else NULL
+  }
+  mat_dev <- .class_deviation(maternal_beta, maternal_ref, design_of(maternal_probes))
+  pat_dev <- .class_deviation(paternal_beta, paternal_ref, design_of(paternal_probes))
 
-  # 4. Directional Vector (Angle)
-  degrees <- compute_angle(pat_med, mat_med)
+  # 3. Euclidean Distance (IDS) calculation (same as compute_ids() on deviations)
+  ids <- sqrt(pat_dev^2 + mat_dev^2)
+
+  # 4. Directional Vector (Angle) (same as compute_angle() on deviations)
+  degrees <- (atan2(mat_dev, pat_dev) * 180 / pi + 360) %% 360
 
   # 5. Define directional categories
   mechanism <- classify_mechanism(degrees)
@@ -270,10 +491,15 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
     meta_selected,
     probeset        = probeset,
     dmr_type        = dmr_label,
+    infinium_type   = infinium_type,
+    reference       = ref$label,
+    n_reference_samples = ref$n,
     n_paternal_probes = length(paternal_probes),
     n_maternal_probes = length(maternal_probes),
     paternal_median = round(pat_med, 3),
     maternal_median = round(mat_med, 3),
+    paternal_deviation = round(pat_dev, 3),
+    maternal_deviation = round(mat_dev, 3),
     consistency_df,
     IDS             = round(ids, 3),
     Angle           = round(degrees, 1),
@@ -284,6 +510,64 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   )
 
   return(res)
+}
+
+
+#' Build a Reusable Control Reference Profile
+#'
+#' Summarizes a set of control samples into per-probe median beta values. The
+#' result can be passed as `reference_beta` to [AnalyzeImprintStatus()] or
+#' [runImprintome()], so that one tissue-matched control set (for example public
+#' normal samples) can centre cohorts that have no controls of their own. Save
+#' it with `saveRDS()` to reuse it across studies.
+#'
+#' @param beta Probe-by-sample beta matrix, data frame, file path, or an
+#'   `ImprintomeSet`.
+#' @param samples Optional character vector of control sample names; `NULL` uses
+#'   all samples.
+#' @param probeset Optional probeset name. The profile is limited to its probes.
+#'   `NULL` (default) keeps every probe of every probe-level panel of `genome`,
+#'   so one profile serves all panels.
+#' @param genome Genome build of the probeset annotation, `"hg19"` or `"hg38"`
+#'   (default `"hg38"`). Ignored when `beta` is an `ImprintomeSet`, whose own
+#'   genome is used.
+#'
+#' @return Named numeric vector of per-probe median beta values, with attributes
+#'   `n_samples`, `genome`, and `probeset`.
+#' @export
+BuildReferenceProfile <- function(beta, samples = NULL, probeset = NULL, genome = "hg38") {
+  if (methods::is(beta, "ImprintomeSet")) {
+    genome <- beta@genome
+    beta <- beta(beta)
+  }
+  genome <- match.arg(tolower(genome), c("hg19", "hg38"))
+  ref <- LoadBeta(beta)
+  ref <- ref[, vapply(ref, is.numeric, logical(1)), drop = FALSE]
+  if (!is.null(samples)) {
+    unknown <- setdiff(samples, colnames(ref))
+    if (length(unknown)) stop("samples not found in beta: ", paste(unknown, collapse = ", "))
+    ref <- ref[, unique(samples), drop = FALSE]
+  }
+  if (ncol(ref) < .min_reference_samples) {
+    stop("A reference profile needs at least ", .min_reference_samples, " control samples; got ", ncol(ref), ".")
+  }
+
+  panels <- .load_probesets(genome)
+  if (is.null(probeset)) {
+    probes <- unique(unlist(lapply(panels, `[[`, "NAME")))
+  } else {
+    if (!probeset %in% names(panels)) stop("Unavailable probeset '", probeset, "' for genome '", genome, "'.")
+    probes <- panels[[probeset]]$NAME
+  }
+  probes <- intersect(rownames(ref), probes)
+  if (!length(probes)) stop("beta shares no probes with the requested probeset(s).")
+
+  profile <- .row_medians(ref[probes, , drop = FALSE])
+  profile <- profile[!is.na(profile)]
+  attr(profile, "n_samples") <- ncol(ref)
+  attr(profile, "genome") <- genome
+  attr(profile, "probeset") <- if (is.null(probeset)) "all panels" else probeset
+  profile
 }
 #=====================================
 #================================================================

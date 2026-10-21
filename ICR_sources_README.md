@@ -330,6 +330,9 @@ This is a probe-level annotation table with 1,082,418 unique `NAME` values, incl
 
 - `CHR_HG19`, `MAPINFO_HG19`
 - `CHR_HG38`, `MAPINFO_HG38`
+- `INFINIUM_DESIGN_TYPE` (`I` or `II`)
+
+`INFINIUM_DESIGN_TYPE` is copied by `NAME` into every probe-level panel of both builds (`tmp_add_infinium_design_type.R`); all panel probes have a design type. In `selected`, 290 probes are type I and 492 type II. The region panels have no design-type column.
 
 The hg38 coordinates are used to select probes overlapping S1 intervals. Chromosome values are normalized to the `chrN` form before interval joins.
 
@@ -533,7 +536,8 @@ For origin-aware scoring:
    The gametic paternal class is essentially 11p15.5 H19/IGF2, so report its probe count (`n_paternal_probes`) alongside the scores. `Joshi` has no gametic paternal probes, so `dmr_type = "gametic"` on `Joshi` stops with an informative error. The region-level panels have no `DMR_type` column.
 5. Require both maternal and paternal annotations to be present in the matched beta matrix; the scoring functions stop with an error otherwise.
 6. Track the number of matched probes (`n_maternal_probes`, `n_paternal_probes` in the `AnalyzeImprintStatus()` output) and the number of probes with missing `ORIGIN`.
-7. Treat angle and IDS as exploratory summaries of bulk array beta values, not definitive parent-of-origin calls.
+7. Centre on tissue-matched controls when they are available, because secondary DMRs and Infinium type I/II differences move normal tissue away from 0.5. Use in-cohort controls (`reference_group`), or external controls (`reference_beta`, e.g. a `BuildReferenceProfile()` profile) for cohorts without them; the fixed 0.5 is the fallback when neither is given. `infinium_type = "balanced"` (or `"I"`/`"II"`) uses the panels' `INFINIUM_DESIGN_TYPE` column.
+8. Treat angle and IDS as exploratory summaries of bulk array beta values, not definitive parent-of-origin calls.
 
 Visualization-only (not origin-aware): Jima S2 candidate regions.
 

@@ -4,7 +4,13 @@
 \alias{compute_consistency}
 \title{Compute Allelic Consistency Metrics Per Sample}
 \usage{
-compute_consistency(paternal_beta, maternal_beta, sample_ids)
+compute_consistency(
+  paternal_beta,
+  maternal_beta,
+  sample_ids,
+  paternal_reference = 0.5,
+  maternal_reference = 0.5
+)
 }
 \arguments{
 \item{paternal_beta}{Numeric matrix/data frame of paternal probes (rows) by
@@ -14,11 +20,15 @@ samples (columns).}
 samples (columns).}
 
 \item{sample_ids}{Character vector of sample IDs to evaluate.}
+
+\item{paternal_reference, maternal_reference}{Reference methylation that
+direction is measured against: a scalar (default \code{0.5}), a per-probe
+vector, or a probe-by-sample matrix with the same layout as the beta input.}
 }
 \value{
 Data frame with columns \code{pat_cons}, \code{mat_cons}, and \code{consistency}.
 }
 \description{
 Calculates paternal/maternal concordance and average consistency for each
-sample based on direction relative to 0.5.
+sample based on direction relative to a reference (0.5 by default).
 }

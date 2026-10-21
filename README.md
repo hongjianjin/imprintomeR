@@ -42,6 +42,7 @@ Package data files are shipped under `inst/extdata/`.
   - [Step 1: QC Preprocessing (MethQcSet)](#step-1-qc-preprocessing-methqcset--optional-if-data-already-cleaned)
   - [Step 2: Create Analysis Container (ImprintomeSet)](#step-2-create-analysis-container-imprintomeset)
   - [Step 3: Run Imprinting Analysis](#step-3-run-imprinting-analysis)
+    - [Reference centring and Infinium design types](#reference-centring-and-infinium-design-types)
   - [Step 4: Summarize, Visualize, Export](#step-4-7-summarize-visualize-export)
 - [Detailed Examples](#detailed-examples)
   - [MethQcSet: Platform-Specific Preprocessing](#methqcset-platform-specific-preprocessing)
@@ -90,6 +91,7 @@ Visualize & Export
 - Imprint Deviation Index(**IDI**): (beta - 0.5) × 2
 - Imprint Deviation Score(**IDS**): √((paternal_median - 0.5)² + (maternal_median - 0.5)²)
 - **Deviation Angle**: atan2(maternal_median - 0.5, paternal_median - 0.5) \
+- With a control reference, 0.5 is replaced by each probe's median beta across the controls: paternal/maternal deviations are medians of (beta − reference), and IDS and Angle are computed from these deviations (see [Reference centring and Infinium design types](#reference-centring-and-infinium-design-types)).
 
 The core formulas quantify imprinting deviations using multiple complementary metrics. The Imprint Deviation Score (IDS) computes the Euclidean distance from the balanced methylation state (0.5, 0.5) based on paternal and maternal median methylation values, capturing overall deviation magnitude. The Angle represents the direction of deviation in polar coordinates, indicating the relative contribution of paternal versus maternal methylation changes. The Imprint Deviation Index (IDI), calculated as ((\beta - 0.5) \times 2), quantifies per-probe deviation scaled between (-1) and (1), reflecting the magnitude and direction of methylation shift from the balanced state. Together, IDS, Angle, and IDI provide a comprehensive numeric framework for analyzing allele-specific methylation patterns.
 
@@ -263,6 +265,31 @@ x <- runImprintome(
 # Results stored in results(x)
 names(results(x))
 ```
+
+#### Reference centring and Infinium design types
+
+Normal tissue does not always sit at 0.5: Infinium type I/II probe differences and tissue-specific secondary DMRs can move healthy samples away from the balanced state. Control samples can replace the fixed 0.5 with a per-probe reference (the median beta of each probe across the controls). The reference is chosen in this order:
+
+1. **External controls** (`reference_beta`): for cohorts with no or too few controls, such as tumour collections. Pass a control beta matrix or file, or a profile built once with `BuildReferenceProfile()` and saved with `saveRDS()`. The controls should match the cohort's tissue, array type and preprocessing; probes missing from the reference are dropped.
+2. **In-cohort controls** (`reference_group` values of `Sample_Group`, or `reference_samples`): the best technical match, because the controls share the array and preprocessing with the cases. Each control is scored against the other controls (leave-one-out).
+3. **Fixed 0.5**: used only when no controls are supplied, or when fewer than 3 are available (with a warning). At least 5 tissue-matched controls are recommended.
+
+`reference = "controls"` makes a missing control reference an error, and `reference = "fixed"` always uses 0.5. `infinium_type = "I"` or `"II"` scores one probe design type; `"balanced"` computes each parental-class deviation within type I and type II probes separately and averages them, so type composition does not drive the score. Within-array normalization (for example BMIQ) before scoring is still recommended.
+
+```r
+# In-cohort controls, Infinium-balanced
+x <- runImprintome(x, probeset = "selected", reference_group = "control", infinium_type = "balanced")
+
+# External controls, e.g. tissue-matched public normals
+ref <- BuildReferenceProfile(normal_beta)          # per-probe medians, all panels
+saveRDS(ref, "adrenal_reference.rds")
+x <- runImprintome(x, probeset = "chr11p15", reference_beta = ref)
+
+# Output columns: reference, n_reference_samples, infinium_type,
+# paternal_deviation, maternal_deviation (IDS and Angle use these)
+```
+
+From the command line: `--reference-group control`, `--reference-file adrenal_reference.rds`, and `--infinium-type balanced`.
 
 ### Step 4-7: Summarize, Visualize, Export
 
