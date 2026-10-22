@@ -372,8 +372,8 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
 #' @return Data frame with sample-level imprinting metrics and labels.
 #'   `paternal_deviation` and `maternal_deviation` are the coordinates that IDS
 #'   and Angle are computed from. `reference` and `n_reference_samples` describe
-#'   the reference used. `balance` records the pooling, and `n_paternal_icrs` /
-#'   `n_maternal_icrs` the numbers of ICRs used when `balance = "icr"`.
+#'   the reference used. `balance` records the pooling; with `balance = "icr"`, the columns
+#'   `n_paternal_icrs` / `n_maternal_icrs` give the numbers of ICRs used.
 
 #' @export
 AnalyzeImprintStatus <- function(betaFile, metaFile,
@@ -548,6 +548,8 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
     Confidence      = confidence,
     stringsAsFactors = FALSE
   )
+  # ICR counts only apply to ICR-balanced scoring.
+  if (balance != "icr") res$n_paternal_icrs <- res$n_maternal_icrs <- NULL
 
   return(res)
 }

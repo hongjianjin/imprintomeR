@@ -113,8 +113,8 @@ annotated ICRs are not used. Cannot be combined with
 Data frame with sample-level imprinting metrics and labels.
 \code{paternal_deviation} and \code{maternal_deviation} are the coordinates that IDS
 and Angle are computed from. \code{reference} and \code{n_reference_samples} describe
-the reference used. \code{balance} records the pooling, and \code{n_paternal_icrs} /
-\code{n_maternal_icrs} the numbers of ICRs used when \code{balance = "icr"}.
+the reference used. \code{balance} records the pooling; with \code{balance = "icr"}, the columns
+\code{n_paternal_icrs} / \code{n_maternal_icrs} give the numbers of ICRs used.
 }
 \description{
 Computes maternal/paternal medians, IDS, angle, mechanism, status, and

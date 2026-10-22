@@ -107,7 +107,7 @@ test_that("ICR-balanced IDS weights each ICR once", {
     expect_equal(unique(icr$balance), "icr")
     expect_equal(unique(icr$n_maternal_icrs), 2)   # matA, matB (matC below min_probes, NA probe ignored)
     expect_equal(unique(icr$n_paternal_icrs), 1)
-    expect_true(all(is.na(probe$n_maternal_icrs)))
+    expect_false(any(c("n_paternal_icrs", "n_maternal_icrs") %in% colnames(probe)))   # probe pooling: no ICR counts
     m <- d$matrix
     devA <- median(m[d$probeset$ICR_name %in% "matA", "X1"]) - 0.5
     devB <- median(m[d$probeset$ICR_name %in% "matB", "X1"]) - 0.5
