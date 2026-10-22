@@ -1,0 +1,4 @@
+dataset	platform	beta_file	meta_file	group_file	group_key	group_col	controls	reference	external_from
+GSE297935	EPIC	beta.txt	meta.txt				Control	self	
+GSE95486	450K	beta.txt	meta.txt				Control	self	
+GSE55491	450K	beta.txt	meta.txt				Control	self	

@@ -179,7 +179,10 @@ score_dataset <- function(i) {
   d <- datasets[[row$dataset]]
   b <- d$beta
   m <- d$meta[, c("Sample_Name", "Sample_Group", "label")]
-  ctrl <- row$controls
+  # In-cohort references are the samples labelled "control" (the manifest's controls column documents
+  # the source group; Sample_Group may hold GEO sample titles).
+  ctrl <- "reference control"
+  m$Sample_Group[m$label == "control"] <- ctrl
   if (row$reference == "external") {
     ext <- trimws(strsplit(row$external_from, ",")[[1]])
     eb <- do.call(cbind, lapply(ext, function(e) {
@@ -254,6 +257,62 @@ detect <- function(u, delta, zc) {
 metrics <- function(u, hit) c(sensitivity = if (any(u$positive)) mean(hit[u$positive]) else NA,
                              specificity = if (any(!u$positive)) 1 - mean(hit[!u$positive]) else NA,
                              n_pos = sum(u$positive), n_neg = sum(!u$positive))
+frozen_file <- arg_value("--frozen")
+if (!is.null(frozen_file)) {
+  # Held-out validation (protocol section 6): frozen thresholds, no grid search, selection or cross-validation.
+  log_line("VALIDATION with frozen thresholds: ", frozen_file, " (", sha(frozen_file), ")")
+  fz <- read.delim(frozen_file, stringsAsFactors = FALSE, colClasses = "character")
+  fv <- function(p) fz$value[fz$parameter == p]
+  f_delta <- as.numeric(fv("delta_cutoff"))
+  f_z <- if (fv("z_cutoff") == "off") NA else as.numeric(fv("z_cutoff"))
+  units$hit <- detect(units, f_delta, f_z)
+  set.seed(SEED)
+  ci <- if (nrow(units)) {
+    keys <- split(seq_len(nrow(units)), paste(units$dataset, units$Sample_Name, sep = "\r"))
+    by_ds <- split(names(keys), sub("\r.*$", "", names(keys)))
+    reps <- t(replicate(N_BOOT, {
+      idx <- unlist(keys[unlist(lapply(by_ds, function(s) sample(s, length(s), replace = TRUE)), use.names = FALSE)], use.names = FALSE)
+      metrics(units[idx, ], units$hit[idx])[1:2]
+    }))
+    apply(reps, 2, stats::quantile, c(0.025, 0.975), na.rm = TRUE)
+  }
+  m <- metrics(units, units$hit)
+  write.table(data.frame(estimate = "held-out validation (frozen thresholds)", delta_cutoff = f_delta, z_cutoff = fv("z_cutoff"),
+                         sensitivity = m[1], sens_lo = ci[1, 1], sens_hi = ci[2, 1], specificity = m[2], spec_lo = ci[1, 2],
+                         spec_hi = ci[2, 2], n_pos = m[3], n_neg = m[4]),
+              file.path(out_dir, "validation_e1_summary.tsv"), sep = "\t", quote = FALSE, row.names = FALSE)
+  write.table(do.call(rbind, lapply(split(units, paste(units$dataset, units$label, units$ICR_name, units$expected)), function(u)
+    data.frame(dataset = u$dataset[1], label = u$label[1], ICR_name = u$ICR_name[1], expected = u$expected[1], t(metrics(u, u$hit))))),
+    file.path(out_dir, "validation_e1_by_label_icr.tsv"), sep = "\t", quote = FALSE, row.names = FALSE)
+  write.table(units, file.path(out_dir, "validation_e1_units.tsv"), sep = "\t", quote = FALSE, row.names = FALSE)
+  # E3 at the frozen IDS cutoffs and the tiers (AUC per class), cases against their cohort's controls.
+  e3v <- list()
+  for (cl in c("chr11p15", "selected")) {
+    cut <- suppressWarnings(as.numeric(fv(paste0("ids_cutoff_", cl))))
+    for (dd in unique(sample_all$dataset)) {
+      s <- sample_all[sample_all$dataset == dd, ]
+      lab_class <- ifelse(startsWith(s$label, "locus|") & (grepl(IC1, s$label, fixed = TRUE) | grepl(IC2, s$label, fixed = TRUE)),
+                          "chr11p15", ifelse(startsWith(s$label, "upd|"), "selected", NA))
+      cases <- s[!is.na(lab_class) & lab_class == cl, ]
+      ctrl <- s[s$label %in% c("control", "external_control"), ]
+      if (!nrow(cases) || !nrow(ctrl)) next
+      col <- paste0("IDS_", cl)
+      x <- cases[[col]]; y <- ctrl[[col]]
+      r <- rank(c(x, y)); a <- (sum(r[seq_along(x)]) - length(x) * (length(x) + 1) / 2) / (length(x) * length(y))
+      for (cc in unique(c(TIERS, if (length(cut) && !is.na(cut)) cut))) {
+        is_frozen <- length(cut) && isTRUE(all.equal(cc, cut))
+        basis <- if (is_frozen && cc %in% TIERS) "frozen (= tier)" else if (is_frozen) "frozen" else "tier"
+        e3v[[length(e3v) + 1]] <- data.frame(class = cl, dataset = dd, cutoff = cc, basis = basis,
+                                             sensitivity = mean(x >= cc), specificity = mean(y < cc), AUC = a, n_cases = length(x), n_controls = length(y))
+      }
+    }
+  }
+  if (length(e3v)) write.table(do.call(rbind, e3v), file.path(out_dir, "validation_e3_ids.tsv"), sep = "\t", quote = FALSE, row.names = FALSE)
+  log_line("Validation done: sensitivity ", round(m[1], 3), ", specificity ", round(m[2], 3), " (", m[3], " positive / ", m[4], " negative units)")
+  cat(readLines(log_file), sep = "\n")
+  quit(save = "no", status = 0)
+}
+
 grid <- expand.grid(delta = DELTA_GRID, z = Z_GRID)
 eval_grid <- function(u) cbind(grid, t(vapply(seq_len(nrow(grid)), function(i) metrics(u, detect(u, grid$delta[i], grid$z[i])), numeric(4))))
 select_e1 <- function(u) {

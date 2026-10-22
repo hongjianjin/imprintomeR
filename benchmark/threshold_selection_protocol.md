@@ -145,6 +145,39 @@ Before any held-out cohort is scored:
 
 Held-out results are reported whatever they show. If no eligible cohort is available at submission, the manuscript states that the thresholds are validated by cross-validation only.
 
+### 6.1 Registered held-out cohorts (amendment 1, 2026-10-22)
+
+Registered before any of these data were downloaded or scored. Labels are in `labels_heldout.tsv` and cohort settings in `manifest_heldout.tsv`. `prepare_heldout.R` converts the GEO files into the script inputs and writes SHA-256 checksums of the downloaded and derived files. Those checksums are committed to `heldout_checksums.tsv` before scoring.
+
+| Cohort | Platform, tissue | GEO file used (size) | Samples used | Truth labels |
+|---|---|---|---|---|
+| GSE297935 (Clin Epigenetics 2025; PMID 41044650) | EPIC, blood | `GSE297935_normalized_matrix.txt.gz` (322 MB; BMIQ + ComBat by the authors) | Newly deposited samples only: 51 BWS (BWS_patient7–64, columns P7–P64) and 16 controls (Control25–40, columns C25–C40) | IC2 (KCNQ1OT1:TSS-DMR) loss for every BWS case, diagnosed before the array by CoBRA or pyrosequencing |
+| GSE95486 (Eur J Hum Genet 2017; PMID 28699632) | 450K, blood | `GSE95486_series_matrix.txt.gz` (50 MB) | 3 BWS, 21 controls | Case 1: mosaic paternal UPD11 (MS-MLPA retest and SNP array), expecting IC2 loss and IC1 gain; Cases 2 and 3: IC2 loss (MS-MLPA) |
+| GSE55491 (Hum Genet 2015; PMID 25563730) | 450K | `GSE55491_series_matrix.txt.gz` (61 MB) | 5 SRS cases with a positive pre-study finding, 6 controls | SRS 12 and 31: H19 loss; SRS 6, 23 and 50: maternal UPD7 |
+
+**GSE297935**
+- The columns excluded from its matrix are samples reused from GSE133774, GSE153211, GSE195873 (a development cohort) and GSE224222.
+- The authors' normalization was applied jointly with those reused samples.
+- Its MLID grouping comes from the authors' own analysis of the same EPIC data, so it is not independent truth. It is not used for E2.
+
+**GSE95486**
+- Case 1 is a low-level mosaic.
+- Case 2's blood IC2 value disagrees between assays (10% by MS-MLPA, 51% by pyrosequencing).
+- Both are kept as labelled and reported individually.
+
+**GSE55491: flagged as a weaker reference standard**
+- **H19 labels:** the H19 labels come from a methylation-sensitive RFLP PCR assay, not MS-MLPA. That assay missed 4 of the 6 H19 hypomethylations later seen on the array, so the 13 SRS patients without a positive pre-study finding are excluded rather than used as negatives.
+- **Tissue mismatch:** controls are PBMC while patients are whole blood.
+- **Reporting:** results for this cohort are reported separately and flagged.
+
+**References and scope**
+- References follow section 2: in-cohort controls (at least 3 in each cohort), each scored leave-one-out.
+- Not evaluable on the held-out data:
+  - E2, because no independent MLID labels exist;
+  - IC1 GOM, because no labelled cases exist.
+
+**Validation run:** `run_threshold_selection.R --manifest manifest_heldout.tsv --labels labels_heldout.tsv --frozen selected_thresholds.tsv`, with the thresholds frozen by the development run.
+
 ## 7. Reporting
 
 **Report all of the following:**
@@ -167,3 +200,4 @@ Any change to this protocol after registration is appended below, with the date,
 | Date | Change | Results seen? |
 |---|---|---|
 | 2026-10-22 | Protocol registered (version 1.0). | No (thresholds not tuned) |
+| 2026-10-22 | Amendment 1: held-out cohorts GSE297935, GSE95486 and GSE55491 registered with labels (section 6.1). The script takes in-cohort references from samples labelled `control` (equivalent for the development cohorts) and gains a `--frozen` validation mode. `prepare_heldout.R` added. | No (no data downloaded or scored) |
