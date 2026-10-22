@@ -201,3 +201,4 @@ Any change to this protocol after registration is appended below, with the date,
 |---|---|---|
 | 2026-10-22 | Protocol registered (version 1.0). | No (thresholds not tuned) |
 | 2026-10-22 | Amendment 1: held-out cohorts GSE297935, GSE95486 and GSE55491 registered with labels (section 6.1). The script takes in-cohort references from samples labelled `control` (equivalent for the development cohorts) and gains a `--frozen` validation mode. `prepare_heldout.R` added. | No (no data downloaded or scored) |
+| 2026-10-22 | Held-out file checksums committed (`heldout_checksums.tsv`). Code fix in `run_threshold_selection.R`: a UPD label whose chromosome has no scored ICR now yields zero positive units instead of stopping the run (no rule changed). Development run completed; frozen thresholds committed as `selected_thresholds.tsv` before the held-out run. | Development results only; held-out not scored |

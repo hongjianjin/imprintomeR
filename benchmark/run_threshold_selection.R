@@ -224,13 +224,13 @@ expected_units <- function(r) {
     kv <- do.call(rbind, strsplit(parts[-1], "=", fixed = TRUE))
     k <- match(kv[, 1], r$ICR_name)
     k <- k[!is.na(k)]
-    return(data.frame(ICR_name = r$ICR_name[k], expected = kv[match(r$ICR_name[k], kv[, 1]), 2], positive = TRUE))
+    return(data.frame(ICR_name = r$ICR_name[k], expected = kv[match(r$ICR_name[k], kv[, 1]), 2], positive = rep(TRUE, length(k))))
   }
   if (parts[1] == "upd") {
     chrs <- paste0("chr", trimws(strsplit(parts[3], ",")[[1]]))
     k <- which(r$CHR %in% chrs)
     gain_origin <- if (parts[2] == "mat") "maternal" else "paternal"
-    return(data.frame(ICR_name = r$ICR_name[k], expected = ifelse(r$ORIGIN[k] == gain_origin, "gain", "loss"), positive = TRUE))
+    return(data.frame(ICR_name = r$ICR_name[k], expected = ifelse(r$ORIGIN[k] == gain_origin, "gain", "loss"), positive = rep(TRUE, length(k))))
   }
   NULL
 }
