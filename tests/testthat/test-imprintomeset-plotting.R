@@ -536,3 +536,19 @@ test_that("mirror density labels its ORIGIN legend as the annotated parental ori
   invisible(capture.output(p <- suppressMessages(suppressWarnings(MirrorDensity(beta, meta, probeset = "chr11p15")))))
   testthat::expect_equal(p$scales$get_scales("fill")$name, "Annotated parental origin")
 })
+
+test_that("circular_heatmap keeps probes that share a coordinate (hg38 selected panel)", {
+  panel <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))[["selected"]]
+  key <- paste(panel$CHR, panel$MAPINFO)
+  testthat::expect_true(any(duplicated(key)))   # cg23249369 and cg25326570 share a position in hg38
+  set.seed(3)
+  ids <- paste0("S", 1:4)
+  beta <- matrix(runif(nrow(panel) * 4), ncol = 4, dimnames = list(panel$NAME, ids))
+  meta <- data.frame(Sample_Name = ids, Sample_Group = c("a", "a", "b", "b"), stringsAsFactors = FALSE)
+  x <- suppressMessages(as.ImprintomeSet(MethQcSet(meta = meta, platform = "EPIC", beta = beta)))
+  out <- tempfile("circular_selected_", fileext = ".png")
+  on.exit(unlink(out), add = TRUE)
+  invisible(capture.output(suppressMessages(
+    plot(x, plot_type = "circular_heatmap", probeset = "selected", outFile = out, res = 72))))
+  testthat::expect_true(file.exists(out))
+})
