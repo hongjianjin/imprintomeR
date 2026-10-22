@@ -106,7 +106,11 @@ available. Controls are scored leave-one-out when they also form the reference.
 The defaults (\code{delta_cutoff = 0.175}, no z criterion) were selected under the prespecified
 threshold-selection protocol in the package repository (erb{benchmark/}), by leave-one-cohort-out
 cross-validation on six development cohorts, and validated on three held-out cohorts. Earlier
-versions used \code{delta_cutoff = 0.15, z_cutoff = 3}.
+versions used \code{delta_cutoff = 0.15, z_cutoff = 3}. They apply to in-cohort, tissue-matched
+controls, the only setting in which they were selected and validated. With an external or
+cross-study reference, between-study offsets at some ICRs exceed \code{delta_cutoff} and produce
+false calls; adding \code{z_cutoff = 3} is recommended there (exploratory: not evaluated by the
+protocol).
 }
 \seealso{
 \code{\link[=SummarizeICRStatus]{SummarizeICRStatus()}} for the per-sample multi-locus summary and

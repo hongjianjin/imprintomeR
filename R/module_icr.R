@@ -95,7 +95,11 @@
 #' The defaults (`delta_cutoff = 0.175`, no z criterion) were selected under the prespecified
 #' threshold-selection protocol in the package repository (`benchmark/`), by leave-one-cohort-out
 #' cross-validation on six development cohorts, and validated on three held-out cohorts. Earlier
-#' versions used `delta_cutoff = 0.15, z_cutoff = 3`.
+#' versions used `delta_cutoff = 0.15, z_cutoff = 3`. They apply to in-cohort, tissue-matched
+#' controls, the only setting in which they were selected and validated. With an external or
+#' cross-study reference, between-study offsets at some ICRs exceed `delta_cutoff` and produce
+#' false calls; adding `z_cutoff = 3` is recommended there (exploratory: not evaluated by the
+#' protocol).
 #'
 #' @inheritParams AnalyzeImprintStatus
 #' @param dmr_type `DMR_type` values to score. `NULL` (default) scores every annotated ICR,
