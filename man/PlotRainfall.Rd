@@ -8,12 +8,16 @@ PlotRainfall(
   beta,
   sampleID,
   title = "Imprinting Rainfall Plot",
-  probeset = c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15"),
-  outFile = NULL
+  probeset = c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15",
+    "chr20q13"),
+  outFile = NULL,
+  genome = "hg38"
 )
 }
 \arguments{
 \item{probeset}{Character. the name of a predefined imprinting probeset.}
+
+\item{genome}{Genome build of the probeset annotation, "hg38" (default) or "hg19".}
 
 \item{betaFile}{Character. file of beta values (Probes as rownames, Samples as colnames).}
 

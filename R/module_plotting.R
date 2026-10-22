@@ -741,21 +741,17 @@ BetaBeePlot_SNP <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL
 #' @param alpha Point alpha.
 #' @param chr Chromosome label (e.g., `chr11`).
 #' @param probeset Probeset name used for annotation lookup.
+#' @param genome Genome build of the probeset annotation, "hg38" (default) or "hg19".
 #'
 #' @return A ggplot object.
-BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 0.5,chr="chr11", probeset='chr11p15') {
+BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 0.5,chr="chr11", probeset='chr11p15', genome = "hg38") {
   # to be done
   # https://r-charts.com/distribution/ggbeeswarm/
   suppressMessages(suppressWarnings(library(ggplot2)))
   suppressMessages(suppressWarnings(library("ggbeeswarm")))
   suppressMessages(suppressWarnings(library("reshape2")))
   if(!is.null(probeset)){
-    probesets <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
-    if (probeset %in% names(probesets)) {
-      probes <- probesets[[probeset]]
-    } else {
-      stop("unavailable probeset & probes not given.", call. = FALSE)
-    }
+    probes <- .get_probeset(probeset, genome)
     if("ORIGIN" %in% colnames(probes)){
        anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name","ORIGIN")]
        colnames(anno)[3:4] <- c("GENE","CATEGORY")
@@ -766,7 +762,7 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
     }
     rownames(anno) <- probes$NAME
   }else{
-    version <- "HG19"
+    version <- toupper(genome)
     # load aggregated annotation object
     probes.all <- readRDS(.resolve_extdata_file("anno.uniq_harmonized.liftover.rds"))
     chr_colname <- paste0("CHR_", toupper(version))
@@ -875,24 +871,20 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
 #' @param SAMPLEID Metadata column used as x-axis sample label.
 #' @param outFile Optional output file path.
 #' @param alpha Point alpha.
-#' @param probesets Optional annotation object.
+#' @param probesets Optional probeset name; `NULL` uses the array annotation.
 #' @param useNA Logical; keep NA category values.
 #' @param width,height Optional image dimensions for saving.
 #' @param group Annotation column used to define categories.
+#' @param genome Genome build of the probeset annotation, "hg38" (default) or "hg19".
 #'
 #' @return A ggplot object.
-BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 0.5,probesets=NULL, useNA=FALSE, width=NULL, height=NULL, group="ORIGIN") {
+BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 0.5,probesets=NULL, useNA=FALSE, width=NULL, height=NULL, group="ORIGIN", genome = "hg38") {
   # https://r-charts.com/distribution/ggbeeswarm/
   suppressMessages(suppressWarnings(library(ggplot2)))
   suppressMessages(suppressWarnings(library("ggbeeswarm")))
   suppressMessages(suppressWarnings(library("reshape2")))
-  if(!is.null(probeset)){
-    probesets <- readRDS("inst/extdata/probesets_hg19.rds")
-    if (probeset %in% names(probesets)) {
-      probes <- probesets[[probeset]]
-    } else {
-      stop("unavailable probeset & probes not given.", call. = FALSE)
-    }
+  if(!is.null(probesets)){
+    probes <- .get_probeset(probesets, genome)
     if(group %in% colnames(probes)){
        anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name",group)]
        colnames(anno)[3:4] <- c("GENE","CATEGORY")
@@ -903,11 +895,9 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
     }
     rownames(anno) <- probes$NAME
   }else{
-    version <- "HG19"
+    version <- toupper(genome)
     # load aggregated annotation object
-    if (is.null(probes.all)) {
-      probes.all <- readRDS(.resolve_extdata_file("anno.uniq_harmonized.liftover.rds"))
-    }
+    probes.all <- readRDS(.resolve_extdata_file("anno.uniq_harmonized.liftover.rds"))
     chr <- paste0("CHR_", toupper(version))
     mapinfo <- paste0("MAPINFO_", toupper(version))
     anno <- probes.all[probes.all$NAME %in% rownames(beta), c(chr, mapinfo, "UCSC_REFGENE_NAME")]
@@ -1055,7 +1045,7 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
 
 ##################################################################
 
-BetaBeeswarm_chr <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, probesets=NULL, pdfFolder='pdf'){
+BetaBeeswarm_chr <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, probesets=NULL, pdfFolder='pdf', genome = "hg38"){
   # Load required libraries
   suppressMessages(suppressWarnings(library(ggplot2)))
   suppressMessages(suppressWarnings(library("ggbeeswarm")))
@@ -1068,17 +1058,12 @@ BetaBeeswarm_chr <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFil
   # prepare chromosome
   beta <- as.data.frame(beta)
   if(!is.null(probesets)){
-    probesets <- readRDS("inst/extdata/probesets_hg19.rds")
-    if (probeset %in% names(probesets)) {
-      probes <- probesets[[probeset]]
-    } else {
-      stop("unavailable probeset & probes not given.", call. = FALSE)
-    }
+    probes <- .get_probeset(probesets, genome)
     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")]
     colnames(anno)[3] <- "GENE"
     rownames(anno) <- probes$NAME
   }else{
-    version <- "HG19"
+    version <- toupper(genome)
     # load aggregated annotation object
     probes.all <- readRDS(.resolve_extdata_file("anno.uniq_harmonized.liftover.rds"))
     chr <- paste0("CHR_", toupper(version))
@@ -1152,7 +1137,7 @@ BetaBeeswarm_chr <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFil
 ##################################################################
 # 03/04/2025, 10:27:24
 
-BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL, probesets=NULL,pdfFolder=FALSE){
+BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL, probesets=NULL,pdfFolder=FALSE, genome = "hg38"){
   # Load required libraries
   suppressMessages(suppressWarnings(library(ggplot2)))
   suppressMessages(suppressWarnings(library("ggbeeswarm")))
@@ -1160,13 +1145,8 @@ BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
 
   #================================================================
   # prepare chromosome
-  if(!is.null(probeset)){
-    probesets <- readRDS("inst/extdata/probesets_hg19.rds")
-    if (probeset %in% names(probesets)) {
-      probes <- probesets[[probeset]]
-    } else {
-      stop("unavailable probeset & probes not given.", call. = FALSE)
-    }
+  if(!is.null(probesets)){
+    probes <- .get_probeset(probesets, genome)
     if("ORIGIN" %in% colnames(probes)){
        anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name","ORIGIN")]
        colnames(anno)[3:4] <- c("GENE","CATEGORY")
@@ -1177,11 +1157,9 @@ BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
     }
     rownames(anno) <- probes$NAME
   }else{
-    version <- "HG19"
+    version <- toupper(genome)
     # load aggregated annotation object
-    if (is.null(probes.all)) {
-      probes.all <- readRDS(.resolve_extdata_file("anno.uniq_harmonized.liftover.rds"))
-    }
+    probes.all <- readRDS(.resolve_extdata_file("anno.uniq_harmonized.liftover.rds"))
     chr <- paste0("CHR_", toupper(version))
     mapinfo <- paste0("MAPINFO_", toupper(version))
     anno <- probes.all[probes.all$NAME %in% rownames(beta), c(chr, mapinfo, "UCSC_REFGENE_NAME")]
@@ -1394,7 +1372,8 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
 #' @param meta Optional sample metadata data frame with `Sample_Name` and
 #'   `Sample_Group` columns.
 #' @param probeset Character probeset key (default `"selected"`).
-#'   Must be present in `inst/extdata/probesets_hg19.rds`.
+#'   Must be present in the probeset annotation of `genome`.
+#' @param genome Genome build of the probeset annotation, "hg38" (default) or "hg19".
 #' @param SAMPLEID Metadata column name used as sample label in heatmap
 #'   (default `"Sample_Name"`).
 #' @param annoColumn Annotation column for heatmap top annotation
@@ -1441,7 +1420,7 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
 BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
                               SAMPLEID = "Sample_Name", annoColumn = "Sample_Group",
                               clusterRows = TRUE, clusterColumns = TRUE,
-                              outFile = NULL, imgSizeFactor = 0.5) {
+                              outFile = NULL, imgSizeFactor = 0.5, genome = "hg38") {
   suppressMessages(library(circlize))
   suppressMessages(library(ComplexHeatmap))
   suppressMessages(library(RColorBrewer))
@@ -1454,11 +1433,7 @@ BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
   meta <- resolved$meta
 
   # Load probeset and aggregate by gene
-  probesets <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
-  if (!(probeset %in% names(probesets))) {
-    stop("Unavailable probeset: ", probeset)
-  }
-  probeset_df <- probesets[[probeset]]
+  probeset_df <- .get_probeset(probeset, genome)
   required_cols <- c("NAME", "Closest_TSS_gene_name")
   missing_cols <- setdiff(required_cols, colnames(probeset_df))
   if (length(missing_cols) > 0) {
@@ -1632,7 +1607,9 @@ BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
 #' @param meta Optional data.frame of sample metadata with `SAMPLEID` column.
 #' @param probes.all Optional probe annotation data.
 #' @param probeset Character scalar for probeset name or NULL.
-#' @param version Character genome version (default "HG19").
+#' @param genome Genome build of the probeset coordinates, "hg38" (default) or "hg19".
+#' @param version Coordinate columns used from `probes.all` (`CHR_<version>`, `MAPINFO_<version>`);
+#'   defaults to the upper-case `genome`.
 #' @param SAMPLEID Column name for sample identifiers (default "Sample_Name").
 #' @param sectionColumn Column name for grouping samples into sections. Use "Sample_Name"
 #'   to show each sample as its own section, or "Sample_Group" to group multiple samples.
@@ -1651,7 +1628,7 @@ BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
 #'
 #' @return Invisibly returns the heatmap object.
 #' @export
-BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NULL, version = "HG19", SAMPLEID = "Sample_Name", sectionColumn = "Sample_Group", sectionLabels = NULL, outFile = NULL, nchars = 5) {
+BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NULL, genome = "hg38", version = toupper(genome), SAMPLEID = "Sample_Name", sectionColumn = "Sample_Group", sectionLabels = NULL, outFile = NULL, nchars = 5) {
   # values of SAMPLEID column, sectionColumn must be present in meta column names
   #
   library(ComplexHeatmap)
@@ -1761,12 +1738,7 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
   beta <- beta[, commonIDs, drop = FALSE]
   meta <- meta[commonIDs, , drop = FALSE]
   if(!is.null(probeset)){
-    probesets <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
-    if (probeset %in% names(probesets)) {
-      probes <- probesets[[probeset]]
-    } else {
-      stop("unavailable probeset & probes not given.", call. = FALSE)
-    }
+    probes <- .get_probeset(probeset, genome)
     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name")]
     colnames(anno)[3] <- "GENE"
     rownames(anno) <- probes$NAME
@@ -2219,11 +2191,12 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
 #' @param betaFile  Character. file of beta values (Probes as rownames, Samples as colnames).
 #' @param metaFile  Character. file of sample information.
 #' @param probeset  Character. the name of a predefined imprinting probeset.
+#' @param genome Genome build of the probeset annotation, "hg38" (default) or "hg19".
 #' @param ids_cutoff Numeric. The IDS distance threshold to call an EpiMutation (Default = 0.2).
 #' @return A data frame with metrics, directional interpretations, and mutation calls.
 #'
 
-PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probeset=c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", "chr20q13"), outFile=NULL) {
+PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probeset=c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", "chr20q13"), outFile=NULL, genome = "hg38") {
   library(ggplot2)
   suppressMessages(suppressWarnings(library("dplyr")))
   library(stringr)
@@ -2231,12 +2204,7 @@ PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probe
   beta <- .resolve_beta_input(beta)
 
   beta <- as.data.frame(beta)
-  probesets <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
-    if (probeset %in% names(probesets)) {
-      probes <- probesets[[probeset]]
-    } else {
-      stop("unavailable probeset & probes not given.", call. = FALSE)
-    }
+  probes <- .get_probeset(probeset, genome)
     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name","ORIGIN")]
     colnames(anno)[3] <- "GENE"
     rownames(anno) <- probes$NAME
@@ -2522,7 +2490,7 @@ PlotRadar <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=
 
 #================================================================
 
-PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, alpha = 0.7,probeset=probeset) {
+PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, alpha = 0.7,probeset=probeset, genome = "hg38") {
   suppressMessages(suppressWarnings({
     library(ggplot2)
     library(ggridges)
@@ -2532,10 +2500,8 @@ PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, a
   }))
 
   # 1. Load Annotation
-  anno_path <- .resolve_extdata_file("probesets_hg19.rds")
-  probesets <- readRDS(anno_path)
   # Using 'selected' probeset for distribution analysis
-  anno <- probesets[[probeset]] %>%
+  anno <- .get_probeset(probeset, genome) %>%
     select(NAME, CHR, ORIGIN) %>%
     as.data.frame()
   rownames(anno) <- anno$NAME
@@ -2602,7 +2568,7 @@ PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, a
 
 #================================================================
 
-BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, probeset="selected") {
+BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, probeset="selected", genome = "hg38") {
   suppressMessages(suppressWarnings({
     library(ggplot2)
     library(dplyr)
@@ -2611,10 +2577,8 @@ BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, pro
   }))
 
   # 1. Load Annotation
-  anno_path <- .resolve_extdata_file("probesets_hg19.rds")
-  probesets <- readRDS(anno_path)
   # Selecting the 'selected' probeset which contains the CHR and ORIGIN mapping
-  anno <- probesets[[probeset]] %>%
+  anno <- .get_probeset(probeset, genome) %>%
     select(NAME, CHR, ORIGIN) %>%
     as.data.frame()
   rownames(anno) <- anno$NAME
@@ -2902,24 +2866,20 @@ plot_imp_consistency <- function(df) {
 #' @param SAMPLEID Metadata column used as panel/sample label.
 #' @param outFile Optional output file path.
 #' @param alpha Point alpha.
-#' @param probesets Optional annotation object.
+#' @param probesets Optional probeset name; `NULL` uses the array annotation.
 #' @param useNA Logical; keep NA category values.
 #' @param width,height Optional image dimensions for saving.
 #' @param group Annotation column used to define categories.
+#' @param genome Genome build of the probeset annotation, "hg38" (default) or "hg19".
 #'
 #' @return A patchwork/ggplot object.
-BetaBeePlot_orgin2 <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 0.5,probesets=NULL, useNA=FALSE, width=NULL, height=NULL, group="ORIGIN") {
+BetaBeePlot_orgin2 <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 0.5,probesets=NULL, useNA=FALSE, width=NULL, height=NULL, group="ORIGIN", genome = "hg38") {
   # https://r-charts.com/distribution/ggbeeswarm/
   suppressMessages(suppressWarnings(library(ggplot2)))
   suppressMessages(suppressWarnings(library("ggbeeswarm")))
   suppressMessages(suppressWarnings(library("reshape2")))
-  if(!is.null(probeset)){
-    probesets <- readRDS("inst/extdata/probesets_hg19.rds")
-    if (probeset %in% names(probesets)) {
-      probes <- probesets[[probeset]]
-    } else {
-      stop("unavailable probeset & probes not given.", call. = FALSE)
-    }
+  if(!is.null(probesets)){
+    probes <- .get_probeset(probesets, genome)
     if(group %in% colnames(probes)){
        anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name",group)]
        colnames(anno)[3:4] <- c("GENE","CATEGORY")
@@ -2930,11 +2890,9 @@ BetaBeePlot_orgin2 <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = N
     }
     rownames(anno) <- probes$NAME
   }else{
-    version <- "HG19"
+    version <- toupper(genome)
     # load aggregated annotation object
-    if (is.null(probes.all)) {
-      probes.all <- readRDS(.resolve_extdata_file("anno.uniq_harmonized.liftover.rds"))
-    }
+    probes.all <- readRDS(.resolve_extdata_file("anno.uniq_harmonized.liftover.rds"))
     chr <- paste0("CHR_", toupper(version))
     mapinfo <- paste0("MAPINFO_", toupper(version))
     anno <- probes.all[probes.all$NAME %in% rownames(beta), c(chr, mapinfo, "UCSC_REFGENE_NAME")]
@@ -3086,13 +3044,13 @@ Beeplot_chr_vs_other <- function(dat, meta, group.by = "chr", color.by = "CATEGO
 #' @param input List containing `beta` and `meta` elements.
 #' @param chrs Comma-separated chromosome string (e.g. `"chr1,chr11"`).
 #' @param prefix Output prefix used to build per-chromosome PDF names.
-#' @param probeset Probeset name in `inst/extdata/probesets_hg19.rds`.
+#' @param probeset Probeset name.
+#' @param genome Genome build of the probeset annotation, "hg38" (default) or "hg19".
 #'
 #' @return `NULL`, writing plots to files as side effects.
-Beeplot_chr_vs_other_single <- function(input, chrs = "chr1,chr11", prefix = NULL, probeset = "selected") {
+Beeplot_chr_vs_other_single <- function(input, chrs = "chr1,chr11", prefix = NULL, probeset = "selected", genome = "hg38") {
   probeset_name <- probeset
-  probesets <- readRDS("inst/extdata/probesets_hg19.rds")
-  probeset <- probesets[[probeset_name]]
+  probeset <- .get_probeset(probeset_name, genome)
   if ("ORIGIN" %in% colnames(probeset)) {
     anno <- probeset[, c("CHR", "MAPINFO", "Closest_TSS_gene_name", "ORIGIN")]
     rownames(anno) <- probeset$NAME

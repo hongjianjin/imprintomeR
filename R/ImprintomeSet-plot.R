@@ -121,13 +121,12 @@ if (!methods::isGeneric("plot")) {
   beta_cols[1]
 }
 
-.imprint_subset_beta_by_probeset <- function(beta_x, probeset_name, plot_type) {
+.imprint_subset_beta_by_probeset <- function(beta_x, probeset_name, plot_type, genome = "hg38") {
   if (!is.character(probeset_name) || length(probeset_name) != 1L || is.na(probeset_name) || !nzchar(probeset_name)) {
     stop("plot_type='", plot_type, "' requires a non-empty 'probeset' parameter.")
   }
 
-  probesets_path <- .resolve_extdata_file("probesets_hg19.rds")
-  probesets_all <- readRDS(probesets_path)
+  probesets_all <- .load_probesets(genome)
   if (!(probeset_name %in% names(probesets_all))) {
     stop("plot_type='", plot_type, "' received unavailable probeset: ", probeset_name)
   }
@@ -151,13 +150,13 @@ if (!methods::isGeneric("plot")) {
   paste0("chr", chr_vals)
 }
 
-.imprint_get_probeset_df <- function(probeset_name, plot_type, required_cols = c("NAME", "ORIGIN", "CHR")) {
+.imprint_get_probeset_df <- function(probeset_name, plot_type, required_cols = c("NAME", "ORIGIN", "CHR"),
+                                     genome = "hg38") {
   if (!is.character(probeset_name) || length(probeset_name) != 1L || is.na(probeset_name) || !nzchar(probeset_name)) {
     stop("plot_type='", plot_type, "' requires a non-empty 'probeset' parameter.")
   }
 
-  probesets_path <- .resolve_extdata_file("probesets_hg19.rds")
-  probesets_all <- readRDS(probesets_path)
+  probesets_all <- .load_probesets(genome)
   if (!(probeset_name %in% names(probesets_all))) {
     stop("plot_type='", plot_type, "' received unavailable probeset: ", probeset_name)
   }
@@ -172,12 +171,13 @@ if (!methods::isGeneric("plot")) {
 
 .imprint_beeswarm_origin <- function(beta_x, meta_x, SAMPLEID, probeset_name, alpha = 0.5,
                                      outFile = NULL, width = NULL, height = NULL,
-                                     title = "ImprintomeR: Beeswarm Origin", max_samples = 100) {
+                                     title = "ImprintomeR: Beeswarm Origin", max_samples = 100,
+                                     genome = "hg38") {
   if (!is.data.frame(meta_x) || !all(c("Sample_Name", SAMPLEID) %in% colnames(meta_x))) {
     stop("plot_type='beeswarm_origin' requires meta(x) with Sample_Name and ", SAMPLEID, " columns.")
   }
 
-  probeset_df <- .imprint_get_probeset_df(probeset_name, plot_type = "beeswarm_origin")
+  probeset_df <- .imprint_get_probeset_df(probeset_name, plot_type = "beeswarm_origin", genome = genome)
   common_probes <- intersect(rownames(beta_x), as.character(probeset_df$NAME))
   if (length(common_probes) == 0L) {
     stop("plot_type='beeswarm_origin' found no overlapping probes between beta(x) and probeset '", probeset_name, "'.")
@@ -282,8 +282,8 @@ if (!methods::isGeneric("plot")) {
 .imprint_beeswarm_chr <- function(beta_x, meta_x, SAMPLEID, probeset_name, sample_id = NULL,
                                   chr = NULL, alpha = 0.5, outFile = NULL,
                                   width = NULL, height = NULL,
-                                  title = "ImprintomeR: Beeswarm by Chromosome") {
-  probeset_df <- .imprint_get_probeset_df(probeset_name, plot_type = "beeswarm_chr")
+                                  title = "ImprintomeR: Beeswarm by Chromosome", genome = "hg38") {
+  probeset_df <- .imprint_get_probeset_df(probeset_name, plot_type = "beeswarm_chr", genome = genome)
   common_probes <- intersect(rownames(beta_x), as.character(probeset_df$NAME))
   if (length(common_probes) == 0L) {
     stop("plot_type='beeswarm_chr' found no overlapping probes between beta(x) and probeset '", probeset_name, "'.")
@@ -554,7 +554,7 @@ methods::setMethod(
     }
 
     if (plot_type == "beeswarm") {
-      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "beeswarm")
+      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "beeswarm", genome = x@genome)
       return(
         BetaBeePlot(
           beta = beta_plot,
@@ -581,7 +581,8 @@ methods::setMethod(
           width = width,
           height = height,
           title = title,
-          max_samples = max_samples
+          max_samples = max_samples,
+          genome = x@genome
         )
       )
     }
@@ -599,13 +600,14 @@ methods::setMethod(
           outFile = outFile,
           width = if (!is.null(args$width)) width else NULL,
           height = if (!is.null(args$height)) height else NULL,
-          title = title
+          title = title,
+          genome = x@genome
         )
       )
     }
 
     if (plot_type == "violin") {
-      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "violin")
+      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "violin", genome = x@genome)
       return(
         BetaVlnPlot(
           beta = beta_plot,
@@ -618,7 +620,7 @@ methods::setMethod(
     }
 
     if (plot_type == "heatmap_by_probe") {
-      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "heatmap_by_probe")
+      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "heatmap_by_probe", genome = x@genome)
       return(
         BetaHeatmap(
           beta = beta_plot,
@@ -643,14 +645,15 @@ methods::setMethod(
           clusterRows = clusterRows,
           clusterColumns = clusterColumns,
           outFile = outFile,
-          imgSizeFactor = 0.5
+          imgSizeFactor = 0.5,
+          genome = x@genome
         )
       )
     }
 
     if (plot_type == "circular_heatmap") {
       # Use same probeset subsetting logic as beeswarm: subset beta first, then visualize
-      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "circular_heatmap")
+      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "circular_heatmap", genome = x@genome)
 
       # Optional sample subsetting via Samples = c(...).
       if (!is.null(args$Samples)) {
@@ -682,7 +685,7 @@ methods::setMethod(
       # Annotate probes from the probeset panel itself (CHR/MAPINFO and nearest gene)
       # rather than the full array annotation, which may not contain every probe.
       probeset_df <- .imprint_get_probeset_df(probeset_name, plot_type = "circular_heatmap",
-                                              required_cols = c("NAME", "CHR", "MAPINFO"))
+                                              required_cols = c("NAME", "CHR", "MAPINFO"), genome = x@genome)
       gene <- if ("Closest_TSS_gene_name" %in% colnames(probeset_df)) {
         as.character(probeset_df$Closest_TSS_gene_name)
       } else {
@@ -691,13 +694,15 @@ methods::setMethod(
       # Label probes without a gene name by probe ID; empty labels break the circos label track.
       no_gene <- is.na(gene) | !nzchar(gene)
       gene[no_gene] <- as.character(probeset_df$NAME[no_gene])
+      version <- toupper(x@genome)
       panel_anno <- data.frame(
         NAME = as.character(probeset_df$NAME),
-        CHR_HG19 = .imprint_normalize_chr(probeset_df$CHR),
-        MAPINFO_HG19 = probeset_df$MAPINFO,
+        CHR = .imprint_normalize_chr(probeset_df$CHR),
+        MAPINFO = probeset_df$MAPINFO,
         UCSC_REFGENE_NAME = gene,
         stringsAsFactors = FALSE
       )
+      colnames(panel_anno)[2:3] <- paste0(c("CHR_", "MAPINFO_"), version)
 
       return(
         BetaCircularHeatmap(
@@ -705,7 +710,8 @@ methods::setMethod(
           meta = meta_x,
           probes.all = panel_anno,
           probeset = NULL,
-          version = "HG19",
+          genome = x@genome,
+          version = version,
           SAMPLEID = SAMPLEID,
           sectionColumn = effective_section_column,
           outFile = outFile
@@ -714,7 +720,7 @@ methods::setMethod(
     }
 
     if (plot_type == "cor_heatmap") {
-      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "cor_heatmap")
+      beta_plot <- .imprint_subset_beta_by_probeset(beta_x, probeset_name, plot_type = "cor_heatmap", genome = x@genome)
       if (is.null(prefix) || !nzchar(prefix)) {
         if (!is.null(outFile) && nzchar(outFile)) {
           prefix <- tools::file_path_sans_ext(outFile)
@@ -743,7 +749,8 @@ methods::setMethod(
           sampleID = chosen_sample,
           title = title,
           probeset = probeset_name,
-          outFile = outFile
+          outFile = outFile,
+          genome = x@genome
         )
       )
     }

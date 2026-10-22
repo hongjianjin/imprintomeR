@@ -14,7 +14,8 @@ BetaBeePlot_orgin2(
   useNA = FALSE,
   width = NULL,
   height = NULL,
-  group = "ORIGIN"
+  group = "ORIGIN",
+  genome = "hg38"
 )
 }
 \arguments{
@@ -28,13 +29,15 @@ BetaBeePlot_orgin2(
 
 \item{alpha}{Point alpha.}
 
-\item{probesets}{Optional annotation object.}
+\item{probesets}{Optional probeset name; \code{NULL} uses the array annotation.}
 
 \item{useNA}{Logical; keep NA category values.}
 
 \item{width, height}{Optional image dimensions for saving.}
 
 \item{group}{Annotation column used to define categories.}
+
+\item{genome}{Genome build of the probeset annotation, "hg38" (default) or "hg19".}
 
 \item{beta_matrix}{A matrix where rows are CpG IDs and columns are Sample Names}
 }

@@ -13,7 +13,8 @@ BetaHeatmapByGene(
   clusterRows = TRUE,
   clusterColumns = TRUE,
   outFile = NULL,
-  imgSizeFactor = 0.5
+  imgSizeFactor = 0.5,
+  genome = "hg38"
 )
 }
 \arguments{
@@ -24,7 +25,7 @@ samples as columns.}
 \code{Sample_Group} columns.}
 
 \item{probeset}{Character probeset key (default \code{"selected"}).
-Must be present in \code{inst/extdata/probesets_hg19.rds}.}
+Must be present in the probeset annotation of \code{genome}.}
 
 \item{SAMPLEID}{Metadata column name used as sample label in heatmap
 (default \code{"Sample_Name"}).}
@@ -43,6 +44,8 @@ to disk.}
 
 \item{imgSizeFactor}{Numeric scaling factor for saved image dimensions
 (default \code{0.5}).}
+
+\item{genome}{Genome build of the probeset annotation, "hg38" (default) or "hg19".}
 }
 \value{
 Invisibly returns the \code{ComplexHeatmap::Heatmap} object (or NULL if

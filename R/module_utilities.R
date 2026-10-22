@@ -592,7 +592,8 @@ Meth_DMR <- function() {
 ##################################################################
 
 #' @export
-Calculate_impvar <- function(betaFile, metaFile = NULL,  icr.bed=NULL, probeset=NULL,assay=c("450K","EPICv1","EPICv2"),genome=c("hg19","hg38"),outFile=NULL) {
+Calculate_impvar <- function(betaFile, metaFile = NULL,  icr.bed=NULL, probeset=NULL,assay=c("450K","EPICv1","EPICv2"),genome=c("hg38","hg19"),outFile=NULL) {
+  genome <- match.arg(genome)
   suppressMessages(suppressWarnings(library("matrixStats")))
   suppressMessages(suppressWarnings(library("dplyr")))
   suppressMessages(suppressWarnings(library("GenomicRanges")))  
@@ -606,13 +607,8 @@ Calculate_impvar <- function(betaFile, metaFile = NULL,  icr.bed=NULL, probeset=
   beta <- input[["beta"]]
 
   if(!is.null(probeset)){
-      probesets <- readRDS("inst/extdata/probesets_hg19.rds")
-    if (probeset %in% names(probesets)){
-        probeset1 <- probesets[[probeset]]
-        rownames(probeset1) <- probeset1$NAME
-    } else {
-        stop("unavailable probeset.", call. = FALSE)
-    }
+    probeset1 <- .get_probeset(probeset, genome)
+    rownames(probeset1) <- probeset1$NAME
     commonProbes <- intersect(rownames(beta), probeset1$NAME)
     mapping <- beta[commonProbes, ]
     mapping$NAME <- commonProbes

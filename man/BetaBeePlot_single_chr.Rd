@@ -11,7 +11,8 @@ BetaBeePlot_single_chr(
   outFile = NULL,
   alpha = 0.5,
   chr = "chr11",
-  probeset = "chr11p15"
+  probeset = "chr11p15",
+  genome = "hg38"
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ BetaBeePlot_single_chr(
 \item{chr}{Chromosome label (e.g., \code{chr11}).}
 
 \item{probeset}{Probeset name used for annotation lookup.}
+
+\item{genome}{Genome build of the probeset annotation, "hg38" (default) or "hg19".}
 }
 \value{
 A ggplot object.

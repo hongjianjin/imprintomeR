@@ -627,7 +627,7 @@ BuildReferenceProfile <- function(beta, samples = NULL, probeset = NULL, genome 
 #================================================================
 
 #' @export
-Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", "chr20q13"), min_probes = 10, ids_cutoff=0.2) {
+Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", "chr20q13"), min_probes = 10, ids_cutoff=0.2, genome = "hg38") {
   suppressMessages(suppressWarnings(library("dplyr")))
   library(stringr)
   probeset <- match.arg(probeset)
@@ -635,12 +635,7 @@ Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("selected", "Nano
   #================================================================
   # prepare chromosome
   beta <- as.data.frame(beta)
-  probesets <- readRDS(.resolve_extdata_file("probesets_hg19.rds"))
-    if (probeset %in% names(probesets)) {
-      probes <- probesets[[probeset]]
-    } else {
-      stop("unavailable probeset & probes not given.", call. = FALSE)
-    }
+  probes <- .get_probeset(probeset, genome)
     anno <- probes[,c("CHR","MAPINFO","Closest_TSS_gene_name","ORIGIN")]   
     colnames(anno)[3] <- "GENE"
     rownames(anno) <- probes$NAME
@@ -747,7 +742,8 @@ Survey_Global_Imprinting_Batch <- function(betaFile, metaFile = NULL,
                                           subset = "all", 
                                           probeset = c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", "chr20q13"), 
                                           min_probes = 10, 
-                                          ids_cutoff = 0.2) {
+                                          ids_cutoff = 0.2,
+                                          genome = "hg38") {
   
   suppressMessages(suppressWarnings({
     library(dplyr)
@@ -772,10 +768,7 @@ Survey_Global_Imprinting_Batch <- function(betaFile, metaFile = NULL,
   beta <- na.omit(beta) # removed NA
 
   # 2. Load Annotation
-  anno_path <- .resolve_extdata_file("probesets_hg19.rds")
-  probesets <- readRDS(anno_path)
-  
-  probes_info <- probesets[[probeset]]
+  probes_info <- .get_probeset(probeset, genome)
   anno <- probes_info %>%
     select(NAME, CHR, ORIGIN) %>%
     as.data.frame()

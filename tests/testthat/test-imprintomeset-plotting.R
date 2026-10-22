@@ -237,7 +237,7 @@ testthat::test_that("beeswarm_chr retains chromosomes with at least five usable 
   old_wd <- getwd()
   tmp_wd <- tempfile("imprintome_threshold_")
   dir.create(file.path(tmp_wd, "inst", "extdata"), recursive = TRUE)
-  saveRDS(list(threshold = probeset), file.path(tmp_wd, "inst", "extdata", "probesets_hg19.rds"))
+  saveRDS(list(threshold = probeset), file.path(tmp_wd, "inst", "extdata", "probesets_hg38.rds"))
   setwd(tmp_wd)
   on.exit(setwd(old_wd), add = TRUE)
 

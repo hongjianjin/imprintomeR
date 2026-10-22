@@ -70,6 +70,54 @@ test_that("default and hg19 calls read the matching build's probeset file", {
   expect_error(AggregateByLocus(beta, probeset = "selected", genome = "hg18"))
 })
 
+test_that("probeset helpers and plotting helpers read the requested build", {
+  probes <- c("cg1", "cg2", "cg3", "cg4")
+  panel_for <- function(chr) data.frame(
+    NAME = probes, CHR = chr, MAPINFO = 1:4,
+    ORIGIN = c("maternal", "maternal", "paternal", "paternal"),
+    Closest_TSS_gene_name = "G1", stringsAsFactors = FALSE
+  )
+  tmp_wd <- tempfile("imprintome_plot_routing_")
+  dir.create(file.path(tmp_wd, "inst", "extdata"), recursive = TRUE)
+  saveRDS(list(selected = panel_for("chr1")), file.path(tmp_wd, "inst", "extdata", "probesets_hg19.rds"))
+  saveRDS(list(selected = panel_for("chr2")), file.path(tmp_wd, "inst", "extdata", "probesets_hg38.rds"))
+  old_wd <- setwd(tmp_wd)
+  on.exit(setwd(old_wd), add = TRUE)
+
+  expect_equal(unique(.get_probeset("selected")$CHR), "chr2")
+  expect_equal(unique(.get_probeset("selected", "hg19")$CHR), "chr1")
+  expect_error(.get_probeset("Jima", "hg38"), "Unavailable probeset 'Jima' for genome 'hg38'")
+
+  expect_equal(unique(.imprint_get_probeset_df("selected", "test")$CHR), "chr2")
+  expect_equal(unique(.imprint_get_probeset_df("selected", "test", genome = "hg19")$CHR), "chr1")
+  beta <- data.frame(S1 = c(0.1, 0.2, 0.8, 0.9), S2 = c(0.4, 0.5, 0.5, 0.6), row.names = probes)
+  expect_equal(rownames(.imprint_subset_beta_by_probeset(beta, "selected", "test", genome = "hg19")), probes)
+})
+
+test_that("plotting and survey helpers default to hg38 and no code reads the hg19 file directly", {
+  for (f in list(BetaHeatmapByGene, BetaCircularHeatmap, PlotRainfall, Survey_Global_Imprinting,
+                 Survey_Global_Imprinting_Batch, BetaBeePlot_single_chr, BetaBeePlot_orgin,
+                 Beeplot_chr_vs_other_single, .imprint_subset_beta_by_probeset, .imprint_get_probeset_df)) {
+    expect_equal(formals(f)$genome, "hg38")
+  }
+  expect_equal(eval(formals(Calculate_impvar)$genome)[1], "hg38")
+
+  r_dir <- system.file("R", package = "imprintomeR")
+  if (!nzchar(r_dir) || !dir.exists(r_dir)) {
+    r_dir <- file.path(testthat::test_path("..", ".."), "R")
+  }
+  skip_if_not(dir.exists(r_dir), "R/ source directory not available")
+  hits <- character(0)
+  # zzz.R only lists the data files; module_legacy_migrated.R holds unexported, unused legacy code.
+  skip_files <- file.path(r_dir, c("zzz.R", "module_legacy_migrated.R"))
+  for (f in setdiff(list.files(r_dir, pattern = "[.]R$", full.names = TRUE), skip_files)) {
+    code <- sub("#.*$", "", readLines(f, warn = FALSE))
+    i <- grep("probesets_hg19[.]rds", code)
+    if (length(i)) hits <- c(hits, paste0(basename(f), ":", i))
+  }
+  expect_equal(hits, character(0))
+})
+
 test_that("CLI --genome defaults to hg38", {
   cli <- system.file("scripts", "run_imprintomeR.R", package = "imprintomeR")
   skip_if_not(nzchar(cli) && file.exists(cli), "CLI script not available")

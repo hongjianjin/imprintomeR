@@ -10,6 +10,15 @@
   probesets
 }
 
+# One named panel from the genome-specific probeset annotation.
+.get_probeset <- function(probeset, genome = "hg38") {
+  probesets <- .load_probesets(genome)
+  if (!is.character(probeset) || length(probeset) != 1L || !probeset %in% names(probesets)) {
+    stop("Unavailable probeset '", paste(probeset, collapse = ", "), "' for genome '", genome, "'.", call. = FALSE)
+  }
+  probesets[[probeset]]
+}
+
 .validate_probeset_annotation <- function(probeset, name = "probeset", require_origin = TRUE) {
   if (!is.data.frame(probeset) || !nrow(probeset)) {
     stop("Probeset '", name, "' is empty or is not a data.frame.")

@@ -8,7 +8,8 @@ Beeplot_chr_vs_other_single(
   input,
   chrs = "chr1,chr11",
   prefix = NULL,
-  probeset = "selected"
+  probeset = "selected",
+  genome = "hg38"
 )
 }
 \arguments{
@@ -18,7 +19,9 @@ Beeplot_chr_vs_other_single(
 
 \item{prefix}{Output prefix used to build per-chromosome PDF names.}
 
-\item{probeset}{Probeset name in \code{inst/extdata/probesets_hg19.rds}.}
+\item{probeset}{Probeset name.}
+
+\item{genome}{Genome build of the probeset annotation, "hg38" (default) or "hg19".}
 }
 \value{
 \code{NULL}, writing plots to files as side effects.

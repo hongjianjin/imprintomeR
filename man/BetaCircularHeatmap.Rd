@@ -9,7 +9,8 @@ BetaCircularHeatmap(
   meta = NULL,
   probes.all = NULL,
   probeset = NULL,
-  version = "HG19",
+  genome = "hg38",
+  version = toupper(genome),
   SAMPLEID = "Sample_Name",
   sectionColumn = "Sample_Group",
   sectionLabels = NULL,
@@ -26,7 +27,10 @@ BetaCircularHeatmap(
 
 \item{probeset}{Character scalar for probeset name or NULL.}
 
-\item{version}{Character genome version (default "HG19").}
+\item{genome}{Genome build of the probeset coordinates, "hg38" (default) or "hg19".}
+
+\item{version}{Coordinate columns used from \code{probes.all} (\verb{CHR_<version>}, \verb{MAPINFO_<version>});
+defaults to the upper-case \code{genome}.}
 
 \item{SAMPLEID}{Column name for sample identifiers (default "Sample_Name").}
 
