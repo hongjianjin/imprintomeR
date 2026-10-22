@@ -200,6 +200,7 @@ if (!methods::isGeneric("aggregate_probes")) {
 #'     \item Updated `beta` slot (aggregated if platform=="EPICv2", unchanged otherwise)
 #'     \item Updated `detection_pval` slot (if present)
 #'     \item Updated `aggregation_status` slot
+#'     \item An aggregation report in `qc_tables(x)$Aggregation_report`
 #'   }
 #'   If platform is not "EPICv2", returns object unchanged with message.
 #'
@@ -208,6 +209,11 @@ if (!methods::isGeneric("aggregate_probes")) {
 #' multiple probe measurements (e.g., cg06373096_TC11, cg06373096_TC12) into a single
 #' value per base probe ID (cg06373096). This is essential before merging EPICv2 data
 #' with EPICv1 or 450K cohorts.
+#'
+#' The aggregation report (columns `metric`, `n`, `description`) counts the replicate
+#' groups collapsed, identifiers kept unchanged, malformed identifiers (kept or removed)
+#' and values missing because all replicates were missing; see `aggregate_beta_epicv2()`.
+#' A one-line summary is also printed as a message.
 #'
 #' @export
 methods::setMethod("aggregate_probes", "MethQcSet", function(x, method = c("median", "mean"), ...) {
@@ -246,6 +252,16 @@ methods::setMethod("aggregate_probes", "MethQcSet", function(x, method = c("medi
     dpval_agg$TargetID <- NULL
     x@detection_pval <- as.matrix(dpval_agg)
   }
+
+  # Record the identifier counts before the attribute is lost in the matrix conversion.
+  report <- attr(beta_agg, "aggregation_report")
+  x@qc_tables[["Aggregation_report"]] <- report
+  r <- stats::setNames(report$n, report$metric)
+  message(sprintf(paste0("aggregate_probes(): %d rows -> %d probes; %d replicate groups collapsed (%d rows), ",
+                         "%d unchanged, %d malformed kept, %d malformed removed, %d all-missing values."),
+                  r[["input_rows"]], r[["output_ids"]], r[["replicate_groups_collapsed"]],
+                  r[["replicate_rows_collapsed"]], r[["unchanged_ids"]], r[["malformed_kept"]],
+                  r[["malformed_dropped"]], r[["all_missing_cells"]]))
 
   # Convert aggregated beta back to matrix
   rownames(beta_agg) <- beta_agg$TargetID

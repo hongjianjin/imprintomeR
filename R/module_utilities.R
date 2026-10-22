@@ -731,13 +731,22 @@ Calculate_impvar <- function(betaFile, metaFile = NULL,  icr.bed=NULL, probeset=
 #'     \item Numeric columns: aggregated values (median or mean across replicates)
 #'   }
 #'   If no EPICv2-style suffixes are detected (\code{_[TB].\\d+$}), returns \code{beta_df}
-#'   unchanged (with a message).
+#'   unchanged (with a message). In both cases the attribute \code{aggregation_report} holds
+#'   a data.frame (\code{metric}, \code{n}, \code{description}) counting the identifiers:
+#'   \code{input_rows}, \code{output_ids}, \code{replicate_groups_collapsed} (base IDs built from
+#'   two or more rows), \code{replicate_rows_collapsed}, \code{suffix_stripped_single} (base IDs
+#'   from a single suffixed row), \code{unchanged_ids} (IDs without a replicate suffix, kept as
+#'   they are), \code{malformed_kept} (IDs with surrounding white space or an underscore suffix
+#'   that is not a replicate suffix; kept unchanged), \code{malformed_dropped} (missing or empty
+#'   IDs; removed), \code{all_missing_cells} (aggregated values that are missing because every
+#'   replicate was missing) and \code{all_missing_ids} (output IDs missing in every column).
 #'
 #' @details
 #' The function detects EPICv2 probe suffixes matching the pattern \code{_[TB].\\d+$}
 #' (e.g., \code{_TC11}, \code{_TB01}). If found, the suffix is stripped and values are
-#' aggregated by base probe ID. Numeric columns are aggregated using the chosen method;
-#' all other columns are dropped.
+#' aggregated by base probe ID. Numeric columns are aggregated using the chosen method,
+#' ignoring missing values; a group whose values are all missing stays missing. All other
+#' columns are dropped.
 #'
 #' @examples
 #' \dontrun{
@@ -765,31 +774,90 @@ aggregate_beta_epicv2 <- function(beta_df, method = c("median", "mean")) {
     stop("TargetID column not found in beta_df. Required for probe aggregation.")
   }
   
+  ids <- as.character(beta_df$TargetID)
+  suffixed <- !is.na(ids) & grepl("_[TB].\\d+$", ids)
+
   # Check for EPICv2-style suffixes
-  if (sum(grepl("_[TB].\\d+$", beta_df$TargetID)) == 0) {
+  if (sum(suffixed) == 0) {
     message("No EPICv2-style suffixes detected in TargetID. Returning data unchanged.")
+    attr(beta_df, "aggregation_report") <- .aggregation_report(ids, suffixed, NULL, NULL)
     return(beta_df)
   }
-  
+
   # Match and validate method argument
   method <- match.arg(method)
-  
+
+  # Missing or empty identifiers cannot be assigned to a probe and are removed.
+  dropped <- is.na(ids) | !nzchar(trimws(ids))
+  beta_df <- beta_df[!dropped, , drop = FALSE]
+
   # Strip suffixes to get base probe IDs
   beta_df$TargetID <- sub("_[TB].\\d+$", "", beta_df$TargetID)
-  
+
   # Aggregate: group by TargetID, aggregate all numeric columns
   aggregated_data <- beta_df %>%
     dplyr::group_by(TargetID) %>%
-    dplyr::summarise(dplyr::across(where(is.numeric), 
-                                   list(~ if (method == "median") 
-                                          median(., na.rm = TRUE) 
-                                        else 
+    dplyr::summarise(dplyr::across(where(is.numeric),
+                                   list(~ if (method == "median")
+                                          median(., na.rm = TRUE)
+                                        else
                                           mean(., na.rm = TRUE)),
                                    .names = "{.col}"),
                      .groups = "drop") %>%
     as.data.frame()
-  
+  # mean() of no values is NaN; report such groups as missing, like median().
+  num_cols <- vapply(aggregated_data, is.numeric, logical(1))
+  aggregated_data[num_cols] <- lapply(aggregated_data[num_cols], function(v) { v[is.nan(v)] <- NA; v })
+
+  attr(aggregated_data, "aggregation_report") <-
+    .aggregation_report(ids, suffixed, beta_df$TargetID, aggregated_data[, num_cols, drop = FALSE])
   aggregated_data
+}
+
+# Identifier counts for aggregate_beta_epicv2(). ids/suffixed describe the input rows; base_ids are
+# the base IDs of the rows kept, and values the aggregated numeric columns (NULL when nothing was
+# aggregated).
+.aggregation_report <- function(ids, suffixed, base_ids, values) {
+  dropped <- is.na(ids) | !nzchar(trimws(ids))
+  kept_ids <- ids[!dropped]
+  malformed_kept <- sum(kept_ids != trimws(kept_ids) | (grepl("_", kept_ids) & !suffixed[!dropped]))
+  if (is.null(base_ids)) {
+    n_collapsed <- 0L
+    rows_collapsed <- 0L
+    single <- 0L
+    missing_cells <- 0L
+    missing_ids <- 0L
+    n_out <- length(ids)
+  } else {
+    group_size <- table(base_ids)
+    n_collapsed <- sum(group_size >= 2L)
+    rows_collapsed <- sum(group_size[group_size >= 2L])
+    sfx_groups <- table(base_ids[suffixed[!dropped]])
+    single <- sum(sfx_groups == 1L & group_size[names(sfx_groups)] == 1L)
+    missing <- is.na(as.matrix(values))
+    missing_cells <- sum(missing)
+    missing_ids <- if (ncol(missing)) sum(rowSums(missing) == ncol(missing)) else 0L
+    n_out <- nrow(values)
+  }
+  data.frame(
+    metric = c("input_rows", "output_ids", "replicate_groups_collapsed", "replicate_rows_collapsed",
+               "suffix_stripped_single", "unchanged_ids", "malformed_kept", "malformed_dropped",
+               "all_missing_cells", "all_missing_ids"),
+    n = as.integer(c(length(ids), n_out, n_collapsed, rows_collapsed, single,
+                     sum(!suffixed & !dropped), malformed_kept, sum(dropped), missing_cells, missing_ids)),
+    description = c(
+      "rows in the input",
+      "identifiers in the output",
+      "base IDs built from two or more rows",
+      "input rows in those groups",
+      "base IDs from a single suffixed row (suffix removed)",
+      "IDs without a replicate suffix, kept as they are",
+      "IDs with surrounding white space or a non-replicate underscore suffix, kept unchanged",
+      "missing or empty IDs, removed",
+      "aggregated values missing because every replicate was missing",
+      "output IDs missing in every column"),
+    stringsAsFactors = FALSE
+  )
 }
 #----------------------------------------------------------------
 

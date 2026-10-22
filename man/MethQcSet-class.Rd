@@ -25,7 +25,7 @@ in the analysis workflow and serves as the preprocessing/QC container.
 
 \item{\code{qc_tables}}{Named list of QC result data.frames. Canonical keys (populated by \code{runMethQC()}):
 \code{QC_matrix}, \code{ctrl_metrics}, \code{recall_rate}, \code{contamination}, \code{predUniqDonor_ID},
-\code{cutoffs}, and optional \code{qc_report_files}.}
+\code{cutoffs}, and optional \code{qc_report_files}. \code{aggregate_probes()} adds \code{Aggregation_report}.}
 
 \item{\code{aggregation_status}}{Character scalar: "none", "epicv2_aggregated", or other flag.}
 

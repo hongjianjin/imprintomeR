@@ -19,6 +19,7 @@ A \code{MethQcSet} object with:
 \item Updated \code{beta} slot (aggregated if platform=="EPICv2", unchanged otherwise)
 \item Updated \code{detection_pval} slot (if present)
 \item Updated \code{aggregation_status} slot
+\item An aggregation report in \code{qc_tables(x)$Aggregation_report}
 }
 If platform is not "EPICv2", returns object unchanged with message.
 }
@@ -31,4 +32,9 @@ For EPICv2 data, this method calls \code{aggregate_beta_epicv2()} to consolidate
 multiple probe measurements (e.g., cg06373096_TC11, cg06373096_TC12) into a single
 value per base probe ID (cg06373096). This is essential before merging EPICv2 data
 with EPICv1 or 450K cohorts.
+
+The aggregation report (columns \code{metric}, \code{n}, \code{description}) counts the replicate
+groups collapsed, identifiers kept unchanged, malformed identifiers (kept or removed)
+and values missing because all replicates were missing; see \code{aggregate_beta_epicv2()}.
+A one-line summary is also printed as a message.
 }

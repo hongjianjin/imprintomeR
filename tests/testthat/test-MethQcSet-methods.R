@@ -95,6 +95,44 @@ test_that("aggregate_probes works for EPICv2", {
   expect_equal(aggregation_status(obj_agg), "epicv2_aggregated")
 })
 
+test_that("aggregate_beta_epicv2 reports collapsed, unchanged, malformed and all-missing identifiers", {
+  ids <- c("cg1_TC11", "cg1_TC12", "cg2_BC11", "cg3", "cg4_TC11", "cg4_TC12", "cg5_x", " cg6", NA, "")
+  df <- data.frame(TargetID = ids,
+                   S1 = c(0.2, 0.4, 0.5, 0.6, NA, NA, 0.7, 0.8, 0.1, 0.1),
+                   S2 = c(0.3, 0.5, 0.5, 0.6, NA, NA, 0.7, 0.8, 0.1, 0.1),
+                   stringsAsFactors = FALSE)
+  for (m in c("median", "mean")) {
+    out <- aggregate_beta_epicv2(df, method = m)
+    rep <- stats::setNames(attr(out, "aggregation_report")$n, attr(out, "aggregation_report")$metric)
+    expect_equal(unname(rep[c("input_rows", "output_ids", "replicate_groups_collapsed", "replicate_rows_collapsed",
+                              "suffix_stripped_single", "unchanged_ids", "malformed_kept", "malformed_dropped",
+                              "all_missing_cells", "all_missing_ids")]),
+                 c(10L, 6L, 2L, 4L, 1L, 3L, 2L, 2L, 2L, 1L))
+    expect_setequal(out$TargetID, c("cg1", "cg2", "cg3", "cg4", "cg5_x", " cg6"))
+    expect_equal(out$S1[out$TargetID == "cg1"], 0.3)
+    expect_true(all(is.na(unlist(out[out$TargetID == "cg4", c("S1", "S2")]))))   # NA, not NaN, for mean too
+    expect_false(any(is.nan(unlist(out[c("S1", "S2")]))))
+  }
+  plain <- suppressMessages(aggregate_beta_epicv2(data.frame(TargetID = c("cg1", "cg2"), S1 = c(0.1, 0.2))))
+  rep <- attr(plain, "aggregation_report")
+  expect_equal(rep$n[rep$metric == "unchanged_ids"], 2L)
+  expect_equal(rep$n[rep$metric == "replicate_groups_collapsed"], 0L)
+})
+
+test_that("aggregate_probes records the aggregation report in qc_tables", {
+  meta <- data.frame(Sample_Name = c("S1", "S2"), stringsAsFactors = FALSE)
+  probe_names <- c("cg00000001_TC11", "cg00000001_TC12", "cg00000002_BC11", "cg00000003")
+  beta <- matrix(c(0.2, 0.4, 0.5, 0.6, NA, NA, 0.5, 0.6), nrow = 4, dimnames = list(probe_names, meta$Sample_Name))
+  dp <- matrix(0.001, nrow = 4, ncol = 2, dimnames = dimnames(beta))
+  obj <- MethQcSet(meta = meta, platform = "EPICv2", beta = beta, detection_pval = dp, aggregation_status = "none")
+  expect_message(obj_agg <- aggregate_probes(obj), "1 replicate groups collapsed \\(2 rows\\)")
+  rep <- qc_tables(obj_agg)[["Aggregation_report"]]
+  expect_true(is.data.frame(rep))
+  expect_equal(rep$n[rep$metric == "output_ids"], 3L)
+  expect_equal(rep$n[rep$metric == "all_missing_cells"], 1L)
+  expect_equal(rownames(beta(obj_agg)), rownames(obj_agg@detection_pval))
+})
+
 # Test merge
 test_that("merge combines two MethQcSet objects", {
   obj1 <- .create_test_methqcset(n_samples = 2, n_probes = 50)
