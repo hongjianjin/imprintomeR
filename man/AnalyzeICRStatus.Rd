@@ -17,8 +17,8 @@ AnalyzeICRStatus(
   control_group = reference_group,
   control_samples = reference_samples,
   min_probes = 3L,
-  delta_cutoff = 0.175,
-  z_cutoff = NULL
+  delta_cutoff = 0.075,
+  z_cutoff = 3
 )
 }
 \arguments{
@@ -77,10 +77,10 @@ absent from the reference are dropped.}
 
 \item{min_probes}{Minimum number of probes for an ICR to be scored (default 3).}
 
-\item{delta_cutoff}{Minimum absolute deviation for an altered call (default 0.175).}
+\item{delta_cutoff}{Minimum absolute deviation for an altered call (default 0.075).}
 
-\item{z_cutoff}{Minimum absolute z-score for an altered call when controls are available, or
-\code{NULL} (default) for no z criterion.}
+\item{z_cutoff}{Minimum absolute z-score for an altered call when controls are available
+(default 3), or \code{NULL} for no z criterion.}
 }
 \value{
 Data frame with one row per sample and ICR: sample metadata, \code{probeset},
@@ -103,14 +103,14 @@ the controls' median and standard deviation for that ICR (the standard deviation
 0.02 so that very homogeneous controls do not inflate \code{z}); it is reported whenever controls are
 available. Controls are scored leave-one-out when they also form the reference.
 
-The defaults (\code{delta_cutoff = 0.175}, no z criterion) were selected under the prespecified
-threshold-selection protocol in the package repository (erb{benchmark/}), by leave-one-cohort-out
+The defaults (\code{delta_cutoff = 0.075}, \code{z_cutoff = 3}) were selected under the prespecified
+threshold-selection protocol in the package repository (\verb{benchmark/}), by leave-one-cohort-out
 cross-validation on six development cohorts, and validated on three held-out cohorts. Earlier
-versions used \code{delta_cutoff = 0.15, z_cutoff = 3}. They apply to in-cohort, tissue-matched
-controls, the only setting in which they were selected and validated. With an external or
-cross-study reference, between-study offsets at some ICRs exceed \code{delta_cutoff} and produce
-false calls; adding \code{z_cutoff = 3} is recommended there (exploratory: not evaluated by the
-protocol).
+versions used \code{delta_cutoff = 0.15}. They were selected and validated with control samples
+(in-cohort, or external controls of the same tissue and platform), so that the z criterion
+applies. Without controls \code{z} is \code{NA} and only \code{delta_cutoff} is applied; that setting was not
+validated and calls are exploratory (a larger \code{delta_cutoff}, such as 0.15, is more
+conservative).
 }
 \seealso{
 \code{\link[=SummarizeICRStatus]{SummarizeICRStatus()}} for the per-sample multi-locus summary and

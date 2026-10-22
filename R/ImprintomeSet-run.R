@@ -31,7 +31,7 @@
 #'   store the per-ICR table as `ICRStatus.<probeset>` and its per-sample
 #'   multi-locus summary ([SummarizeICRStatus()]) as `ICRSummary.<probeset>`.
 #' @param delta_cutoff,z_cutoff Thresholds for altered-ICR calls, passed to
-#'   [AnalyzeICRStatus()] when `icr = TRUE` (defaults 0.175 and no z criterion).
+#'   [AnalyzeICRStatus()] when `icr = TRUE` (defaults 0.075 and 3).
 #' @param ... Reserved for future compatibility.
 #'
 #' @return Updated `ImprintomeSet` object with analysis table stored in
@@ -85,7 +85,7 @@ methods::setMethod(
            reference = c("auto", "controls", "fixed"), reference_group = NULL,
            reference_samples = NULL, reference_beta = NULL,
            infinium_type = c("all", "I", "II", "balanced"), balance = c("probe", "icr"),
-           min_probes = 3L, icr = FALSE, delta_cutoff = 0.175, z_cutoff = NULL, ...) {
+           min_probes = 3L, icr = FALSE, delta_cutoff = 0.075, z_cutoff = 3, ...) {
     methods::validObject(x)
 
     # Convert beta matrix to data frame with TargetID column (required by LoadBeta)

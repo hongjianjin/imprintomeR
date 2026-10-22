@@ -310,9 +310,9 @@ From the command line: `--reference-group control`, `--reference-file adrenal_re
 The sample-level IDS pools all probes of a parental class, so probe-rich ICRs dominate it and single-locus or single-chromosome defects can be missed. Three complementary views are available:
 
 - **Per-ICR deviations** (`AnalyzeICRStatus()`): for every sample and ICR with at least 3 probes, the median of (beta − reference) over the ICR's probes. Each ICR has one parental origin, so its deviation is a gain or loss on one axis.
-  - **Altered call:** |deviation| ≥ 0.175 (`delta_cutoff`). A z criterion against the controls can be added with `z_cutoff`; `z` is reported whenever controls are given (`reference_group`/`control_group`).
-  - **Thresholds:** the defaults were selected under a prespecified protocol (`benchmark/threshold_selection_protocol.md`) by leave-one-cohort-out cross-validation on six development cohorts and validated on three held-out cohorts, all with in-cohort controls. Versions before this used 0.15 with |z| ≥ 3.
-  - **External references:** with external or cross-study controls, between-study offsets at some ICRs exceed 0.175 and give false calls (in our data, 16 of 63 pooled external 450K blood controls were flagged MLID). Add `z_cutoff = 3` in that setting; this is exploratory and was not evaluated by the protocol.
+  - **Altered call:** |deviation| ≥ 0.075 (`delta_cutoff`) and |z| ≥ 3 (`z_cutoff`) against the controls (`reference_group`/`control_group`).
+  - **Thresholds:** the defaults were selected under a prespecified protocol (`benchmark/threshold_selection_protocol.md`) by leave-one-cohort-out cross-validation on six development cohorts and validated on three held-out cohorts. Versions before this used |deviation| ≥ 0.15.
+  - **Without controls:** `z` is unavailable and only `delta_cutoff` applies. This setting was not validated; calls are exploratory, and a larger `delta_cutoff` (such as 0.15) is more conservative.
   - **Summary:** `SummarizeICRStatus()` counts altered ICRs per sample and flags multi-locus imprinting disturbance (`MLID`) when altered ICRs lie on at least two chromosomes.
   - **Heatmap:** `PlotICRHeatmap()` draws samples × ICRs.
 - **ICR-balanced IDS/Angle** (`balance = "icr"`): the median within each ICR, then the median across the class's ICRs, so that each ICR counts once.
