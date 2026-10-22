@@ -1615,8 +1615,13 @@ BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
 #'   to show each sample as its own section, or "Sample_Group" to group multiple samples.
 #'   Circular heatmaps work best with 1-5 sections.
 #' @param sectionLabels Optional custom section labels.
-#' @param outFile Optional output PDF file path.
+#' @param outFile Optional output file path. The extension selects the format when `format` is `NULL`:
+#'   `.png` writes a raster image, anything else a vector PDF.
 #' @param nchars Number of characters to show in gene labels (default 5).
+#' @param format Output format, `"pdf"` (vector) or `"png"` (raster), or `NULL` (default) to
+#'   infer it from `outFile`. Raster output keeps file size independent of the numbers of probes
+#'   and samples, which suits large cohorts.
+#' @param res Resolution in dots per inch for raster output (default 300).
 #'   Note: This applies to gene names only, not group labels which are shown in full.
 #'
 #' @details
@@ -1628,7 +1633,8 @@ BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
 #'
 #' @return Invisibly returns the heatmap object.
 #' @export
-BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NULL, genome = "hg38", version = toupper(genome), SAMPLEID = "Sample_Name", sectionColumn = "Sample_Group", sectionLabels = NULL, outFile = NULL, nchars = 5) {
+BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NULL, genome = "hg38", version = toupper(genome), SAMPLEID = "Sample_Name", sectionColumn = "Sample_Group", sectionLabels = NULL, outFile = NULL, nchars = 5,
+                                format = NULL, res = 300) {
   # values of SAMPLEID column, sectionColumn must be present in meta column names
   #
   library(ComplexHeatmap)
@@ -1783,7 +1789,12 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
   circle_size <- unit(1, "snpc")
   save_plot <- !is.null(outFile) && nzchar(outFile)
   if (save_plot) {
-    outFile <- paste0(tools::file_path_sans_ext(outFile), ".pdf")
+    if (is.null(format)) format <- if (grepl("[.]png$", outFile, ignore.case = TRUE)) "png" else "pdf"
+    format <- match.arg(tolower(format), c("pdf", "png"))
+    if (!is.numeric(res) || length(res) != 1L || is.na(res) || res <= 0) {
+      stop("res must be a single positive number (dots per inch).")
+    }
+    outFile <- paste0(tools::file_path_sans_ext(outFile), ".", format)
   }
 
   # Clear any previous circos state AFTER setting up parameters
@@ -1791,7 +1802,16 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
   on.exit(circos.clear(), add = TRUE)
 
   if (save_plot) {
-    pdf(outFile, width = 12, height = 10)  # Larger canvas: 12x10 inches
+    # Larger canvas: 12x10 inches
+    if (format == "png") {
+      if (requireNamespace("ragg", quietly = TRUE)) {
+        ragg::agg_png(outFile, width = 12, height = 10, units = "in", res = res)
+      } else {
+        grDevices::png(outFile, width = 12, height = 10, units = "in", res = res)
+      }
+    } else {
+      pdf(outFile, width = 12, height = 10)
+    }
     on.exit({
       dev.off()
       cat("\n\t", basename(outFile), "[saved]\n")

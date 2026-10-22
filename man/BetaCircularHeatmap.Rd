@@ -15,7 +15,9 @@ BetaCircularHeatmap(
   sectionColumn = "Sample_Group",
   sectionLabels = NULL,
   outFile = NULL,
-  nchars = 5
+  nchars = 5,
+  format = NULL,
+  res = 300
 )
 }
 \arguments{
@@ -40,10 +42,17 @@ Circular heatmaps work best with 1-5 sections.}
 
 \item{sectionLabels}{Optional custom section labels.}
 
-\item{outFile}{Optional output PDF file path.}
+\item{outFile}{Optional output file path. The extension selects the format when \code{format} is \code{NULL}:
+\code{.png} writes a raster image, anything else a vector PDF.}
 
 \item{nchars}{Number of characters to show in gene labels (default 5).
 Note: This applies to gene names only, not group labels which are shown in full.}
+
+\item{format}{Output format, \code{"pdf"} (vector) or \code{"png"} (raster), or \code{NULL} (default) to
+infer it from \code{outFile}. Raster output keeps file size independent of the numbers of probes
+and samples, which suits large cohorts.}
+
+\item{res}{Resolution in dots per inch for raster output (default 300).}
 }
 \value{
 Invisibly returns the heatmap object.

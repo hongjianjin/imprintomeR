@@ -39,6 +39,8 @@
 \code{plot_type = "circular_heatmap"} (default \code{"Sample_Group"}; if column doesn't exist in metadata:
 uses \code{Sample_Name} if available, otherwise creates it with all samples grouped as \code{"all"}).
 \item \code{Samples}: character vector of sample names to include (applied with \code{plot_type = "circular_heatmap"}, default: all samples).
+\item \code{format}, \code{res}: output format (\code{"pdf"} or \code{"png"}; default inferred from \code{outFile}) and raster
+resolution in dpi (default 300) for \code{plot_type = "circular_heatmap"}.
 \item \code{outFile}: optional file path for saving output.
 \item \code{width}: optional width in inches when saving stored plots.
 \item \code{height}: optional height in inches when saving stored plots.

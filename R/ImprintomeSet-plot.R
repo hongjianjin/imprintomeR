@@ -38,6 +38,8 @@
 #'     `plot_type = "circular_heatmap"` (default `"Sample_Group"`; if column doesn't exist in metadata:
 #'     uses `Sample_Name` if available, otherwise creates it with all samples grouped as `"all"`).
 #'   - `Samples`: character vector of sample names to include (applied with `plot_type = "circular_heatmap"`, default: all samples).
+#'   - `format`, `res`: output format (`"pdf"` or `"png"`; default inferred from `outFile`) and raster
+#'     resolution in dpi (default 300) for `plot_type = "circular_heatmap"`.
 #'   - `outFile`: optional file path for saving output.
 #'   - `width`: optional width in inches when saving stored plots.
 #'   - `height`: optional height in inches when saving stored plots.
@@ -714,7 +716,9 @@ methods::setMethod(
           version = version,
           SAMPLEID = SAMPLEID,
           sectionColumn = effective_section_column,
-          outFile = outFile
+          outFile = outFile,
+          format = args$format,
+          res = if (!is.null(args$res)) as.numeric(args$res)[1] else 300
         )
       )
     }

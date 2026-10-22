@@ -498,3 +498,30 @@ testthat::test_that("beeswarm-chr-all removes the ordinary single-sample plot", 
   testthat::expect_false("beeswarm_chr" %in% without_beeswarm("all"))
   testthat::expect_equal(without_beeswarm(c("polar", "beeswarm_chr")), "polar")
 })
+
+test_that("circular_heatmap writes a raster PNG when requested and a vector PDF otherwise", {
+  panel <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))[["chr11p15"]]
+  set.seed(1)
+  ids <- paste0("S", 1:4)
+  beta <- matrix(runif(nrow(panel) * 4), ncol = 4, dimnames = list(panel$NAME, ids))
+  meta <- data.frame(Sample_Name = ids, Sample_Group = c("case", "case", "control", "control"),
+                     stringsAsFactors = FALSE)
+  x <- suppressMessages(as.ImprintomeSet(MethQcSet(meta = meta, platform = "EPIC", beta = beta)))
+  out <- tempfile("circular_")
+  on.exit(unlink(paste0(out, c(".png", ".pdf"))), add = TRUE)
+  magic <- function(f, n) readBin(f, "raw", n)
+
+  invisible(capture.output(suppressMessages(
+    plot(x, plot_type = "circular_heatmap", probeset = "chr11p15", outFile = paste0(out, ".png"), res = 72))))
+  testthat::expect_true(file.exists(paste0(out, ".png")))
+  testthat::expect_equal(magic(paste0(out, ".png"), 4), as.raw(c(0x89, 0x50, 0x4e, 0x47)))
+
+  invisible(capture.output(suppressMessages(
+    plot(x, plot_type = "circular_heatmap", probeset = "chr11p15", outFile = paste0(out, ".png"), format = "pdf"))))
+  testthat::expect_true(file.exists(paste0(out, ".pdf")))
+  testthat::expect_equal(rawToChar(magic(paste0(out, ".pdf"), 4)), "%PDF")
+
+  testthat::expect_error(
+    BetaCircularHeatmap(beta, meta, probeset = "chr11p15", outFile = paste0(out, ".png"), res = -1),
+    "res must be a single positive number")
+})
