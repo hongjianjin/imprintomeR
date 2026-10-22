@@ -17,8 +17,8 @@ AnalyzeICRStatus(
   control_group = reference_group,
   control_samples = reference_samples,
   min_probes = 3L,
-  delta_cutoff = 0.15,
-  z_cutoff = 3
+  delta_cutoff = 0.175,
+  z_cutoff = NULL
 )
 }
 \arguments{
@@ -77,10 +77,10 @@ absent from the reference are dropped.}
 
 \item{min_probes}{Minimum number of probes for an ICR to be scored (default 3).}
 
-\item{delta_cutoff}{Minimum absolute deviation for an altered call (default 0.15).}
+\item{delta_cutoff}{Minimum absolute deviation for an altered call (default 0.175).}
 
-\item{z_cutoff}{Minimum absolute z-score for an altered call when controls are available
-(default 3).}
+\item{z_cutoff}{Minimum absolute z-score for an altered call when controls are available, or
+\code{NULL} (default) for no z criterion.}
 }
 \value{
 Data frame with one row per sample and ICR: sample metadata, \code{probeset},
@@ -97,11 +97,16 @@ paternal or maternal axis. Two-axis IDS/Angle for a single imprinted domain is o
 scoring a locus panel such as \code{chr11p15} or \code{chr20q13} with \code{\link[=AnalyzeImprintStatus]{AnalyzeImprintStatus()}}.
 }
 \details{
-An ICR is called altered when \code{abs(deviation) >= delta_cutoff} and, when control samples are
-available, also \code{abs(z) >= z_cutoff}, where \code{z} is the deviation standardized by the
-controls' median and standard deviation for that ICR (the standard deviation is floored at
-0.02 so that very homogeneous controls do not inflate \code{z}). Controls are scored
-leave-one-out when they also form the reference. The thresholds are exploratory.
+An ICR is called altered when \code{abs(deviation) >= delta_cutoff} and, if \code{z_cutoff} is set and
+control samples are available, also \code{abs(z) >= z_cutoff}. \code{z} is the deviation standardized by
+the controls' median and standard deviation for that ICR (the standard deviation is floored at
+0.02 so that very homogeneous controls do not inflate \code{z}); it is reported whenever controls are
+available. Controls are scored leave-one-out when they also form the reference.
+
+The defaults (\code{delta_cutoff = 0.175}, no z criterion) were selected under the prespecified
+threshold-selection protocol in the package repository (erb{benchmark/}), by leave-one-cohort-out
+cross-validation on six development cohorts, and validated on three held-out cohorts. Earlier
+versions used \code{delta_cutoff = 0.15, z_cutoff = 3}.
 }
 \seealso{
 \code{\link[=SummarizeICRStatus]{SummarizeICRStatus()}} for the per-sample multi-locus summary and

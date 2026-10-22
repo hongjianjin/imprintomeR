@@ -86,11 +86,16 @@
 #' paternal or maternal axis. Two-axis IDS/Angle for a single imprinted domain is obtained by
 #' scoring a locus panel such as `chr11p15` or `chr20q13` with [AnalyzeImprintStatus()].
 #'
-#' An ICR is called altered when `abs(deviation) >= delta_cutoff` and, when control samples are
-#' available, also `abs(z) >= z_cutoff`, where `z` is the deviation standardized by the
-#' controls' median and standard deviation for that ICR (the standard deviation is floored at
-#' 0.02 so that very homogeneous controls do not inflate `z`). Controls are scored
-#' leave-one-out when they also form the reference. The thresholds are exploratory.
+#' An ICR is called altered when `abs(deviation) >= delta_cutoff` and, if `z_cutoff` is set and
+#' control samples are available, also `abs(z) >= z_cutoff`. `z` is the deviation standardized by
+#' the controls' median and standard deviation for that ICR (the standard deviation is floored at
+#' 0.02 so that very homogeneous controls do not inflate `z`); it is reported whenever controls are
+#' available. Controls are scored leave-one-out when they also form the reference.
+#'
+#' The defaults (`delta_cutoff = 0.175`, no z criterion) were selected under the prespecified
+#' threshold-selection protocol in the package repository (`benchmark/`), by leave-one-cohort-out
+#' cross-validation on six development cohorts, and validated on three held-out cohorts. Earlier
+#' versions used `delta_cutoff = 0.15, z_cutoff = 3`.
 #'
 #' @inheritParams AnalyzeImprintStatus
 #' @param dmr_type `DMR_type` values to score. `NULL` (default) scores every annotated ICR,
@@ -99,9 +104,9 @@
 #'   (`z`). Default to `reference_group` and `reference_samples`. Without controls, `z` is
 #'   `NA` and calls use `delta_cutoff` only.
 #' @param min_probes Minimum number of probes for an ICR to be scored (default 3).
-#' @param delta_cutoff Minimum absolute deviation for an altered call (default 0.15).
-#' @param z_cutoff Minimum absolute z-score for an altered call when controls are available
-#'   (default 3).
+#' @param delta_cutoff Minimum absolute deviation for an altered call (default 0.175).
+#' @param z_cutoff Minimum absolute z-score for an altered call when controls are available, or
+#'   `NULL` (default) for no z criterion.
 #'
 #' @return Data frame with one row per sample and ICR: sample metadata, `probeset`,
 #'   `ICR_name`, `ORIGIN`, `DMR_type`, `CHR`, `start`, `n_probes`, `median_beta`, `reference`
@@ -121,11 +126,12 @@ AnalyzeICRStatus <- function(betaFile, metaFile = NULL,
                              control_group = reference_group,
                              control_samples = reference_samples,
                              min_probes = 3L,
-                             delta_cutoff = 0.15,
-                             z_cutoff = 3) {
+                             delta_cutoff = 0.175,
+                             z_cutoff = NULL) {
   reference <- match.arg(reference)
   for (arg in c("delta_cutoff", "z_cutoff", "min_probes")) {
     value <- get(arg)
+    if (arg == "z_cutoff" && is.null(value)) next
     if (!is.numeric(value) || length(value) != 1L || is.na(value) || value < 0) {
       stop(arg, " must be a single non-negative number.")
     }
@@ -177,7 +183,8 @@ AnalyzeICRStatus <- function(betaFile, metaFile = NULL,
   rows <- lapply(seq_along(icrs), function(k) {
     d <- dev[k, ]
     zz <- z[k, ]
-    altered <- abs(d) >= delta_cutoff & (is.na(zz) | abs(zz) >= z_cutoff)
+    z_ok <- if (is.null(z_cutoff)) TRUE else is.na(zz) | abs(zz) >= z_cutoff
+    altered <- abs(d) >= delta_cutoff & z_ok
     data.frame(
       inp$meta[, cols_to_keep, drop = FALSE],
       probeset = probeset,
@@ -201,7 +208,8 @@ AnalyzeICRStatus <- function(betaFile, metaFile = NULL,
   chr_num <- suppressWarnings(as.numeric(sub("^chr", "", res$CHR)))
   res <- res[order(match(res$Sample_Name, inp$sample_ids), chr_num, res$start), ]
   rownames(res) <- NULL
-  attr(res, "icr_settings") <- list(min_probes = min_probes, delta_cutoff = delta_cutoff, z_cutoff = z_cutoff,
+  attr(res, "icr_settings") <- list(min_probes = min_probes, delta_cutoff = delta_cutoff,
+                                    z_cutoff = if (is.null(z_cutoff)) NA_real_ else z_cutoff,
                                     reference = ref$label, n_controls = length(controls), genome = inp$genome)
   res
 }
