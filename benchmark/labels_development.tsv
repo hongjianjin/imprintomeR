@@ -1,0 +1,21 @@
+dataset	Sample_Group	label	note
+GSE104451	control	control	
+GSE104451	11p15 LOM	locus|H19/IGF2:IG-DMR=loss	SRS, H19/IC1 loss of methylation
+GSE104451	mUPD_chr7	upd|mat|7	SRS, maternal UPD7
+GSE104451	pUPD_chr7	upd|pat|7	paternal UPD7
+GSE104451	clinical SRS	exclude	no molecular finding reported
+GSE166531	BWS_pUPD_chr11	locus|KCNQ1OT1:TSS-DMR=loss|H19/IGF2:IG-DMR=gain	BWS, paternal UPD11
+GSE166531	mUPD_chr7	upd|mat|7	SRS, maternal UPD7
+GSE166531	BWS	exclude	subtype not given
+GSE166531	SRS	exclude	subtype not given
+GSE64244	regex:^mUPD_chr([0-9,]+)$	upd|mat|\1	chromosome-level maternal UPD
+GSE64244	regex:^pUPD_chr([0-9,]+)$	upd|pat|\1	chromosome-level paternal UPD
+GSE64244	regex:.*	exclude	genome-wide UPD, UPD of unknown origin, 45,X
+GSE78773	control	control	
+GSE78773	MLID	mlid	multi-locus imprinting disturbance (E2)
+GSE78773	SLID	slid	single-locus imprinting disturbance (E2)
+GSE237503	control	control	
+GSE237503	BWS	clinical|BWS	subtype not given (secondary endpoint)
+GSE237503	SRS	clinical|SRS	subtype not given (secondary endpoint)
+GSE195873	Ctrl	control	
+GSE195873	BWS	clinical|BWS	subtype not given (secondary endpoint)

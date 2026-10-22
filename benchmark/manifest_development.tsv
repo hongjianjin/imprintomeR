@@ -1,0 +1,7 @@
+dataset	platform	beta_file	meta_file	group_file	group_key	group_col	controls	reference	external_from
+GSE104451	450K	GSE104451_betavalues_final.txt	GSE104451_meta_final.txt				control	self	
+GSE166531	450K	GSE166531_beta.txt	GSE166531_meta.txt	GSE166531_BWS_UPD.chr7_11p15.LOM_meta.txt	SAMPLE_NAME	SAMPLE_GROUP		external	GSE78773,GSE104451
+GSE64244	450K	GSE64244_hg19_imprintomeSet.rds		GSE64244_meta_chr.txt	Sample_Name	SAMPLE_GROUP		external	GSE78773,GSE104451
+GSE78773	450K	GSE78773_MLID_beta.txt	GSE78773_meta_final.txt				control	self	
+GSE237503	EPIC	GSE237503_beta.txt	GSE237503_meta_final.txt				control	self	
+GSE195873	EPIC	GSE195873_beta.txt	GSE195873_meta.txt				Ctrl	self	

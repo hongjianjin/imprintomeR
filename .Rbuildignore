@@ -9,3 +9,4 @@
 ^update_merge_list_assay\.R$
 ^validate_nanoprint_liftover\.R$
 ^validate_selected_hg19\.R$
+^benchmark$
