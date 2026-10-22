@@ -180,7 +180,7 @@ testthat::test_that("plot supports explicit plot_type dispatch", {
 
     p_origin <- plot(x, plot_type = "beeswarm_origin", probeset = "selected", SAMPLEID = "Sample_Name")
     testthat::expect_s3_class(p_origin, "ggplot")
-    testthat::expect_equal(p_origin$scales$get_scales("colour")$name, "Allelic origin")
+    testthat::expect_equal(p_origin$scales$get_scales("colour")$name, "Annotated parental origin")
 
     sid <- setdiff(colnames(beta(x)), "NAME")[1]
     p_chr <- plot(x, plot_type = "beeswarm_chr", probeset = "selected", sample_id = sid, chr = "chr11")
@@ -198,7 +198,7 @@ testthat::test_that("plot supports explicit plot_type dispatch", {
     testthat::expect_true(grepl(paste0("Sample: ", sid), p_rain$labels$subtitle, fixed = TRUE))
     testthat::expect_true(grepl("IDI", p_rain$labels$y, fixed = TRUE))
     testthat::expect_equal(p_rain$scales$get_scales("y")$limits, c(-1, 1))
-    testthat::expect_equal(p_rain$scales$get_scales("colour")$name, "Allelic origin")
+    testthat::expect_equal(p_rain$scales$get_scales("colour")$name, "Annotated parental origin")
 
     p_radar <- testthat::expect_warning(
       plot(x, plot_type = "radar", sample_id = sid, probeset = "selected"),
@@ -206,7 +206,7 @@ testthat::test_that("plot supports explicit plot_type dispatch", {
     )
     testthat::expect_s3_class(p_radar, "ggplot")
     testthat::expect_true(grepl(paste0("Sample: ", sid), p_radar$labels$subtitle, fixed = TRUE))
-    testthat::expect_equal(p_radar$scales$get_scales("colour")$name, "Allelic origin")
+    testthat::expect_equal(p_radar$scales$get_scales("colour")$name, "Annotated parental origin")
   })
 })
 
@@ -524,4 +524,15 @@ test_that("circular_heatmap writes a raster PNG when requested and a vector PDF 
   testthat::expect_error(
     BetaCircularHeatmap(beta, meta, probeset = "chr11p15", outFile = paste0(out, ".png"), res = -1),
     "res must be a single positive number")
+})
+
+test_that("mirror density labels its ORIGIN legend as the annotated parental origin", {
+  panel <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))[["chr11p15"]]
+  set.seed(2)
+  ids <- c("S1", "S2")
+  beta <- data.frame(TargetID = panel$NAME, S1 = runif(nrow(panel)), S2 = runif(nrow(panel)), check.names = FALSE)
+  meta <- data.frame(Sample_Name = ids, Sample_Group = c("a", "b"), stringsAsFactors = FALSE)
+  p <- NULL
+  invisible(capture.output(p <- suppressMessages(suppressWarnings(MirrorDensity(beta, meta, probeset = "chr11p15")))))
+  testthat::expect_equal(p$scales$get_scales("fill")$name, "Annotated parental origin")
 })

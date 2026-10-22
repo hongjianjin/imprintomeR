@@ -7,6 +7,10 @@
 #' visualizations in imprintomeR.
 #'
 #' @return Named character vector with `maternal`, `paternal`, and `reference`.
+# Legend title for plots coloured by the probeset ORIGIN annotation: the parental allele that is
+# methylated at the ICR (an annotation, not an allele-specific measurement).
+.origin_legend_title <- "Annotated parental origin"
+
 .imprint_origin_colors <- function() {
   c(
     maternal = "#E69F00",
@@ -2188,7 +2192,7 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
       # Flip the coordinates
       coord_flip() + facet_wrap(~Sample_Name) +
       # Formatting
-      scale_fill_manual(values = .imprint_origin_colors()[c("maternal", "paternal")]) +
+      scale_fill_manual(name = .origin_legend_title, values = .imprint_origin_colors()[c("maternal", "paternal")]) +
       theme_minimal() +
       labs(
         title = "Methylation Shift",
@@ -2262,7 +2266,7 @@ PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probe
       values = .imprint_origin_colors()[c("maternal", "paternal")],
       breaks = c("maternal", "paternal"),
       labels = c("maternal", "paternal"),
-      name = "Allelic origin"
+      name = .origin_legend_title
     ) +
     # Faceting by Chromosome
     facet_wrap(. ~ CHR, scales = "free_x",nrow=1) +
@@ -2478,7 +2482,7 @@ PlotRadar <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=
       ),
       breaks = c("maternal", "paternal", "other"),
       labels = c("maternal", "paternal", "other"),
-      name = "Allelic origin"
+      name = .origin_legend_title
     ) +
 
     coord_polar(start = 0) +
@@ -2560,7 +2564,7 @@ PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, a
     # Split by Origin to see Maternal vs Paternal side-by-side
     facet_wrap(~ORIGIN) +
 
-    scale_fill_manual(values = .imprint_origin_colors()[c("maternal", "paternal")]) +
+    scale_fill_manual(name = .origin_legend_title, values = .imprint_origin_colors()[c("maternal", "paternal")]) +
     scale_x_continuous(limits = c(-0.05, 1.05), breaks = seq(0, 1, 0.25)) +
 
     theme_ridges(center_axis_labels = TRUE) +
@@ -2640,7 +2644,7 @@ BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, pro
     # FACET BY CHROMOSOME: Each chromosome gets its own box
     facet_wrap(~ Chromosome, ncol = 6) +
 
-    scale_fill_manual(values = .imprint_origin_colors()[c("maternal", "paternal")]) +
+    scale_fill_manual(name = .origin_legend_title, values = .imprint_origin_colors()[c("maternal", "paternal")]) +
     scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1)) +
 
     theme_bw() +

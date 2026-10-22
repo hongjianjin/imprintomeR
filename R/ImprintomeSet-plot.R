@@ -245,7 +245,7 @@ if (!methods::isGeneric("plot")) {
       linewidth = 0.8,
       color = "grey30"
     ) +
-    ggplot2::scale_color_discrete(name = "Allelic origin") +
+    ggplot2::scale_color_discrete(name = .origin_legend_title) +
     ggplot2::facet_wrap(~ID, nrow = 1, scales = "free_x", strip.position = "bottom") +
     ggplot2::scale_x_discrete(labels = function(x) {
       labels <- rep("", length(x))
@@ -339,7 +339,7 @@ if (!methods::isGeneric("plot")) {
     ggplot2::facet_wrap(~Chromosome, nrow = 1) +
     ggplot2::geom_hline(yintercept = 0.5, linetype = "dashed", color = "grey40", linewidth = 0.5) +
     ggplot2::geom_hline(yintercept = c(0.3, 0.7), linetype = "dotted", color = "grey60", linewidth = 0.5) +
-    ggplot2::scale_color_discrete(name = "Allelic origin", na.value = "grey50", na.translate = TRUE) +
+    ggplot2::scale_color_discrete(name = .origin_legend_title, na.value = "grey50", na.translate = TRUE) +
     ggplot2::theme_classic(base_size = 10) +
     ggplot2::theme(
       axis.text.x = ggplot2::element_blank(),
