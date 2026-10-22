@@ -519,7 +519,7 @@ BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
     geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
     geom_violin(aes(x = ID, y = value, fill = GROUP), trim = FALSE, alpha = alpha) +
     theme_classic(base_size = 10) +
-    labs(y = "Methylation (Î²)", x = "ID") +
+    labs(y = "Methylation (\u03b2)", x = "ID") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
     scale_fill_manual(
       name = "GROUP",
@@ -561,7 +561,7 @@ BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
 #' @param legend Logical; include legend page in saved output.
 #'
 #' @return A patchwork/ggplot object.
-BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 1, orderByGroup=FALSE, ylab="Methylation (Î²)", xlab="ID", legend=TRUE, title="ImprintomeR: beeswarm", subtitle=NULL, width=NULL, height=NULL) {
+BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 1, orderByGroup=FALSE, ylab="Methylation (\u03b2)", xlab="ID", legend=TRUE, title="ImprintomeR: beeswarm", subtitle=NULL, width=NULL, height=NULL) {
   # https://r-charts.com/distribution/ggbeeswarm/
   suppressMessages(suppressWarnings(library(ggplot2)))
   suppressMessages(suppressWarnings(library("ggbeeswarm")))
@@ -819,7 +819,7 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
     geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
     geom_quasirandom(cex = dotSize,alpha = alpha) +
     theme_classic(base_size = 10) +
-    labs(y = "Methylation (Î²)", x = "ID", title = "ImprintomeR:beeswarm_chr", subtitle=paste0(probeset,":", chr) ) +
+    labs(y = "Methylation (\u03b2)", x = "ID", title = "ImprintomeR:beeswarm_chr", subtitle=paste0(probeset,":", chr) ) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
     scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
     scale_x_discrete(limits = orderedIDs) #  specify order on the X axis
@@ -953,7 +953,7 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
           theme_classic(base_size = 10) +
           theme(axis.text.x = element_blank(),axis.ticks.x = element_blank(),
           panel.border = element_rect(color = "grey20", fill = NA, linewidth = 0.5)) +
-          labs(y = "Methylation (Î²)", x = "GROUP", title=newIDs) +
+          labs(y = "Methylation (\u03b2)", x = "GROUP", title=newIDs) +
           scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
           theme(legend.position = "none")
 
@@ -980,7 +980,7 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
         geom_quasirandom(cex = dotSize,alpha = alpha) +
         theme_classic(base_size = 10) +
         facet_wrap(~CATEGORY, scales = "free_x") +
-        labs(y = "Methylation (Î²)", x = "ID", title = "ImprintomeR:beeswarm_origin") +
+        labs(y = "Methylation (\u03b2)", x = "ID", title = "ImprintomeR:beeswarm_origin") +
         scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
               # Optional: hide the legend since the facet labels now show the category
@@ -2193,7 +2193,7 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
       labs(
         title = "Methylation Shift",
         subtitle= paste0("probeset:", probeset),
-        x = "Methylation (Î²)",
+        x = "Methylation (\u03b2)",
         y = "Density (Paternal < 0 > Maternal)"
       )
 
@@ -2572,7 +2572,7 @@ PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, a
     labs(
       title = "Global Imprinting Beta Distributions",
       subtitle = "Aggregated across all samples",
-      x = "Methylation (Î²)",
+      x = "Methylation (\u03b2)",
       y = "Chromosome"
     )
 
@@ -2655,7 +2655,7 @@ BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, pro
       title = paste("Probeset:",probeset),
       subtitle = "Aggregated Cohort Beta Values",
       x = "Allelic Origin",
-      y = "Methylation (Î²)"
+      y = "Methylation (\u03b2)"
     )
 
   # 6. Save
@@ -2968,7 +2968,7 @@ plot_list <- lapply(unique(used$ID), function(current_id) {
                  aes(ymin = after_stat(y), ymax = after_stat(y)),
                  width = 0.5, linewidth = 0.7, color="grey30") +
     # Use the ID as the title for this specific panel
-    labs(title = current_id, y = "Methylation (Î²)", x = NULL) +
+    labs(title = current_id, y = "Methylation (\u03b2)", x = NULL) +
     scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
     theme_classic(base_size = 10) +
     theme(
