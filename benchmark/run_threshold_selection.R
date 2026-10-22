@@ -185,13 +185,14 @@ score_dataset <- function(i) {
   m$Sample_Group[m$label == "control"] <- ctrl
   if (row$reference == "external") {
     ext <- trimws(strsplit(row$external_from, ",")[[1]])
+    # Align probes by name across the cohort and every external source before binding columns.
+    probes <- Reduce(intersect, c(list(rownames(b)), lapply(ext, function(e) rownames(datasets[[e]]$beta))))
     eb <- do.call(cbind, lapply(ext, function(e) {
       x <- datasets[[e]]
-      x$beta[, x$meta$Sample_Name[x$meta$label == "control"], drop = FALSE]
+      x$beta[probes, x$meta$Sample_Name[x$meta$label == "control"], drop = FALSE]
     }))
     colnames(eb) <- paste0("ext_", colnames(eb))
-    probes <- intersect(rownames(b), rownames(eb))
-    b <- cbind(b[probes, , drop = FALSE], eb[probes, , drop = FALSE])
+    b <- cbind(b[probes, , drop = FALSE], eb)
     m <- rbind(m, data.frame(Sample_Name = colnames(eb), Sample_Group = EXT, label = "external_control"))
     ctrl <- EXT
   }
