@@ -389,6 +389,23 @@ e2_summary <- do.call(rbind, lapply(split(e2, e2$label), function(r)
   data.frame(label = r$label[1], n = nrow(r), flagged = sum(r$MLID_flag), rate = mean(r$MLID_flag), median_altered = median(r$n_altered))))
 write.table(e2_summary, file.path(out_dir, "e2_mlid.tsv"), sep = "\t", quote = FALSE, row.names = FALSE)
 
+# E2 per individual against the published array-based classes (amendment 4): replicate hybridizations
+# are collapsed, and an individual is flagged when every one of its hybridizations is flagged.
+e2_class_file <- arg_value("--e2-classes", file.path(script_dir, "e2_array_classes.tsv"))
+if (!synthetic && file.exists(e2_class_file)) {
+  cls <- read.delim(e2_class_file, stringsAsFactors = FALSE)
+  log_line("E2 array classes: ", sha(e2_class_file), "  ", e2_class_file)
+  x <- merge(e2, cls[, c("dataset", "Sample_Name", "individual", "array_class")], by = c("dataset", "Sample_Name"))
+  per <- do.call(rbind, lapply(split(x, paste(x$dataset, x$individual, sep = "\r")), function(r)
+    data.frame(dataset = r$dataset[1], individual = r$individual[1], array_class = r$array_class[1],
+               n_hybridizations = nrow(r), MLID_flag = all(r$MLID_flag), n_altered = median(r$n_altered))))
+  e2_ind <- do.call(rbind, lapply(split(per, per$array_class), function(r)
+    data.frame(array_class = r$array_class[1], individuals = nrow(r), flagged = sum(r$MLID_flag),
+               rate = mean(r$MLID_flag), median_altered = median(r$n_altered))))
+  write.table(per, file.path(out_dir, "e2_mlid_individuals.tsv"), sep = "\t", quote = FALSE, row.names = FALSE)
+  write.table(e2_ind, file.path(out_dir, "e2_mlid_array_classes.tsv"), sep = "\t", quote = FALSE, row.names = FALSE)
+}
+
 # ---------------------------------------------------------------- E3 sample-level IDS cutoff and tiers
 class_of <- function(lab) {
   is_11p15 <- startsWith(lab, "locus|") & (grepl(IC1, lab, fixed = TRUE) | grepl(IC2, lab, fixed = TRUE))
