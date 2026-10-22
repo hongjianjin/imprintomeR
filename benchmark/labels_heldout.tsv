@@ -1,11 +1,11 @@
 dataset	Sample_Group	label	note
 GSE297935	Control	control	peripheral blood leukocytes; newly deposited Control25-Control40
 GSE297935	BWS	locus|KCNQ1OT1:TSS-DMR=loss	IC2 LoM diagnosed before the array by CoBRA or pyrosequencing; BWS_patient7-64
-GSE95486	regex:^Control Blood Sample	control	blood controls
+GSE95486	regex:^Control Blood Sample.*$	control	blood controls
 GSE95486	Blood Sample Case 1	locus|KCNQ1OT1:TSS-DMR=loss|H19/IGF2:IG-DMR=gain	mosaic paternal UPD11 (MS-MLPA retest and SNP array; first called IC2 LoM)
 GSE95486	Blood Sample Case 2	locus|KCNQ1OT1:TSS-DMR=loss	IC2 LoM (MS-MLPA); blood IC2 10% by MS-MLPA but 51% by pyrosequencing
 GSE95486	Blood Sample Case 3	locus|KCNQ1OT1:TSS-DMR=loss	IC2 LoM (MS-MLPA)
-GSE55491	regex:^normal control	control	FLAG: PBMC controls whereas patients are whole blood
+GSE55491	regex:^normal control.*$	control	FLAG: PBMC controls whereas patients are whole blood
 GSE55491	regex:^Silver Russell patient (12|31)$	locus|H19/IGF2:IG-DMR=loss	FLAG: H19 ICR1 hypomethylation by methylation-sensitive RFLP PCR, not MS-MLPA
 GSE55491	regex:^Silver Russell patient (6|23|50)$	upd|mat|7	maternal UPD7 (method not stated)
-GSE55491	regex:^Silver Russell patient	exclude	no positive pre-study finding; RFLP missed 4 of 6 array-detected H19 hypomethylations, so not used as negatives
+GSE55491	regex:^Silver Russell patient.*$	exclude	no positive pre-study finding; RFLP missed 4 of 6 array-detected H19 hypomethylations, so not used as negatives
