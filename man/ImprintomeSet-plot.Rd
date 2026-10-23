@@ -36,7 +36,10 @@ separate legend-only page with \code{legend.page = TRUE} or \code{legend.page = 
 \item \code{probeset}: probeset name used by \code{"mirror_density"}, \code{"beeswarm"},
 \code{"violin"}, \code{"heatmap_by_probe"}, \code{"heatmap_by_gene"}, \verb{"circular_heatmap",}
 \code{"cor_heatmap"}, \code{"rainfall"}, and \code{"radar"} (default \code{"selected"}).
-\item \code{sample_id}: explicit sample ID used by rainfall/radar plot types.
+\item \code{sample_id}: explicit sample ID used by rainfall/radar plot types. The
+radar plot draws one spoke per curated ICR, in genomic order clockwise
+from the top; probes outside curated ICRs are not drawn (see
+\code{\link[=AggregateByLocus]{AggregateByLocus()}} with \verb{by = "icr", icr_only = TRUE}).
 \item \code{chr}: chromosome label used by \code{plot_type = "beeswarm_chr"}
 (e.g. \code{"chr11"} or \code{"11"}; default uses all chromosomes).
 \item \code{prefix}: output prefix used by \code{plot_type = "cor_heatmap"}.

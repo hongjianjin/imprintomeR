@@ -30,7 +30,10 @@
 #'   - `probeset`: probeset name used by `"mirror_density"`, `"beeswarm"`,
 #'     `"violin"`, `"heatmap_by_probe"`, `"heatmap_by_gene"`, `"circular_heatmap",`
 #'     `"cor_heatmap"`, `"rainfall"`, and `"radar"` (default `"selected"`).
-#'   - `sample_id`: explicit sample ID used by rainfall/radar plot types.
+#'   - `sample_id`: explicit sample ID used by rainfall/radar plot types. The
+#'     radar plot draws one spoke per curated ICR, in genomic order clockwise
+#'     from the top; probes outside curated ICRs are not drawn (see
+#'     [AggregateByLocus()] with `by = "icr", icr_only = TRUE`).
 #'   - `chr`: chromosome label used by `plot_type = "beeswarm_chr"`
 #'     (e.g. `"chr11"` or `"11"`; default uses all chromosomes).
 #'   - `prefix`: output prefix used by `plot_type = "cor_heatmap"`.
@@ -770,7 +773,8 @@ methods::setMethod(
         stop("plot_type='radar' requires at least one numeric sample column in beta(x).")
       }
 
-      agg <- AggregateByLocus(beta_for_radar, probeset = probeset_name, genome = x@genome)
+      # One spoke per curated ICR, in genomic order (panels without ICR_name: by nearest gene).
+      agg <- AggregateByLocus(beta_for_radar, probeset = probeset_name, genome = x@genome, by = "icr", icr_only = TRUE)
       if (!is.data.frame(agg) || nrow(agg) == 0L || ncol(agg) == 0L) {
         stop("plot_type='radar' could not compute aggregated loci from beta(x).")
       }

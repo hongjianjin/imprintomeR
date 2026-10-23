@@ -4,7 +4,13 @@
 \alias{AggregateByLocus}
 \title{Aggregate Beta Matrix by Imprinting Locus}
 \usage{
-AggregateByLocus(beta, probeset = "selected", genome = "hg38")
+AggregateByLocus(
+  beta,
+  probeset = "selected",
+  genome = "hg38",
+  by = c("gene", "icr"),
+  icr_only = FALSE
+)
 }
 \arguments{
 \item{beta}{Numeric beta matrix/data frame with probe IDs as row names and
@@ -15,14 +21,29 @@ for \code{genome} (\verb{probesets_<genome>.rds}).}
 
 \item{genome}{Genome build of the probeset panels, \code{"hg19"} or \code{"hg38"}
 (default \code{"hg38"}).}
+
+\item{by}{How probes are grouped into loci:
+\itemize{
+\item \code{"gene"} (default): by nearest gene (\code{Closest_TSS_gene_name}); loci are
+labelled \code{chr_origin_gene}.
+\item \code{"icr"}: by curated ICR (\code{ICR_name}), so each ICR forms one locus whatever
+the nearest-gene labels of its probes; probes outside curated ICRs are
+grouped by nearest gene. Loci are labelled \code{chr_origin_ICR} (for example
+\code{chr11_paternal_H19/IGF2:IG-DMR}). Panels without an \code{ICR_name} column are
+grouped by nearest gene, with a message.
+}}
+
+\item{icr_only}{With \code{by = "icr"}, keep only the curated ICRs and leave out
+probes outside them (default \code{FALSE}). Radar plots use \code{by = "icr"} with
+\code{icr_only = TRUE}, one spoke per curated ICR.}
 }
 \value{
 Data frame with aggregated loci as rows and samples as columns.
 }
 \description{
-Aggregates probe-level beta values into locus-level medians by grouping probes
-with the same chromosome, origin, and nearest gene annotation. Loci are
-returned in genomic order: by chromosome (1-22, X, Y), then by the position of
-the locus' first probe (\code{MAPINFO}); without \code{MAPINFO}, by label within a
-chromosome. Radar plots draw the loci in this order.
+Aggregates probe-level beta values into locus-level medians. Probes are grouped
+by chromosome, annotated parental origin and either their nearest gene
+(\code{by = "gene"}) or their curated ICR (\code{by = "icr"}). Loci are returned in
+genomic order: by chromosome (1-22, X, Y), then by the position of the locus'
+first probe (\code{MAPINFO}); without \code{MAPINFO}, by label within a chromosome.
 }

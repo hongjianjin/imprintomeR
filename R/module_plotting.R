@@ -2396,6 +2396,12 @@ PlotRadar <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=
       angle_final = ifelse(angle < -90 & angle > -270, angle + 180, angle)
     )
 
+  # Long labels (e.g. ICR names) keep their font size; the plot margin (points) grows with the longest label,
+  # and a saved figure grows with it so that no label is clipped.
+  label_chars <- max(nchar(label_df$metric))
+  label_size <- fontsize
+  label_margin <- max(20, 1.6 * label_chars * label_size - 60)
+
   # 4. Path Closure (For the connecting line)
   plot_data_closed <- dplyr::bind_rows(
     plot_data,
@@ -2431,7 +2437,7 @@ PlotRadar <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=
     geom_text(data = label_df,
               aes(x = idx, y = 2.15, label = metric, angle = angle_final,
                   hjust = hjust, color = origin_group),
-              size = fontsize, show.legend = FALSE) +
+              size = label_size, show.legend = FALSE) +
     scale_color_manual(
       values = c(
         maternal = unname(.imprint_origin_colors()["maternal"]),
@@ -2443,29 +2449,35 @@ PlotRadar <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=
       name = .origin_legend_title
     ) +
 
-    coord_polar(start = 0) +
+    # Labels may extend beyond the panel into the plot margin, which is sized to the longest label.
+    coord_polar(start = 0, clip = "off") +
     scale_y_continuous(limits = c(-0.6, 3)) +
     scale_x_continuous(limits = c(1, n_metrics + 1)) +
 
     labs(
       title = title,
       subtitle = paste0("Sample: ", id),
-      x = "Imprinting locus",
-      y = "IDI",
-      caption = "Radial scale labels correspond to IDI values: -1, 0, 1"
+      x = NULL,
+      y = NULL,
+      caption = "Spokes: imprinting loci. Radial scale: IDI (-1, 0, 1)."
     ) +
     theme_minimal() +
     theme(
       axis.text = element_blank(),
       panel.grid = element_blank(),
       plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
-      plot.subtitle = element_text(size = 10, hjust = 0.5),
+      # Title, legend and caption sit beyond the label ring, which extends into the margins around the panel.
+      plot.subtitle = element_text(size = 10, hjust = 0.5, margin = margin(b = label_margin)),
       plot.caption = element_text(size = 8, color = "grey35"),
       legend.position = "bottom",
-      plot.margin = margin(20, 20, 20, 20)
+      legend.box.spacing = grid::unit(label_margin, "pt"),
+      plot.margin = margin(20, label_margin, 20, label_margin)
     )
 
-  if (!is.null(outFile)) ggsave(outFile, p, width = 12, height = 12, bg = "white")
+  if (!is.null(outFile)) {
+    fig_in <- 12 + 2 * label_margin / 72
+    ggsave(outFile, p, width = fig_in, height = fig_in, bg = "white", limitsize = FALSE)
+  }
 
   return(p)
 }

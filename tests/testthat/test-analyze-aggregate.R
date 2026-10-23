@@ -348,3 +348,35 @@ test_that("AggregateByLocus returns loci in genomic order", {
                                   "chr10_maternal_A", "chrX_paternal_B"))
   })
 })
+
+test_that("AggregateByLocus by ICR gives one locus per curated ICR", {
+  beta <- data.frame(S1 = c(0.1, 0.3, 0.5, 0.7, 0.9), stringsAsFactors = FALSE)
+  rownames(beta) <- c("cg1", "cg2", "cg3", "cg4", "cg5")
+  probeset <- data.frame(
+    NAME = c("cg1", "cg2", "cg3", "cg4", "cg5"),
+    CHR = "chr11",
+    MAPINFO = c(100, 110, 120, 500, 900),
+    ORIGIN = c("paternal", "paternal", "paternal", "maternal", "maternal"),
+    Closest_TSS_gene_name = c("H19", "H19/IGF2", "H19", "KCNQ1OT1", "OTHER"),
+    ICR_name = c("H19/IGF2:IG-DMR", "H19/IGF2:IG-DMR", "H19/IGF2:IG-DMR", "KCNQ1OT1:TSS-DMR", NA),
+    stringsAsFactors = FALSE
+  )
+
+  .with_temp_probeset_file(probeset, {
+    by_gene <- AggregateByLocus(beta, probeset = "selected")
+    expect_equal(nrow(by_gene), 4)
+    by_icr <- AggregateByLocus(beta, probeset = "selected", by = "icr")
+    # The two nearest-gene labels of the IG-DMR form one locus; the probe outside curated ICRs keeps its gene.
+    expect_equal(rownames(by_icr), c("chr11_paternal_H19/IGF2:IG-DMR", "chr11_maternal_KCNQ1OT1:TSS-DMR",
+                                     "chr11_maternal_OTHER"))
+    expect_equal(as.numeric(by_icr["chr11_paternal_H19/IGF2:IG-DMR", "S1"]), 0.3, tolerance = 1e-8)
+    # icr_only: one locus per curated ICR, probes outside curated ICRs left out (as in radar plots).
+    expect_equal(rownames(AggregateByLocus(beta, probeset = "selected", by = "icr", icr_only = TRUE)),
+                 c("chr11_paternal_H19/IGF2:IG-DMR", "chr11_maternal_KCNQ1OT1:TSS-DMR"))
+  })
+  probeset$ICR_name <- NULL
+  .with_temp_probeset_file(probeset, {
+    expect_message(res <- AggregateByLocus(beta, probeset = "selected", by = "icr"), "no ICR_name column")
+    expect_equal(nrow(res), 4)
+  })
+})
