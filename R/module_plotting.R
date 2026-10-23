@@ -1772,7 +1772,8 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
   names(beta_anno)[names(beta_anno) == "Row.names"] <- "TargetID"
 
   beta_anno$tmp <- paste0(beta_anno$CHR, "_", beta_anno$MAPINFO)
-  # Order by position; probes that share a coordinate (e.g. both strands of one CpG) are all kept.
+  # Order by position; probes that share a coordinate are all kept (match() on sorted keys would
+  # duplicate one and drop the other).
   beta_anno <- beta_anno[stringr::str_order(beta_anno$tmp, numeric = TRUE), ]
   rownames(beta_anno) <- beta_anno$TargetID
   beta_anno$tmp <- NULL
