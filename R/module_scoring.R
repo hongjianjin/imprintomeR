@@ -386,7 +386,8 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
 #' @param n_boot Number of bootstrap replicates for confidence intervals of IDS
 #'   and Angle (default 0, none). Several hundred to a few thousand are typical.
 #' @param n_perm Number of permutations for the parental-label null of the
-#'   origin contrast (default 0, none).
+#'   origin contrast (default 0, none). Use it only with a control reference
+#'   (see Uncertainty).
 #' @param conf_level Confidence level of the bootstrap intervals (default 0.95).
 #' @param resample Bootstrap resampling unit within each parental class:
 #'   - `"icr"` (default): two-stage cluster bootstrap. ICRs are resampled with
@@ -432,6 +433,16 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
 #' `permute = "probe"` correlated probes are exchanged individually, so p-values
 #' are anti-conservative. p-values are per sample and not adjusted for multiple
 #' testing.
+#'
+#' `origin_perm_p` is interpretable only with a control reference
+#' (`reference_group`, `reference_samples` or `reference_beta`). Against the
+#' fixed 0.5 reference, normal tissue already deviates slightly, and by
+#' different amounts, on the paternal and maternal axes (Infinium probe design,
+#' tissue-specific methylation); with hundreds of probes, such a baseline offset
+#' alone yields small p-values, so most normal samples would be flagged. With
+#' tissue-matched controls the baseline is removed and the test addresses the
+#' sample's own departure from it. The bootstrap intervals are meaningful with
+#' either reference.
 #'
 #' @return Data frame with sample-level imprinting metrics and labels.
 #'   `paternal_deviation` and `maternal_deviation` are the coordinates that IDS

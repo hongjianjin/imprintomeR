@@ -74,7 +74,8 @@ multi-locus summary (\code{\link[=SummarizeICRStatus]{SummarizeICRStatus()}}) as
 \item{n_boot, n_perm, conf_level, resample, permute, seed}{Bootstrap confidence
 intervals and permutation null for IDS and Angle, passed to
 \code{AnalyzeImprintStatus()} (off by default; see its Uncertainty section).
-The added columns record the settings; result names are unchanged.}
+The added columns record the settings; result names are unchanged. The
+permutation p-value is interpretable only with a control reference.}
 
 \item{...}{Reserved for future compatibility.}
 }

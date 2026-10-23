@@ -119,7 +119,8 @@ annotated ICRs are not used. Cannot be combined with
 and Angle (default 0, none). Several hundred to a few thousand are typical.}
 
 \item{n_perm}{Number of permutations for the parental-label null of the
-origin contrast (default 0, none).}
+origin contrast (default 0, none). Use it only with a control reference
+(see Uncertainty).}
 
 \item{conf_level}{Confidence level of the bootstrap intervals (default 0.95).}
 
@@ -190,5 +191,15 @@ probes, shuffled labels give both classes the majority's deviation. With
 \code{permute = "probe"} correlated probes are exchanged individually, so p-values
 are anti-conservative. p-values are per sample and not adjusted for multiple
 testing.
+
+\code{origin_perm_p} is interpretable only with a control reference
+(\code{reference_group}, \code{reference_samples} or \code{reference_beta}). Against the
+fixed 0.5 reference, normal tissue already deviates slightly, and by
+different amounts, on the paternal and maternal axes (Infinium probe design,
+tissue-specific methylation); with hundreds of probes, such a baseline offset
+alone yields small p-values, so most normal samples would be flagged. With
+tissue-matched controls the baseline is removed and the test addresses the
+sample's own departure from it. The bootstrap intervals are meaningful with
+either reference.
 }
 
