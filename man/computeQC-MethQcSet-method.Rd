@@ -13,7 +13,6 @@
 
 \item{pcutoff}{Numeric, maximum mean detection p-value cutoff (default: 0.05).}
 
-
 \item{...}{Additional arguments (reserved for future use).}
 }
 \value{

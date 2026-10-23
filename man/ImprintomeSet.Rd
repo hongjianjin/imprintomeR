@@ -16,7 +16,9 @@ ImprintomeSet(
 )
 }
 \arguments{
-\item{beta}{Matrix or data.frame of beta values (rows = probes, columns = samples).}
+\item{beta}{Matrix or data.frame of beta values (rows = probes, columns = samples).
+A probe-ID column named \code{NAME}, \code{TargetID}, or \code{ID} in a data.frame is moved
+into the row names.}
 
 \item{meta}{data.frame containing sample metadata. Must include \code{Sample_Name}; \code{Sample_Group} is required unless \code{auto_group=TRUE}.}
 

@@ -2,6 +2,7 @@
 % Please edit documentation in R/ImprintomeSet-summary-export.R
 \name{summarize}
 \alias{summarize}
+\alias{summarize,ImprintomeSet-method}
 \title{Summarize ImprintomeSet Contents}
 \usage{
 \S4method{summarize}{ImprintomeSet}(object, ...)

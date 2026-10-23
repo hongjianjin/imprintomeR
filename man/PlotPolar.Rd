@@ -35,15 +35,20 @@ PlotPolar(
 
 \item{alpha}{Point alpha.}
 
-\item{legend.position}{Legend position. Use \code{"auto"} to place small legends at the bottom and large legends on a separate PDF page when exporting.}
+\item{legend.position}{Legend position. Use \code{"auto"} to place small legends
+at the bottom and large legends on a separate PDF page when exporting.}
 
-\item{legend.nrow}{Number of legend rows for bottom legends. \code{NULL} uses an automatic value based on the number of groups.}
+\item{legend.nrow}{Number of legend rows for bottom legends. \code{NULL} uses an
+automatic value based on the number of groups.}
 
-\item{legend.ncol}{Number of legend columns for separate legend pages. \code{NULL} uses an automatic value based on the number of groups.}
+\item{legend.ncol}{Number of legend columns for separate legend pages.
+\code{NULL} uses an automatic value based on the number of groups.}
 
-\item{legend.page}{Logical or \code{"auto"}; when saving a PDF, write crowded legends to a second legend-only page.}
+\item{legend.page}{Logical or \code{"auto"}; when saving a PDF, write crowded
+legends to a second legend-only page.}
 
-\item{legend.page.threshold}{Number of groups above which \code{"auto"} uses a separate legend page for PDF export.}
+\item{legend.page.threshold}{Number of groups above which \code{"auto"} uses a
+separate legend page for PDF export.}
 
 \item{legend.text.size}{Legend text size.}
 }

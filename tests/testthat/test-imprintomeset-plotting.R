@@ -378,10 +378,16 @@ testthat::test_that("single rainfall and radar filenames include probeset and sa
   })
 })
 
-.run_imprintome_cli_script <- file.path(.find_imprintomer_root_plot(), "inst", "scripts", "run_imprintomeR.R")
+# The CLI script lives in inst/scripts of the source tree and in scripts/ of an installed package
+# (as under R CMD check).
+.run_imprintome_cli_script <- local({
+  source_script <- file.path(.find_imprintomer_root_plot(), "inst", "scripts", "run_imprintomeR.R")
+  if (file.exists(source_script)) source_script else system.file("scripts", "run_imprintomeR.R", package = "imprintomeR")
+})
 
 .load_run_imprintome_cli_function <- function(function_name) {
   script <- .run_imprintome_cli_script
+  if (!nzchar(script) || !file.exists(script)) testthat::skip("run_imprintomeR.R not found")
   exprs <- parse(file = script, keep.source = FALSE)
   matches <- vapply(exprs, function(expr) {
     is.call(expr) && identical(as.character(expr[[1]]), "<-") &&

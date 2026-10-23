@@ -4,7 +4,12 @@
 \alias{SummarizeICRStatus}
 \title{Multi-Locus Summary of Per-ICR Deviations}
 \usage{
-SummarizeICRStatus(icr_table, min_chromosomes = 2L, dmr_type = NULL)
+SummarizeICRStatus(
+  icr_table,
+  min_chromosomes = 2L,
+  dmr_type = NULL,
+  exclude_icrs = "VTRNA2-1:DMR"
+)
 }
 \arguments{
 \item{icr_table}{Output of \code{\link[=AnalyzeICRStatus]{AnalyzeICRStatus()}}.}
@@ -14,6 +19,11 @@ multi-locus flag (default 2).}
 
 \item{dmr_type}{Optional \code{DMR_type} values to summarize, for example \code{"gametic"}; \code{NULL}
 (default) uses every ICR in the table.}
+
+\item{exclude_icrs}{ICRs left out of the counts and the multi-locus flag. The default
+excludes \code{VTRNA2-1:DMR} (nc886), a polymorphically imprinted, metastable DMR that is
+unmethylated in a sizeable fraction of healthy individuals. Its per-ICR deviations stay in
+the \code{\link[=AnalyzeICRStatus]{AnalyzeICRStatus()}} table. Use \code{NULL} to count every ICR.}
 }
 \value{
 Data frame with one row per sample: \code{n_icrs}, \code{n_altered}, \code{n_gain}, \code{n_loss},

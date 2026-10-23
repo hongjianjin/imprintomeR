@@ -15,12 +15,12 @@
 #' s$object
 #' s$results
 #' }
-#' @rdname summarize
-#' @export
 if (!methods::isGeneric("summarize")) {
   methods::setGeneric("summarize", function(object, ...) standardGeneric("summarize"))
 }
 
+#' @rdname summarize
+#' @export
 methods::setMethod(
   "summarize",
   signature(object = "ImprintomeSet"),
@@ -122,7 +122,7 @@ methods::setMethod(
 #' @param x An `ImprintomeSet` object.
 #' @param outdir Output directory.
 #' @param result_names Character vector of result names to export. `NULL` means all.
-#' @param prefix Filename prefix for exported files, including result tables, the saved ImprintomeSet object, and plot files.
+#' @param prefix Filename prefix for exported files, including result tables, the saved `ImprintomeSet` object, and plot files.
 #' @param save_plots Logical; whether to export plot objects in `plots(x)`.
 #' @param plot_names Character vector of plot names to export when `save_plots=TRUE`.
 #'   `NULL` means all stored plots.

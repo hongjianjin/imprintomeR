@@ -3,13 +3,13 @@
 
 #' Calculate Row-Wise Group Means
 #'
-#' Computes per-row average values in `dat` for each `SAMPLE_GROUP` defined in
+#' Computes per-row average values in `dat` for each `Sample_Group` defined in
 #' `meta`, matching samples by `meta$Sample_Name` to column names in `dat`.
 #'
 #' @param dat Numeric matrix/data frame with probes/features in rows and samples
 #'   in columns.
 #' @param meta Metadata data frame containing at least `Sample_Name` and
-#'   `SAMPLE_GROUP`.
+#'   `Sample_Group`.
 #'
 #' @return Data frame of row-wise group means, one column per group.
 #' @export

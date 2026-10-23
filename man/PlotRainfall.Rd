@@ -8,8 +8,8 @@ PlotRainfall(
   beta,
   sampleID,
   title = "Imprinting Rainfall Plot",
-  probeset = c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15",
-    "chr20q13"),
+  probeset = c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima",
+    "chr11p15", "chr20q13"),
   outFile = NULL,
   genome = "hg38"
 )

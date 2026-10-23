@@ -7,10 +7,6 @@
 #' visualizations in imprintomeR.
 #'
 #' @return Named character vector with `maternal`, `paternal`, and `reference`.
-# Legend title for plots coloured by the probeset ORIGIN annotation: the parental allele that is
-# methylated at the ICR (an annotation, not an allele-specific measurement).
-.origin_legend_title <- "Annotated parental origin"
-
 .imprint_origin_colors <- function() {
   c(
     maternal = "#E69F00",
@@ -18,6 +14,10 @@
     reference = "#666666"
   )
 }
+
+# Legend title for plots coloured by the probeset ORIGIN annotation: the parental allele that is
+# methylated at the ICR (an annotation, not an allele-specific measurement).
+.origin_legend_title <- "Annotated parental origin"
 
 
 #' Save Plot Conditionally and Return Plot Object
@@ -1622,11 +1622,11 @@ BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
 #' @param outFile Optional output file path. The extension selects the format when `format` is `NULL`:
 #'   `.png` writes a raster image, anything else a vector PDF.
 #' @param nchars Number of characters to show in gene labels (default 5).
+#'   Note: This applies to gene names only, not group labels which are shown in full.
 #' @param format Output format, `"pdf"` (vector) or `"png"` (raster), or `NULL` (default) to
 #'   infer it from `outFile`. Raster output keeps file size independent of the numbers of probes
 #'   and samples, which suits large cohorts.
 #' @param res Resolution in dots per inch for raster output (default 300).
-#'   Note: This applies to gene names only, not group labels which are shown in full.
 #'
 #' @details
 #' **Crowding considerations:**
@@ -1930,17 +1930,18 @@ VennDiagram <- function(vennList,setNames=NULL, style="venn", prefix=NULL){
 #' @param outFile Optional output file path.
 #' @param colorColumn Column name used for point fill grouping.
 #' @param title Plot title.
+#' @param subtitle Optional plot subtitle.
 #' @param palette Palette name passed to `GetColors()`.
 #' @param alpha Point alpha.
-#' @param legend.position Legend position. Use "auto" to place small legends
+#' @param legend.position Legend position. Use `"auto"` to place small legends
 #'   at the bottom and large legends on a separate PDF page when exporting.
-#' @param legend.nrow Number of legend rows for bottom legends. NULL uses an
+#' @param legend.nrow Number of legend rows for bottom legends. `NULL` uses an
 #'   automatic value based on the number of groups.
 #' @param legend.ncol Number of legend columns for separate legend pages.
-#'   NULL uses an automatic value based on the number of groups.
-#' @param legend.page Logical or "auto"; when saving a PDF, write crowded
+#'   `NULL` uses an automatic value based on the number of groups.
+#' @param legend.page Logical or `"auto"`; when saving a PDF, write crowded
 #'   legends to a second legend-only page.
-#' @param legend.page.threshold Number of groups above which "auto" uses a
+#' @param legend.page.threshold Number of groups above which `"auto"` uses a
 #'   separate legend page for PDF export.
 #' @param legend.text.size Legend text size.
 #'

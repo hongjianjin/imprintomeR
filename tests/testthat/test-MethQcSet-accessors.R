@@ -4,7 +4,7 @@ library(testthat)
 test_that("MethQcSet accessors work correctly", {
   meta <- data.frame(Sample_Name = c("S1", "S2"), stringsAsFactors = FALSE)
   platform <- "EPIC"
-  beta <- matrix(runif(100), nrow = 10, ncol = 2)
+  beta <- matrix(runif(20), nrow = 10, ncol = 2)
   rownames(beta) <- paste0("cg", sprintf("%08d", 1:10))
   colnames(beta) <- meta$Sample_Name
 
@@ -29,7 +29,7 @@ test_that("MethQcSet accessors work correctly", {
 test_that("MethQcSet qc_tables accessor works", {
   meta <- data.frame(Sample_Name = c("S1", "S2"), stringsAsFactors = FALSE)
   platform <- "EPIC"
-  beta <- matrix(runif(100), nrow = 10, ncol = 2)
+  beta <- matrix(runif(20), nrow = 10, ncol = 2)
   rownames(beta) <- paste0("cg", sprintf("%08d", 1:10))
   colnames(beta) <- meta$Sample_Name
 
@@ -46,7 +46,7 @@ test_that("MethQcSet qc_tables accessor works", {
 test_that("MethQcSet aggregation_status accessor works", {
   meta <- data.frame(Sample_Name = c("S1", "S2"), stringsAsFactors = FALSE)
   platform <- "EPICv2"
-  beta <- matrix(runif(100), nrow = 10, ncol = 2)
+  beta <- matrix(runif(20), nrow = 10, ncol = 2)
   rownames(beta) <- paste0("cg", sprintf("%08d", 1:10))
   colnames(beta) <- meta$Sample_Name
 

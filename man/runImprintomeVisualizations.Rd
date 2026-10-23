@@ -60,7 +60,7 @@ standard workflow set, or \code{"all"} for all supported non-auto plot types.}
 
 \item{chr}{Chromosome focus for \code{beeswarm_chr}; \code{NULL} uses all chromosomes.}
 
-\item{plot_device}{File extension for saved plots. Currently only \code{"pdf"} is\cr
+\item{plot_device}{File extension for saved plots. Currently only \code{"pdf"} is
 supported because several plotting backends write PDF devices directly.}
 
 \item{verbose}{Logical; print progress messages.}
@@ -68,8 +68,8 @@ supported because several plotting backends write PDF devices directly.}
 \item{...}{Additional arguments passed to \code{plot()}.}
 }
 \value{
-The updated \code{ImprintomeSet}. A data.frame describing attempted plots is
-attached as \code{attr(x, "visualization_manifest")}.
+The updated \code{ImprintomeSet}. A data.frame describing attempted plots
+is attached as \code{attr(x, "visualization_manifest")}.
 }
 \description{
 Generate a standard set of \code{ImprintomeSet} plots using the object-first
