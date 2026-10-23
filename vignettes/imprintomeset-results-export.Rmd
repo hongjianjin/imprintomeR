@@ -68,7 +68,7 @@ p_int  <- plot(qcset, type = "intensity",  icutoff = 11)        # intensity scat
 p_dp   <- plot(qcset, type = "detection_pval", pcutoff = 0.05)  # avg det p-val
 p_cov  <- plot(qcset, type = "probe_coverage")                  # % probes detected
 p_sex  <- plot(qcset, type = "predicted_sex")                   # predicted sex
-p_ctrl <- plot(qcset, type = "ctrl_metrics")                    # ewastools (if present)
+p_ctrl <- plot(qcset, type = "ctrl_metrics")                    # ewastools control metrics
 plot(qcset, type = "ctrl_metrics_detail",                       # per-metric detail PDFs
      outFile = "qc_ctrl_matrix_detail")
 

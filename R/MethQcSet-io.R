@@ -457,67 +457,67 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
 
   # ------------------------------------------------------------------
   # Step 8: ewastools-based metrics (ctrl_metrics, contamination,
-  #         predUniqDonor_ID) — optional, requires ewastools package
+  #         predUniqDonor_ID); skipped with a message if they fail
   # ------------------------------------------------------------------
-  if (requireNamespace("ewastools", quietly = TRUE)) {
-    tryCatch({
-      message("Running ewastools-based QC (ctrl_metrics, contamination, predUniqDonor_ID)...")
-      meth_et <- ewastools::read_idats(meta$Basename, quiet = TRUE)
+  tryCatch({
+    message("Running ewastools-based QC (ctrl_metrics, contamination, predUniqDonor_ID)...")
+    meth_et <- ewastools::read_idats(meta$Basename, quiet = TRUE)
 
-      # Control probe metrics
-      ctrls   <- ewastools::control_metrics(meth_et)
-      ctrl_df <- as.data.frame(do.call(cbind, lapply(ctrls, as.numeric)))
-      colnames(ctrl_df) <- names(ctrls)
-      ctrl_df <- cbind(
-        data.frame(Sample_Name = colnames(beta), stringsAsFactors = FALSE),
-        round(ctrl_df, 2)
+    # Control probe metrics
+    ctrls   <- ewastools::control_metrics(meth_et)
+    ctrl_df <- as.data.frame(do.call(cbind, lapply(ctrls, as.numeric)))
+    colnames(ctrl_df) <- names(ctrls)
+    ctrl_df <- cbind(
+      data.frame(Sample_Name = colnames(beta), stringsAsFactors = FALSE),
+      round(ctrl_df, 2)
+    )
+    ctrl_df$CtrlMetrics.QC <- ifelse(ewastools::sample_failure(ctrls), "FAIL", "PASS")
+    qcset@qc_tables[["ctrl_metrics"]] <- ctrl_df
+
+    # Update Final.QC to also require ctrl_metrics PASS
+    qm  <- qcset@qc_tables[["QC_matrix"]]
+    idx <- match(qm$Sample_Name, ctrl_df$Sample_Name)
+    ctrl_qc <- ctrl_df$CtrlMetrics.QC[idx]
+    qm$Final.QC[!is.na(ctrl_qc) & ctrl_qc == "FAIL"] <- "FAIL"
+    qcset@qc_tables[["QC_matrix"]] <- qm
+
+    # Genotyping for contamination and donor deduplication
+    # Unnormalized beta values, M / (U + M) with intensities floored at 1, as ewastools::beta_values()
+    # (dont_normalize() before 1.8) computes them; beta_values() also needs the optional ff package.
+    beta_ew   <- pmax(meth_et$M, 1) / (pmax(meth_et$U, 1) + pmax(meth_et$M, 1))
+    snp_rows  <- meth_et$manifest[meth_et$manifest$probe_type == "rs", ]
+    snps      <- beta_ew[snp_rows$index, , drop = FALSE]
+    genotypes <- ewastools::call_genotypes(snps, learn = FALSE)
+
+    # Contamination: SNP agreement check
+    donor_ids <- if ("Donor_ID" %in% colnames(meta)) meta$Donor_ID else meta$Sample_Name
+    sample_ids <- if ("Sample_Name" %in% colnames(meta)) meta$Sample_Name else colnames(beta)
+    cont_res <- ewastools::check_snp_agreement(genotypes, donor_ids, sample_ids)
+    qcset@qc_tables[["contamination"]] <- as.data.frame(cont_res)
+
+    # Predicted unique donor IDs
+    pred_donor <- ewastools::enumerate_sample_donors(genotypes)
+    qm <- qcset@qc_tables[["QC_matrix"]]
+    qm$predictedDonorID <- pred_donor
+    qcset@qc_tables[["QC_matrix"]] <- qm
+    uniq_dnr <- do.call(rbind, lapply(unique(pred_donor), function(d) {
+      idx  <- pred_donor == d
+      pass <- qm$Final.QC[idx] == "PASS"
+      data.frame(
+        predictedDonorID = d,
+        PASS_COUNT = sum(pass),
+        FAIL_COUNT = sum(!pass),
+        PASS_IDs   = paste(qm$Sample_Name[idx][pass],  collapse = ","),
+        FAIL_IDs   = paste(qm$Sample_Name[idx][!pass], collapse = ","),
+        TOTAL      = sum(idx),
+        stringsAsFactors = FALSE
       )
-      ctrl_df$CtrlMetrics.QC <- ifelse(ewastools::sample_failure(ctrls), "FAIL", "PASS")
-      qcset@qc_tables[["ctrl_metrics"]] <- ctrl_df
+    }))
+    qcset@qc_tables[["predUniqDonor_ID"]] <- uniq_dnr
 
-      # Update Final.QC to also require ctrl_metrics PASS
-      qm  <- qcset@qc_tables[["QC_matrix"]]
-      idx <- match(qm$Sample_Name, ctrl_df$Sample_Name)
-      ctrl_qc <- ctrl_df$CtrlMetrics.QC[idx]
-      qm$Final.QC[!is.na(ctrl_qc) & ctrl_qc == "FAIL"] <- "FAIL"
-      qcset@qc_tables[["QC_matrix"]] <- qm
-
-      # Genotyping for contamination and donor deduplication
-      beta_ew   <- ewastools::dont_normalize(meth_et)
-      snp_rows  <- meth_et$manifest[meth_et$manifest$probe_type == "rs", ]
-      snps      <- beta_ew[snp_rows$index, , drop = FALSE]
-      genotypes <- ewastools::call_genotypes(snps, learn = FALSE)
-
-      # Contamination: SNP agreement check
-      donor_ids <- if ("Donor_ID" %in% colnames(meta)) meta$Donor_ID else meta$Sample_Name
-      sample_ids <- if ("Sample_Name" %in% colnames(meta)) meta$Sample_Name else colnames(beta)
-      cont_res <- ewastools::check_snp_agreement(genotypes, donor_ids, sample_ids)
-      qcset@qc_tables[["contamination"]] <- as.data.frame(cont_res)
-
-      # Predicted unique donor IDs
-      pred_donor <- ewastools::enumerate_sample_donors(genotypes)
-      qm <- qcset@qc_tables[["QC_matrix"]]
-      qm$predictedDonorID <- pred_donor
-      qcset@qc_tables[["QC_matrix"]] <- qm
-      uniq_dnr <- do.call(rbind, lapply(unique(pred_donor), function(d) {
-        idx  <- pred_donor == d
-        pass <- qm$Final.QC[idx] == "PASS"
-        data.frame(
-          predictedDonorID = d,
-          PASS_COUNT = sum(pass),
-          FAIL_COUNT = sum(!pass),
-          PASS_IDs   = paste(qm$Sample_Name[idx][pass],  collapse = ","),
-          FAIL_IDs   = paste(qm$Sample_Name[idx][!pass], collapse = ","),
-          TOTAL      = sum(idx),
-          stringsAsFactors = FALSE
-        )
-      }))
-      qcset@qc_tables[["predUniqDonor_ID"]] <- uniq_dnr
-
-    }, error = function(e) {
-      message("ewastools QC skipped: ", conditionMessage(e))
-    })
-  }
+  }, error = function(e) {
+    message("ewastools QC skipped: ", conditionMessage(e))
+  })
 
   # ------------------------------------------------------------------
   # Step 9: default package QC plots and minfi density-report PDFs

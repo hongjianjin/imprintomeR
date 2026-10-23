@@ -105,7 +105,7 @@ p_cov <- plot(qcset, type = "probe_coverage")
 # Predicted sex distribution
 p_sex <- plot(qcset, type = "predicted_sex")
 
-# ewastools control probe metrics — summary (returns NULL silently if absent)
+# ewastools control probe metrics — summary (NULL if these metrics could not be computed)
 p_ctrl <- plot(qcset, type = "ctrl_metrics")
 
 # Per-metric detail plots (Bisulfite Conversion, Specificity, Non-polymorphic)

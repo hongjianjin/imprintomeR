@@ -52,7 +52,7 @@ option_list <- list(
         help = "Suppress default QC report PDFs from runMethQC(): intensity, detection p-value, probe coverage, beta-density, and minfi density"),
 
     make_option(c("--skip-ewastools"), action = "store_true", default = FALSE,
-        help = "Skip ewastools control metrics (if not installed) [default: %default]"),
+        help = "Skip the ewastools control metrics, contamination and donor checks [default: %default]"),
 
     make_option(c("-v", "--verbose"), action = "store_true", default = FALSE,
         help = "Enable verbose logging (timestamps, platform summaries) [default: %default]")

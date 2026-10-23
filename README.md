@@ -17,6 +17,9 @@ devtools::install_github("hongjianjin/imprintomeR")
 devtools::install("path/to/imprintomeR")
 ```
 
+The QC dependency [ewastools](https://github.com/hhhh5/ewastools) is not on CRAN; both commands install it
+from GitHub automatically (DESCRIPTION `Remotes: hhhh5/ewastools`).
+
 After installation, download required data files:
 
 ```r
@@ -189,7 +192,7 @@ p_den  <- plot(qcset, type = "beta_density",      sample_set = "all",
                outFile = "qc_beta_density_all.pdf")                              # beta-value density per sample
 p_cov  <- plot(qcset, type = "probe_coverage",   outFile = "qc_probe_coverage.pdf") # % probes detected per sample
 p_sex  <- plot(qcset, type = "predicted_sex",    outFile = "qc_predicted_sex.pdf")  # predicted sex distribution
-p_ctrl <- plot(qcset, type = "ctrl_metrics",         outFile = "qc_ctrl_matrix_summary.pdf")   # ewastools scores (if available)
+p_ctrl <- plot(qcset, type = "ctrl_metrics",         outFile = "qc_ctrl_matrix_summary.pdf")   # ewastools scores
 plot(qcset, type = "ctrl_metrics_detail",            outFile = "qc_ctrl_matrix_detail")         # per-metric PDFs (Bisulfite/Specificity)
 
 # Export cleaned data
@@ -212,12 +215,12 @@ Key MethQcSet features:
   - `cutoffs` — QC threshold criteria with Pass/Fail expressions (detection/probe-coverage required; intensity reported only; control metrics when available)
     - **Core metrics (3 rows):** log2MedianIntensity (reported only), aveDetectionPval (<0.05), pctDetectedCpG_dP0.05 (>95)
     - **SNP metrics (1 row):** snps_outliers_aveLogOdds (>-4)
-    - **Control metrics (18 rows, if ewastools available):** Restoration, Staining, Extension, Hybridization, Target_Removal, Bisulfite_Conversion, Specificity, Non-polymorphic
+    - **Control metrics (18 rows, from ewastools):** Restoration, Staining, Extension, Hybridization, Target_Removal, Bisulfite_Conversion, Specificity, Non-polymorphic
     - **Columns:** criteria, cutoff, Pass, Fail, Final.QC, CtrlMetrics.QC
     - **Conditional formatting:** Use `SaveTableStyle()` (from `openxlsx`) with `condFmt` parameter to highlight Pass/Fail expressions in Excel exports
-  - `ctrl_metrics` — control probe metrics (if ewastools available)
-  - `contamination` — SNP agreement / sample-swap check (if ewastools available)
-  - `predUniqDonor_ID` — predicted unique donors per sample group (if ewastools available)
+  - `ctrl_metrics` — control probe metrics (from ewastools)
+  - `contamination` — SNP agreement / sample-swap check (from ewastools)
+  - `predUniqDonor_ID` — predicted unique donors per sample group (from ewastools)
 - **EPICv2 aggregation required**: Replicate probes (e.g. `cg..._TC11`, `cg..._TC12`) must be collapsed to base probe IDs before conversion — `aggregate_probes()` is a required step for EPICv2 (`as.ImprintomeSet()` will error if skipped)
 - **Merge operations**: Synchronized metadata/beta alignment (`merge()`)
 - **Export workflow**: Write QC tables, beta values, metadata to disk (`export()`)
@@ -389,7 +392,7 @@ exported_files <- export(
 <tbody>
 <tr><td><code>metadata</code></td><td>Sample metadata + Platform + Final.QC columns</td><td>Yes</td></tr>
 <tr><td><code>QC_matrix</code></td><td>Per-sample detection stats, intensity (mMed/uMed/aveMed), predictedSex, Final.QC</td><td>Yes</td></tr>
-<tr><td><code>Ctrl_matrix</code></td><td>Control probe metrics + CtrlMetrics.QC</td><td>If ewastools available</td></tr>
+<tr><td><code>Ctrl_matrix</code></td><td>Control probe metrics + CtrlMetrics.QC</td><td>From ewastools</td></tr>
 <tr><td><code>statistics</code></td><td>Per-Sample_Group summary: GROUP, Total, PASS, FAIL, PASS.RATIO, FAIL.RATIO</td><td>If Sample_Group in metadata</td></tr>
 </tbody>
 </table>
@@ -408,9 +411,9 @@ exported_files <- export(
 </thead>
 <tbody>
 <tr><td><code>QC_metrics</code></td><td>QC threshold criteria (criteria, cutoff, Final.QC) — filtered cutoffs table</td><td>Yes</td></tr>
-<tr><td><code>contamination</code></td><td>SNP agreement matrix for sample swap detection</td><td>If ewastools available</td></tr>
+<tr><td><code>contamination</code></td><td>SNP agreement matrix for sample swap detection</td><td>From ewastools</td></tr>
 <tr><td><code>recall_rate</code></td><td>Per-probe % detected across all / PASS / FAIL samples</td><td>Yes</td></tr>
-<tr><td><code>predUniqDonor_ID</code></td><td>Predicted unique donor IDs per sample group</td><td>If ewastools available</td></tr>
+<tr><td><code>predUniqDonor_ID</code></td><td>Predicted unique donor IDs per sample group</td><td>From ewastools</td></tr>
 </tbody>
 </table>
 
@@ -429,8 +432,8 @@ str(qcset_epic)
 #     $ QC_matrix      : 'data.frame': 4 obs. of 13 variables (detection stats, intensity, predictedSex, Final.QC)
 #     $ recall_rate    : 'data.frame': 866895 obs. of 4 variables (per-probe % detected)
 #     $ cutoffs        : 'data.frame': 5 obs. of 2 variables (QC threshold criteria)
-#     $ ctrl_metrics   : 'data.frame' (if ewastools available)
-#     $ contamination  : 'data.frame' (if ewastools available)
+#     $ ctrl_metrics   : 'data.frame' (from ewastools)
+#     $ contamination  : 'data.frame' (from ewastools)
 #   @ statistics        : 'data.frame' or NULL — Per-Sample_Group QC summary (populated on export)
 #     $ GROUP          : character (Sample_Group or "All")
 #     $ Total          : integer (number of samples)
@@ -709,7 +712,7 @@ export(
 **{prefix}_qc_table_main.xlsx** (primary QC results for review):
 - `metadata` — Sample information with Platform and Final.QC columns
 - `QC_matrix` — Per-sample QC metrics (intensity, detection p-values, probe coverage, predicted sex)
-- `Ctrl_matrix` — Control probe metrics (if ewastools available)
+- `Ctrl_matrix` — Control probe metrics (from ewastools)
 - `statistics` — Per-Sample_Group summary table (Total, PASS, FAIL, pass/fail ratios)
 
 **QC_tables/{prefix}_qc_table_extra.xlsx** (supplementary technical results):
