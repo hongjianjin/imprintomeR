@@ -20,6 +20,9 @@ for \code{genome} (\verb{probesets_<genome>.rds}).}
 Data frame with aggregated loci as rows and samples as columns.
 }
 \description{
-Aggregates probe-level beta values into locus-level means by grouping probes
-with the same chromosome, origin, and nearest gene annotation.
+Aggregates probe-level beta values into locus-level medians by grouping probes
+with the same chromosome, origin, and nearest gene annotation. Loci are
+returned in genomic order: by chromosome (1-22, X, Y), then by the position of
+the locus' first probe (\code{MAPINFO}); without \code{MAPINFO}, by label within a
+chromosome. Radar plots draw the loci in this order.
 }

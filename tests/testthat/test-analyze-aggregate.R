@@ -328,3 +328,23 @@ test_that("AggregateByLocus returns empty typed frame when no probes overlap", {
     expect_equal(colnames(res), colnames(beta))
   })
 })
+
+test_that("AggregateByLocus returns loci in genomic order", {
+  beta <- data.frame(S1 = c(0.1, 0.2, 0.3, 0.4, 0.5), stringsAsFactors = FALSE)
+  rownames(beta) <- c("cg1", "cg2", "cg3", "cg4", "cg5")
+  probeset <- data.frame(
+    NAME = c("cg1", "cg2", "cg3", "cg4", "cg5"),
+    CHR = c("chr10", "chrX", "chr1", "chr1", "chr2"),
+    MAPINFO = c(500, 100, 900, 200, 300),
+    ORIGIN = c("maternal", "paternal", "maternal", "maternal", "paternal"),
+    Closest_TSS_gene_name = c("A", "B", "AA", "ZZ", "C"),
+    stringsAsFactors = FALSE
+  )
+
+  .with_temp_probeset_file(probeset, {
+    res <- AggregateByLocus(beta, probeset = "selected")
+    # chr1 loci by position (ZZ at 200 before AA at 900), then chr2, chr10, chrX.
+    expect_equal(rownames(res), c("chr1_maternal_ZZ", "chr1_maternal_AA", "chr2_paternal_C",
+                                  "chr10_maternal_A", "chrX_paternal_B"))
+  })
+})

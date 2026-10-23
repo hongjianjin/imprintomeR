@@ -2373,7 +2373,7 @@ PlotRadar <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=
     stringsAsFactors = FALSE
   )
 
-  plot_data <- plot_data[str_order(plot_data$metric, numeric = TRUE), ]
+  # Spokes follow the row order of df (genomic order from AggregateByLocus()), clockwise from the top.
   n_metrics <- nrow(plot_data)
   plot_data$value_scaled <- plot_data$value + 1
 

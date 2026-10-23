@@ -46,8 +46,11 @@ CalcAvgByGrp <- function(dat, meta = NULL) {
 
 #' Aggregate Beta Matrix by Imprinting Locus
 #'
-#' Aggregates probe-level beta values into locus-level means by grouping probes
-#' with the same chromosome, origin, and nearest gene annotation.
+#' Aggregates probe-level beta values into locus-level medians by grouping probes
+#' with the same chromosome, origin, and nearest gene annotation. Loci are
+#' returned in genomic order: by chromosome (1-22, X, Y), then by the position of
+#' the locus' first probe (`MAPINFO`); without `MAPINFO`, by label within a
+#' chromosome. Radar plots draw the loci in this order.
 #'
 #' @param beta Numeric beta matrix/data frame with probe IDs as row names and
 #'   samples in columns.
@@ -128,6 +131,23 @@ AggregateByLocus <- function(beta, probeset="selected", genome = "hg38"){
   }
   rownames(result_mat) <- names(agg_list)
   colnames(result_mat) <- colnames(beta_common)
+
+  # Genomic order: chromosome (1-22, X, Y, other), then the locus' first probe position, then label.
+  loci <- rownames(result_mat)
+  chr_of <- vapply(split_idx[loci], function(idx) as.character(probeset1[commonProbes[idx[1]], "CHR"]), "")
+  chr_rank <- suppressWarnings(as.numeric(sub("^chr", "", chr_of, ignore.case = TRUE)))
+  chr_key <- toupper(sub("^chr", "", chr_of, ignore.case = TRUE))
+  chr_rank[is.na(chr_rank)] <- c(X = 23, Y = 24, M = 25, MT = 25)[chr_key[is.na(chr_rank)]]
+  chr_rank[is.na(chr_rank)] <- 26
+  start_of <- if ("MAPINFO" %in% colnames(probeset1)) {
+    vapply(split_idx[loci], function(idx) {
+      p <- suppressWarnings(as.numeric(probeset1[commonProbes[idx], "MAPINFO"]))
+      if (all(is.na(p))) NA_real_ else min(p, na.rm = TRUE)
+    }, numeric(1))
+  } else {
+    rep(NA_real_, length(loci))
+  }
+  result_mat <- result_mat[order(chr_rank, start_of, loci, na.last = TRUE), , drop = FALSE]
 
   as.data.frame(result_mat, stringsAsFactors = FALSE, check.names = FALSE)
 }
