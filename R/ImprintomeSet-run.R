@@ -32,6 +32,10 @@
 #'   multi-locus summary ([SummarizeICRStatus()]) as `ICRSummary.<probeset>`.
 #' @param delta_cutoff,z_cutoff Thresholds for altered-ICR calls, passed to
 #'   [AnalyzeICRStatus()] when `icr = TRUE` (defaults 0.075 and 3).
+#' @param n_boot,n_perm,conf_level,resample,permute,seed Bootstrap confidence
+#'   intervals and permutation null for IDS and Angle, passed to
+#'   `AnalyzeImprintStatus()` (off by default; see its Uncertainty section).
+#'   The added columns record the settings; result names are unchanged.
 #' @param ... Reserved for future compatibility.
 #'
 #' @return Updated `ImprintomeSet` object with analysis table stored in
@@ -85,7 +89,9 @@ methods::setMethod(
            reference = c("auto", "controls", "fixed"), reference_group = NULL,
            reference_samples = NULL, reference_beta = NULL,
            infinium_type = c("all", "I", "II", "balanced"), balance = c("probe", "icr"),
-           min_probes = 3L, icr = FALSE, delta_cutoff = 0.075, z_cutoff = 3, ...) {
+           min_probes = 3L, icr = FALSE, delta_cutoff = 0.075, z_cutoff = 3,
+           n_boot = 0L, n_perm = 0L, conf_level = 0.95, resample = c("icr", "probe"),
+           permute = c("probe", "icr"), seed = NULL, ...) {
     methods::validObject(x)
 
     # Convert beta matrix to data frame with TargetID column (required by LoadBeta)
@@ -105,7 +111,13 @@ methods::setMethod(
       reference_beta = reference_beta,
       infinium_type = infinium_type,
       balance = balance,
-      min_probes = min_probes
+      min_probes = min_probes,
+      n_boot = n_boot,
+      n_perm = n_perm,
+      conf_level = conf_level,
+      resample = resample,
+      permute = permute,
+      seed = seed
     )
 
     current_results <- results(x)

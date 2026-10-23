@@ -368,12 +368,65 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
 #'     `infinium_type = "balanced"`.
 #' @param min_probes Minimum number of probes for an ICR to count when
 #'   `balance = "icr"` (default 3).
+#' @param n_boot Number of bootstrap replicates for confidence intervals of IDS
+#'   and Angle (default 0, none). Several hundred to a few thousand are typical.
+#' @param n_perm Number of permutations for the parental-label null of the
+#'   origin contrast (default 0, none).
+#' @param conf_level Confidence level of the bootstrap intervals (default 0.95).
+#' @param resample Bootstrap resampling unit within each parental class:
+#'   - `"icr"` (default): two-stage cluster bootstrap. ICRs are resampled with
+#'     replacement, then probes within each drawn ICR, so that correlated probes
+#'     of one ICR are not treated as independent. Probes outside annotated ICRs
+#'     count as their own cluster, and a class with a single ICR (for example
+#'     IC1 or IC2 of `chr11p15`) reduces to resampling its probes. Requires an
+#'     `ICR_name` column; otherwise `"probe"` is used, with a message.
+#'   - `"probe"`: probes are resampled within the class (within Infinium design
+#'     types for `infinium_type = "balanced"`, within ICRs for `balance = "icr"`).
+#'     This ignores within-ICR correlation and gives narrower intervals.
+#' @param permute Permutation unit for the null:
+#'   - `"probe"` (default): the parental labels of probes are shuffled, keeping
+#'     the numbers of paternal and maternal probes (per design type for
+#'     `infinium_type = "balanced"`);
+#'   - `"icr"`: whole ICRs are reassigned; requires at least two annotated ICRs
+#'     in each parental class. Always used with `balance = "icr"`.
+#' @param seed Optional random seed for `n_boot`/`n_perm`, for reproducible
+#'   results; the caller's random number stream is restored afterwards.
+#'
+#' @section Uncertainty:
+#' With `n_boot > 0`, each sample's paternal and maternal deviations are
+#' recomputed on resampled probes (see `resample`), and percentile intervals are
+#' reported for IDS (`IDS_lower`, `IDS_upper`) and Angle (`Angle_lower`,
+#' `Angle_upper`, a circular interval around the observed angle, read clockwise
+#' from lower to upper). `Mechanism_support` is the fraction of replicates in
+#' the reported `Mechanism` sector (including `"ROI"`), a measure of label
+#' stability. The intervals are conditional on the reference: the controls are
+#' not resampled. Because IDS is a distance, its interval never includes 0 and is
+#' biased upward for samples near balanced imprinting, so it describes stability
+#' and ranking rather than testing against 0; the Angle interval is
+#' uninformative when the IDS interval reaches the ROI zone.
+#'
+#' With `n_perm > 0`, `origin_perm_p` tests whether the sample's deviation
+#' depends on the parental-origin annotation, as an imprinting defect does,
+#' rather than being shared by all probes. The statistic is the origin contrast
+#' `|paternal_deviation - maternal_deviation|`, which is zero for a shift common
+#' to both classes (Global-Hyper, Global-Hypo) and large for single-axis or
+#' opposite-axis deviations; the p-value is
+#' `(1 + #{contrast_perm >= contrast}) / (1 + n_perm)` after reassigning the
+#' parental labels. IDS itself is not used, because when one class has many more
+#' probes, shuffled labels give both classes the majority's deviation. With
+#' `permute = "probe"` correlated probes are exchanged individually, so p-values
+#' are anti-conservative. p-values are per sample and not adjusted for multiple
+#' testing.
 #'
 #' @return Data frame with sample-level imprinting metrics and labels.
 #'   `paternal_deviation` and `maternal_deviation` are the coordinates that IDS
 #'   and Angle are computed from. `reference` and `n_reference_samples` describe
 #'   the reference used. `balance` records the pooling; with `balance = "icr"`, the columns
-#'   `n_paternal_icrs` / `n_maternal_icrs` give the numbers of ICRs used.
+#'   `n_paternal_icrs` / `n_maternal_icrs` give the numbers of ICRs used. With
+#'   `n_boot > 0`, the columns `IDS_lower`, `IDS_upper`, `Angle_lower`,
+#'   `Angle_upper`, `Mechanism_support`, `n_boot` and `resample` are added; with
+#'   `n_perm > 0`, `origin_perm_p`, `n_perm` and `permute` (see Uncertainty).
+#'   Calibrate the IDS cutoff on controls with [CalibrateIDS()].
 
 #' @export
 AnalyzeImprintStatus <- function(betaFile, metaFile,
@@ -387,7 +440,13 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
                                  reference_beta = NULL,
                                  infinium_type = c("all", "I", "II", "balanced"),
                                  balance = c("probe", "icr"),
-                                 min_probes = 3L) {
+                                 min_probes = 3L,
+                                 n_boot = 0L,
+                                 n_perm = 0L,
+                                 conf_level = 0.95,
+                                 resample = c("icr", "probe"),
+                                 permute = c("probe", "icr"),
+                                 seed = NULL) {
   if (missing(metaFile)) metaFile <- NULL
   if (!is.character(probeset) || length(probeset) != 1 || is.na(probeset) || !nzchar(probeset)) {
     stop("probeset must be a single non-empty character value.")
@@ -411,6 +470,17 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   if (!is.numeric(min_probes) || length(min_probes) != 1L || is.na(min_probes) || min_probes < 1) {
     stop("min_probes must be a single positive number.")
   }
+  for (arg in c("n_boot", "n_perm")) {
+    value <- get(arg)
+    if (!is.numeric(value) || length(value) != 1L || is.na(value) || value < 0 || value != round(value)) {
+      stop(arg, " must be a single non-negative whole number.")
+    }
+  }
+  if (!is.numeric(conf_level) || length(conf_level) != 1L || is.na(conf_level) || conf_level <= 0 || conf_level >= 1) {
+    stop("conf_level must be a single number between 0 and 1.")
+  }
+  resample <- match.arg(resample)
+  permute <- match.arg(permute)
   for (arg in c("reference_group", "reference_samples")) {
     value <- get(arg)
     if (!is.null(value) && (!is.character(value) || !length(value) || anyNA(value))) {
@@ -550,6 +620,48 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   )
   # ICR counts only apply to ICR-balanced scoring.
   if (balance != "icr") res$n_paternal_icrs <- res$n_maternal_icrs <- NULL
+
+  # 9. Optional bootstrap intervals and permutation null (unrounded observed scores).
+  if (n_boot > 0 || n_perm > 0) {
+    has_icr <- "ICR_name" %in% colnames(probesets)
+    icr_or_na <- function(probes) {
+      if (has_icr) probesets$ICR_name[match(probes, probesets$NAME)] else rep(NA_character_, length(probes))
+    }
+    if (n_boot > 0 && resample == "icr" && !has_icr) {
+      message("[AnalyzeImprintStatus] Probeset '", probeset, "' has no ICR_name column; bootstrap resamples probes.")
+      resample <- "probe"
+    }
+    if (balance == "icr") permute <- "icr"
+    class_spec <- function(beta, ref, probes) {
+      D <- as.matrix(beta) - (if (is.null(ref)) 0.5 else ref)
+      icr <- icr_or_na(probes)
+      design <- design_of(probes)
+      if (balance == "icr") {
+        # Only ICRs with at least min_probes probes, as in the ICR-balanced score.
+        sizes <- table(icr[!is.na(icr) & nzchar(icr)])
+        keep <- !is.na(icr) & icr %in% names(sizes)[sizes >= min_probes]
+        D <- D[keep, , drop = FALSE]
+        icr <- icr[keep]
+      }
+      list(D = D, icr = icr, design = design)
+    }
+    pat_spec <- class_spec(paternal_beta, paternal_ref, paternal_probes)
+    mat_spec <- class_spec(maternal_beta, maternal_ref, maternal_probes)
+    if (n_perm > 0 && permute == "icr") {
+      n_icrs <- function(icr) length(unique(icr[!is.na(icr) & nzchar(icr)]))
+      if (n_icrs(pat_spec$icr) < 2L || n_icrs(mat_spec$icr) < 2L) {
+        stop("permute = \"icr\" needs at least two annotated ICRs in each parental class; use permute = \"probe\".")
+      }
+    }
+    unc <- .imprint_uncertainty(
+      pat_spec, mat_spec,
+      obs = list(pat = unname(pat_dev), mat = unname(mat_dev), ids = unname(ids), angle = unname(degrees),
+                 mechanism = final_mechanism),
+      by_icr = balance == "icr", n_boot = n_boot, n_perm = n_perm, conf_level = conf_level,
+      resample = resample, permute = permute, seed = seed
+    )
+    res <- cbind(res, unc)
+  }
 
   return(res)
 }

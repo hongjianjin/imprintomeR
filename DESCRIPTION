@@ -26,6 +26,7 @@ Collate:
     'module_probeset.R'
     'module_scoring.R'
     'module_icr.R'
+    'module_uncertainty.R'
     'module_aggregation.R'
     'module_plotting.R'
     'MethQcSet-class.R'
