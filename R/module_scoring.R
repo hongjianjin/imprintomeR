@@ -1,6 +1,21 @@
 # Auto-refactored from utilities2.R
 # Module: scoring
 
+#' Flag Possible Mosaic Imprinting Disturbances
+#'
+#' Classifies samples whose IDS is raised relative to a reference distribution but below the
+#' alteration cutoff, as can happen with mosaic defects, and estimates the altered fraction.
+#' Exploratory: the reference mean and SD should come from tissue-matched controls.
+#'
+#' @param res_table Output of [AnalyzeImprintStatus()] (columns `IDS`, `consistency`,
+#'   `paternal_median`, `maternal_median`).
+#' @param roi_ref_mean,roi_ref_sd Mean and standard deviation of IDS in the reference (normal)
+#'   samples (defaults 0.06 and 0.03).
+#'
+#' @return `res_table` with added columns `IDS_Zscore`; `Is_Mosaic` (`"Constitutive"` for
+#'   IDS >= 0.2; otherwise `"High-Confidence Mosaic"` for z > 3 or `"Possible Mosaic"` for z > 2,
+#'   both requiring consistency > 0.8; else `"Stable"`); and `Mosaic_Pct_Est`, the larger parental
+#'   deviation from 0.5 as a percentage of 0.5.
 #' @export
 DetectMosaicism <- function(res_table, roi_ref_mean = 0.06, roi_ref_sd = 0.03) {
   # 1. Calculate Z-score based on healthy reference distribution
@@ -740,10 +755,24 @@ BuildReferenceProfile <- function(beta, samples = NULL, probeset = NULL, genome 
 #=====================================
 #================================================================
 
+#' Per-Chromosome Imprinting Survey of One Sample
+#'
+#' Computes IDS, Angle and Mechanism separately for each chromosome of a probeset panel, from the
+#' paternal and maternal median beta of the chromosome's probes (fixed 0.5 reference).
+#'
+#' @param beta Probe-by-sample beta matrix or data frame.
+#' @param sampleID Name of the sample column to survey.
+#' @param probeset Probeset panel (default `"selected"`).
+#' @param min_probes Minimum number of probes of a parental class on a chromosome; with fewer, that
+#'   class's median is set to 0.5 (default 10). Chromosomes with fewer in both classes are dropped.
+#' @param ids_cutoff IDS cutoff for the `Status` column (default 0.2).
+#' @param genome Genome build of the probeset annotation, `"hg19"` or `"hg38"` (default).
+#'
+#' @return Data frame with one row per chromosome: probe counts, parental medians, consistency,
+#'   deviations, `IDS`, `Angle`, `Status`, `Confidence` and `Mechanism`.
+#' @seealso [Survey_Global_Imprinting_Batch()] for all samples.
 #' @export
 Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", "chr20q13"), min_probes = 10, ids_cutoff=0.2, genome = "hg38") {
-  suppressMessages(suppressWarnings(library("dplyr")))
-  library(stringr)
   probeset <- match.arg(probeset)
   beta <- .resolve_beta_input(beta)
   #================================================================
@@ -851,6 +880,17 @@ Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("selected", "Nano
 
 #================================================================
 
+#' Per-Chromosome Imprinting Survey of a Cohort
+#'
+#' Applies the per-chromosome survey of [Survey_Global_Imprinting()] to every sample.
+#'
+#' @param betaFile Beta matrix, data frame or file path (probes by samples).
+#' @param metaFile Metadata data frame or file path with `Sample_Name`.
+#' @param subset `"all"` (default) or one chromosome (for example `"chr11"`) to survey.
+#' @inheritParams Survey_Global_Imprinting
+#'
+#' @return Data frame with one row per sample and chromosome: `Sample_Name`, `Sample_Group` and
+#'   `ID2` when available, `Chromosome`, `n_mat`, `n_pat`, `IDS`, `Status`, `Mechanism` and `Angle`.
 #' @export
 Survey_Global_Imprinting_Batch <- function(betaFile, metaFile = NULL,
                                           subset = "all", 
@@ -859,12 +899,6 @@ Survey_Global_Imprinting_Batch <- function(betaFile, metaFile = NULL,
                                           ids_cutoff = 0.2,
                                           genome = "hg38") {
   
-  suppressMessages(suppressWarnings({
-    library(dplyr)
-    library(tidyr)
-    library(stringr)
-    library(data.table)
-  }))
   
   probeset <- match.arg(probeset)
 
@@ -957,7 +991,6 @@ Survey_Global_Imprinting_Batch <- function(betaFile, metaFile = NULL,
 #================================================================
 
 validate_imprinting_fit <- function(purity, obs_dev, sample_ids) {
-  library(ggplot2)
   # 1. Calculate Expected Deviation based on the "Perfect LOI" model
   # D_exp = 0.5 * Purity
   exp_dev <- 0.5 * purity
@@ -1001,8 +1034,6 @@ if(F){
 #================================================================
 
 calculate_imprint_age <- function(beta_matrix, icr_sites, global_clocks_age, trained_weights = NULL) {
-  library(dplyr)
-  library(matrixStats)
   # 1. Subset for ICR-specific sites
   common_sites <- intersect(rownames(beta_matrix), icr_sites)
   icr_beta <- beta_matrix[common_sites, ]
@@ -1049,7 +1080,6 @@ calculate_imprint_age <- function(beta_matrix, icr_sites, global_clocks_age, tra
 #================================================================
 if(F){
 
-  library(ggplot2)
   plot_imprint_clock <- function(df) {
     ggplot(df, aes(x = Global_BioAge, y = ImprintAge)) +
       geom_point(aes(color = Aging_Status), size = 3) +
@@ -1067,8 +1097,6 @@ if(F){
 }
 
 #================================================================
-library(ComplexHeatmap)
-library(circlize)
 
 
 

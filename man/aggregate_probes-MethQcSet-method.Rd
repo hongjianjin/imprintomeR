@@ -2,6 +2,7 @@
 % Please edit documentation in R/MethQcSet-methods.R
 \name{aggregate_probes,MethQcSet-method}
 \alias{aggregate_probes,MethQcSet-method}
+\alias{aggregate_probes}
 \title{Aggregate Platform-Specific Probes}
 \usage{
 \S4method{aggregate_probes}{MethQcSet}(x, method = c("median", "mean"), ...)

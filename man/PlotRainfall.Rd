@@ -2,7 +2,7 @@
 % Please edit documentation in R/module_plotting.R
 \name{PlotRainfall}
 \alias{PlotRainfall}
-\title{Comprehensive Imprinting Analysis for imprintomeR}
+\title{Rainfall Plot of Probe-Level Imprinting Deviation}
 \usage{
 PlotRainfall(
   beta,
@@ -15,19 +15,22 @@ PlotRainfall(
 )
 }
 \arguments{
-\item{probeset}{Character. the name of a predefined imprinting probeset.}
+\item{beta}{Probe-by-sample beta matrix or data frame with probe IDs as row names.}
+
+\item{sampleID}{Name of the sample column to plot.}
+
+\item{title}{Plot title.}
+
+\item{probeset}{Probeset panel (default \code{"selected"}).}
+
+\item{outFile}{Optional output file path (12 x 6 inches).}
 
 \item{genome}{Genome build of the probeset annotation, "hg38" (default) or "hg19".}
-
-\item{betaFile}{Character. file of beta values (Probes as rownames, Samples as colnames).}
-
-\item{metaFile}{Character. file of sample information.}
-
-\item{ids_cutoff}{Numeric. The IDS distance threshold to call an EpiMutation (Default = 0.2).}
 }
 \value{
-A data frame with metrics, directional interpretations, and mutation calls.
+A ggplot object.
 }
 \description{
-Comprehensive Imprinting Analysis for imprintomeR
+Plots the probe-level imprinting deviation index, IDI = (beta - 0.5) x 2, of one sample along
+the genome, faceted by chromosome and coloured by the annotated parental origin.
 }

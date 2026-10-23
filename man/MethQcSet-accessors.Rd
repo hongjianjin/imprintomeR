@@ -2,53 +2,101 @@
 % Please edit documentation in R/MethQcSet-accessors.R
 \name{MethQcSet-accessors}
 \alias{MethQcSet-accessors}
+\alias{meta}
 \alias{meta,MethQcSet-method}
+\alias{meta<-}
 \alias{meta<-,MethQcSet-method}
+\alias{platform}
 \alias{platform,MethQcSet-method}
+\alias{platform<-}
 \alias{platform<-,MethQcSet-method}
+\alias{beta}
 \alias{beta,MethQcSet-method}
+\alias{beta<-}
 \alias{beta<-,MethQcSet-method}
+\alias{detection_pval}
 \alias{detection_pval,MethQcSet-method}
+\alias{detection_pval<-}
 \alias{detection_pval<-,MethQcSet-method}
+\alias{qc_tables}
 \alias{qc_tables,MethQcSet-method}
+\alias{qc_tables<-}
 \alias{qc_tables<-,MethQcSet-method}
+\alias{aggregation_status}
 \alias{aggregation_status,MethQcSet-method}
+\alias{aggregation_status<-}
 \alias{aggregation_status<-,MethQcSet-method}
+\alias{qc_params}
 \alias{qc_params,MethQcSet-method}
+\alias{qc_params<-}
 \alias{qc_params<-,MethQcSet-method}
+\alias{statistics}
 \alias{statistics,MethQcSet-method}
+\alias{statistics<-}
 \alias{statistics<-,MethQcSet-method}
 \title{Accessors for MethQcSet}
 \usage{
+meta(x)
+
 \S4method{meta}{MethQcSet}(x)
+
+meta(x) <- value
 
 \S4method{meta}{MethQcSet}(x) <- value
 
+platform(x)
+
 \S4method{platform}{MethQcSet}(x)
+
+platform(x) <- value
 
 \S4method{platform}{MethQcSet}(x) <- value
 
+beta(x)
+
 \S4method{beta}{MethQcSet}(x)
+
+beta(x) <- value
 
 \S4method{beta}{MethQcSet}(x) <- value
 
+detection_pval(x)
+
 \S4method{detection_pval}{MethQcSet}(x)
+
+detection_pval(x) <- value
 
 \S4method{detection_pval}{MethQcSet}(x) <- value
 
+qc_tables(x)
+
 \S4method{qc_tables}{MethQcSet}(x)
+
+qc_tables(x) <- value
 
 \S4method{qc_tables}{MethQcSet}(x) <- value
 
+aggregation_status(x)
+
 \S4method{aggregation_status}{MethQcSet}(x)
+
+aggregation_status(x) <- value
 
 \S4method{aggregation_status}{MethQcSet}(x) <- value
 
+qc_params(x)
+
 \S4method{qc_params}{MethQcSet}(x)
+
+qc_params(x) <- value
 
 \S4method{qc_params}{MethQcSet}(x) <- value
 
+statistics(x)
+
 \S4method{statistics}{MethQcSet}(x)
+
+statistics(x) <- value
 
 \S4method{statistics}{MethQcSet}(x) <- value
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/module_plotting.R
 \name{BetaBeePlot_orgin2}
 \alias{BetaBeePlot_orgin2}
-\title{Calculate Global Biological Age}
+\title{Multi-Panel Beeswarm Plot by Category/Origin}
 \usage{
 BetaBeePlot_orgin2(
   beta,
@@ -38,15 +38,10 @@ BetaBeePlot_orgin2(
 \item{group}{Annotation column used to define categories.}
 
 \item{genome}{Genome build of the probeset annotation, "hg38" (default) or "hg19".}
-
-\item{beta_matrix}{A matrix where rows are CpG IDs and columns are Sample Names}
 }
 \value{
-A data frame with HorvathAge and other clock results
-Multi-Panel Beeswarm Plot by Category/Origin
-
 A patchwork/ggplot object.
 }
 \description{
-Calculate Global Biological Age
+Multi-Panel Beeswarm Plot by Category/Origin
 }

@@ -292,7 +292,7 @@ methods::setMethod("export", "MethQcSet", function(x, outdir, format = c("xlsx",
   }
 
   # =========================================================================
-  # xlsx: two workbooks — main (metadata, QC_matrix, Ctrl_matrix, statistics)
+  # xlsx: two workbooks - main (metadata, QC_matrix, Ctrl_matrix, statistics)
   #                      + extra (QC_metrics, contamination, recall_rate, etc.)
   # =========================================================================
 if ("xlsx" %in% format) {
@@ -516,9 +516,9 @@ if ("xlsx" %in% format) {
       written_files <- c(written_files, outfile)
     }
 
-    # Individual QC tables (skip QC_matrix to avoid duplication — already exported as qc_matrix.txt)
+    # Individual QC tables (skip QC_matrix to avoid duplication - already exported as qc_matrix.txt)
     for (qc_name in names(x@qc_tables)) {
-      if (qc_name == "QC_matrix") next  # Skip — already explicitly exported as qc_matrix.txt
+      if (qc_name == "QC_matrix") next  # Skip - already explicitly exported as qc_matrix.txt
       qc_table <- .canonicalize_methqc_sample_col(x@qc_tables[[qc_name]])
       if (!is.data.frame(qc_table)) next
       outfile <- file.path(qc_tables_dir, paste0(prefix, "_qc_", qc_name, ".txt"))
@@ -990,7 +990,7 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
       ggplot2::scale_fill_manual(values = qc_colors, na.value = "grey70") +
       ggplot2::geom_text(ggplot2::aes(label = Freq), vjust = -0.4, size = 3.5) +
       ggplot2::theme_classic(base_size = 12) +
-      ggplot2::labs(title = paste0("QC Summary — ", x@platform),
+      ggplot2::labs(title = paste0("QC Summary \u2014 ", x@platform),
                     x = "Final.QC", y = "Number of Samples") +
       ggplot2::theme(legend.position = "none",
                      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold"))
@@ -1030,7 +1030,7 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
       ggplot2::scale_x_continuous(limits = x_lim, expand = ggplot2::expansion(mult = c(0, 0.05))) +
       ggplot2::scale_y_continuous(limits = y_lim, expand = ggplot2::expansion(mult = c(0, 0.05))) +
       ggplot2::theme_classic(base_size = 12) +
-      ggplot2::labs(title = paste0("Array Intensity — ", x@platform),
+      ggplot2::labs(title = paste0("Array Intensity \u2014 ", x@platform),
                     subtitle = paste0("Cutoff: log2 intensity > ", icutoff),
                     x = "Methylated Median Intensity (log2)",
                     y = "Unmethylated Median Intensity (log2)",
@@ -1063,7 +1063,7 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
       ggplot2::scale_color_manual(values = qc_colors, na.value = "grey70") +
       ggplot2::scale_y_continuous(limits = c(0, NA), expand = ggplot2::expansion(mult = c(0, 0.05))) +
       ggplot2::theme_classic(base_size = 11) +
-      ggplot2::labs(title = paste0("Average Detection P-value — ", x@platform),
+      ggplot2::labs(title = paste0("Average Detection P-value \u2014 ", x@platform),
                     subtitle = paste0("Above the line: p-value < ", pcutoff),
                     x = NULL, y = "-log10(Average Detection P-value)",
                     color = "Final.QC") +
@@ -1091,7 +1091,7 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
                           color = "grey40", linewidth = 0.7) +
       ggplot2::scale_fill_manual(values = qc_colors, na.value = "grey70") +
       ggplot2::theme_classic(base_size = 11) +
-      ggplot2::labs(title = paste0("Probe Coverage per Sample — ", x@platform),
+      ggplot2::labs(title = paste0("Probe Coverage per Sample \u2014 ", x@platform),
                     subtitle = "Reference line: 95% detected (dP < 0.05)",
                     x = NULL, y = "% CpGs Detected (dP < 0.05)",
                     fill = "Final.QC") +
@@ -1158,7 +1158,7 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
       ggplot2::scale_fill_manual(values = sex_colors, na.value = "grey70") +
       ggplot2::geom_text(ggplot2::aes(label = Freq), vjust = -0.4, size = 3.5) +
       ggplot2::theme_classic(base_size = 12) +
-      ggplot2::labs(title = paste0("Predicted Sex — ", x@platform),
+      ggplot2::labs(title = paste0("Predicted Sex \u2014 ", x@platform),
                     x = "Predicted Sex", y = "Number of Samples") +
       ggplot2::theme(legend.position = "none",
                      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold"))
@@ -1186,7 +1186,7 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
       ggplot2::scale_fill_manual(values = qc_colors, na.value = "grey70") +
       ggplot2::geom_text(ggplot2::aes(label = Freq), vjust = -0.4, size = 3.5) +
       ggplot2::theme_classic(base_size = 12) +
-      ggplot2::labs(title = paste0("Control Probe Metrics — ", x@platform),
+      ggplot2::labs(title = paste0("Control Probe Metrics \u2014 ", x@platform),
                     subtitle = "ewastools CtrlMetrics.QC score",
                     x = "CtrlMetrics.QC", y = "Number of Samples") +
       ggplot2::theme(legend.position = "none",

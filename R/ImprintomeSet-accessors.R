@@ -51,6 +51,7 @@ methods::setReplaceMethod("meta", "ImprintomeSet", function(x, value) {
   x
 })
 
+#' @rdname ImprintomeSet-accessors
 #' @export
 methods::setGeneric("probeset", function(x) standardGeneric("probeset"))
 
@@ -58,6 +59,7 @@ methods::setGeneric("probeset", function(x) standardGeneric("probeset"))
 #' @export
 methods::setMethod("probeset", "ImprintomeSet", function(x) x@probeset)
 
+#' @rdname ImprintomeSet-accessors
 #' @export
 methods::setGeneric("probeset<-", function(x, value) standardGeneric("probeset<-"))
 
@@ -69,6 +71,7 @@ methods::setReplaceMethod("probeset", "ImprintomeSet", function(x, value) {
   x
 })
 
+#' @rdname ImprintomeSet-accessors
 #' @export
 methods::setGeneric("genome", function(x) standardGeneric("genome"))
 
@@ -79,6 +82,7 @@ methods::setMethod("genome", "ImprintomeSet", function(x) {
   x@genome
 })
 
+#' @rdname ImprintomeSet-accessors
 #' @export
 methods::setGeneric("genome<-", function(x, value) standardGeneric("genome<-"))
 
@@ -90,6 +94,7 @@ methods::setReplaceMethod("genome", "ImprintomeSet", function(x, value) {
   x
 })
 
+#' @rdname ImprintomeSet-accessors
 #' @export
 methods::setGeneric("assay", function(x) standardGeneric("assay"))
 
@@ -97,6 +102,7 @@ methods::setGeneric("assay", function(x) standardGeneric("assay"))
 #' @export
 methods::setMethod("assay", "ImprintomeSet", function(x) x@assay)
 
+#' @rdname ImprintomeSet-accessors
 #' @export
 methods::setGeneric("assay<-", function(x, value) standardGeneric("assay<-"))
 
@@ -108,6 +114,7 @@ methods::setReplaceMethod("assay", "ImprintomeSet", function(x, value) {
   x
 })
 
+#' @rdname ImprintomeSet-accessors
 #' @export
 methods::setGeneric("results", function(x) standardGeneric("results"))
 
@@ -115,6 +122,7 @@ methods::setGeneric("results", function(x) standardGeneric("results"))
 #' @export
 methods::setMethod("results", "ImprintomeSet", function(x) x@results)
 
+#' @rdname ImprintomeSet-accessors
 #' @export
 methods::setGeneric("results<-", function(x, value) standardGeneric("results<-"))
 
@@ -126,6 +134,7 @@ methods::setReplaceMethod("results", "ImprintomeSet", function(x, value) {
   x
 })
 
+#' @rdname ImprintomeSet-accessors
 #' @export
 methods::setGeneric("plots", function(x) standardGeneric("plots"))
 
@@ -133,6 +142,7 @@ methods::setGeneric("plots", function(x) standardGeneric("plots"))
 #' @export
 methods::setMethod("plots", "ImprintomeSet", function(x) x@plots)
 
+#' @rdname ImprintomeSet-accessors
 #' @export
 methods::setGeneric("plots<-", function(x, value) standardGeneric("plots<-"))
 

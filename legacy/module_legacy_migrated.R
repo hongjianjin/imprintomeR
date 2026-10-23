@@ -1,3 +1,7 @@
+# NOT PART OF THE PACKAGE. Kept for reference only: none of these functions is exported or called
+# by imprintomeR, and the folder is excluded from the build (.Rbuildignore). Moved out of R/ on
+# 2026-10-23 so that their many optional dependencies do not burden the package.
+#
 # Auto-migrated legacy functions
 # Module: legacy-migrated
 # NOTE: Functions in this file preserve legacy behavior and are

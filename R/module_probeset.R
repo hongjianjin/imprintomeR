@@ -42,6 +42,22 @@
   invisible(probeset)
 }
 
+#' Annotate Probes with Genomic Position and Gene
+#'
+#' Looks up probes in the bundled harmonized array annotation and returns their position and
+#' UCSC RefGene annotation.
+#'
+#' @param probeIDs Character vector of probe IDs.
+#' @param probes.all Optional annotation data frame with columns `NAME`, `CHR_<version>`,
+#'   `MAPINFO_<version>`, `UCSC_REFGENE_NAME` and `UCSC_REFGENE_GROUP`; `NULL` (default) uses the
+#'   bundled annotation.
+#' @param assay Array type (not used for the lookup; kept for compatibility).
+#' @param version Genome build of the coordinates, `"HG19"` (default) or `"HG38"`.
+#' @param verbose Not used; kept for compatibility.
+#' @param file Optional path of a tab-separated file to write the result to.
+#'
+#' @return Data frame with columns `NAME`, `CHR_<version>`, `MAPINFO_<version>`,
+#'   `UCSC_REFGENE_NAME` and `UCSC_REFGENE_GROUP` for the probes found.
 #' @export
 AnnotateProbe2Gene <- function(probeIDs, probes.all = NULL, assay = "EPICV1", version = "HG19", verbose = FALSE, file = NULL) {
   if (is.null(probes.all)) {
@@ -59,6 +75,20 @@ AnnotateProbe2Gene <- function(probeIDs, probes.all = NULL, assay = "EPICV1", ve
 }
 # ================================================================
 
+#' Extract Probes Annotated to Genes
+#'
+#' Returns the probes whose UCSC RefGene annotation names any of the given genes.
+#'
+#' @param genes Character vector of gene symbols (required).
+#' @param probes.all Optional annotation data frame (see [AnnotateProbe2Gene()]); `NULL` (default)
+#'   uses the bundled annotation.
+#' @param assay Array type (not used for the lookup; kept for compatibility).
+#' @param version Genome build of the coordinates, `"HG19"` (default) or `"HG38"`.
+#' @param promoterOnly Logical; if `TRUE`, only probes annotated to a TSS200 region are returned.
+#' @param file Optional path of a tab-separated file to write the result to.
+#'
+#' @return Data frame with columns `NAME`, `CHR_<version>`, `MAPINFO_<version>`,
+#'   `UCSC_REFGENE_NAME` and `UCSC_REFGENE_GROUP`.
 #' @export
 ExtractProbesByGenelist <- function(genes = NULL, probes.all = NULL, assay = "EPICV1", version = "HG19", promoterOnly = FALSE, file = NULL) {
   if (is.null(probes.all)) {
@@ -106,8 +136,8 @@ ExtractProbesByGenelist <- function(genes = NULL, probes.all = NULL, assay = "EP
 #' @export
 ExtractProbesByBeds <- function(bed = NULL, bedFile = NULL, probes.all = NULL, assay = NULL,
                                 version = "HG19", verbose = FALSE, file = NULL) {
-  library("bedr")
-  if (!check.binary("bedtools")) {
+  .require_suggested("bedr", "ExtractProbesByBeds()")
+  if (!bedr::check.binary("bedtools")) {
     cat("\nERROR: bedtools not available.\n")
     return(NULL)
   }
@@ -141,7 +171,7 @@ ExtractProbesByBeds <- function(bed = NULL, bedFile = NULL, probes.all = NULL, a
   epic_bed <- na.omit(epic_bed)
 
   epic_regions <- paste(epic_bed$chr, ":", epic_bed$start, "-", epic_bed$end, sep = "")
-  idx_valid_probe <- is.valid.region(epic_regions, verbose = verbose)
+  idx_valid_probe <- bedr::is.valid.region(epic_regions, verbose = verbose)
   if (sum(idx_valid_probe) < 1) {
     cat("\nERROR: invalid reference bed regions.\n")
     return(NULL)
@@ -155,15 +185,15 @@ ExtractProbesByBeds <- function(bed = NULL, bedFile = NULL, probes.all = NULL, a
     regions_bed <- input[["bed"]]
     anno <- input[["anno"]]
 
-    idx_valid2 <- is.valid.region(regions_bed, verbose = verbose)
+    idx_valid2 <- bedr::is.valid.region(regions_bed, verbose = verbose)
     if (sum(idx_valid2) == 0) {
       cat("\nERROR: invalid input bed regions.\n")
       return(NULL)
     }
     regions_bed_valid <- regions_bed[idx_valid2, , drop = FALSE]
-    regions_bed_sorted <- bedr.sort.region(regions_bed_valid[, 1:3], verbose = verbose)
+    regions_bed_sorted <- bedr::bedr.sort.region(regions_bed_valid[, 1:3], verbose = verbose)
 
-    matched_probes <- bedr.join.region(
+    matched_probes <- bedr::bedr.join.region(
       epic_bed_valid,
       regions_bed_sorted,
       report.n.overlap = TRUE,
@@ -197,14 +227,14 @@ ExtractProbesByBeds <- function(bed = NULL, bedFile = NULL, probes.all = NULL, a
       input_regions <- as.character(bed)
     }
 
-    idx_valid_input <- is.valid.region(input_regions, verbose = verbose)
+    idx_valid_input <- bedr::is.valid.region(input_regions, verbose = verbose)
     if (sum(idx_valid_input) == 0) {
       cat("\nERROR: invalid input bed regions.\n")
       return(NULL)
     }
-    input_regions_used <- bedr.sort.region(input_regions[idx_valid_input], verbose = verbose)
+    input_regions_used <- bedr::bedr.sort.region(input_regions[idx_valid_input], verbose = verbose)
 
-    is_region <- in.region(epic_regions_valid, input_regions_used)
+    is_region <- bedr::in.region(epic_regions_valid, input_regions_used)
     found_region <- epic_regions_valid[is_region]
     idx <- match(found_region, epic_regions)
     used_cols <- intersect(c("TargetID", "NAME", chr, mapinfo, "UCSC_REFGENE_NAME"), colnames(probes.all))
@@ -225,6 +255,21 @@ ExtractProbesByBeds <- function(bed = NULL, bedFile = NULL, probes.all = NULL, a
 
 ##################################################################
 
+#' Subset a Beta Matrix to a Probeset
+#'
+#' Keeps the probes of a beta matrix that belong to a bundled probeset panel, or to the probes of
+#' the `selected` panel on one chromosome.
+#'
+#' @param beta Probe-by-sample beta matrix or data frame with probe IDs as row names.
+#' @param probeset Name of a bundled panel (for example `"selected"` or `"chr11p15"`), a
+#'   chromosome such as `"chr11"` (probes of the `selected` panel on it), or `NULL` to return
+#'   `beta` unchanged.
+#' @param prefix Optional file prefix; if given, the subset is written to
+#'   `<prefix>_subset_by_<probeset>_beta.txt` unless that file already exists.
+#' @param genome Genome build of the probeset annotation, `"hg19"` or `"hg38"` (default).
+#'
+#' @return A list with `beta`, the subset beta values, and `probesets`, the panel annotation of
+#'   the matched probes (`NULL` when `probeset` is `NULL`).
 #' @export
 SubsetBeta_By_Probeset <- function(beta, probeset=probeset_options, prefix=NULL, genome = "hg38"){
   beta_subset <- beta

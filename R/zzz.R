@@ -77,7 +77,7 @@ setup_imprintome_data <- function(force = FALSE, verbose = TRUE) {
 
     # Skip if file exists and force = FALSE
     if (file.exists(fpath) && !force) {
-      if (verbose) cat("✓", fname, "already exists\n")
+      if (verbose) cat("\u2713", fname, "already exists\n")
       next
     }
 
@@ -93,10 +93,10 @@ setup_imprintome_data <- function(force = FALSE, verbose = TRUE) {
         if (!file.copy(tmp, fpath, overwrite = TRUE)) {
           stop("could not write ", fpath)
         }
-        if (verbose) cat("✓", fname, "downloaded successfully\n")
+        if (verbose) cat("\u2713", fname, "downloaded successfully\n")
       },
       error = function(e) {
-        cat("✗ Error downloading", fname, ":", conditionMessage(e), "\n")
+        cat("\u2717 Error downloading", fname, ":", conditionMessage(e), "\n")
         cat("  Manual download:", data_urls[[fname]], "\n")
         success <<- FALSE
       }
@@ -104,7 +104,7 @@ setup_imprintome_data <- function(force = FALSE, verbose = TRUE) {
   }
 
   if (success && verbose) {
-    cat("\n✓ All data files ready!\n")
+    cat("\n\u2713 All data files ready!\n")
   }
 
   invisible(success)

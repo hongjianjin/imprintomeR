@@ -36,9 +36,9 @@
                                units = "in", limitsize = TRUE) {
   if (!is.null(outFile)) {
     if (is.null(width) || is.null(height)) {
-      ggsave(file = outFile, plot = plot_obj, units = units, limitsize = limitsize)
+      ggsave(filename = outFile, plot = plot_obj, units = units, limitsize = limitsize)
     } else {
-      ggsave(file = outFile, plot = plot_obj, width = width, height = height, units = units, limitsize = limitsize)
+      ggsave(filename = outFile, plot = plot_obj, width = width, height = height, units = units, limitsize = limitsize)
     }
     cat("\n\t", basename(outFile), "[saved]")
   }
@@ -46,7 +46,6 @@
 }
 
 PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", prefix=NULL){
-  library(pheatmap)
   resolved <- .resolve_beta_meta_inputs(betaFile, metaFile, require_meta = TRUE)
   betaFile <- resolved$beta
   metaFile <- resolved$meta
@@ -94,7 +93,7 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
           clustering_distance_cols = "euclidean",
           clustering_method = "complete",
           main = "Correlation Heatmap",
-          file=outFile1,
+          filename=outFile1,
           width=plotWidth,height=plotHeight)
   cat(paste0('\nInfo: ',basename(outFile1),'[saved]'))
   #================================================================
@@ -107,7 +106,7 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
           clustering_distance_cols = "euclidean",
           clustering_method = "complete",
           main = "Correlation Heatmap",
-          file=outFile2,
+          filename=outFile2,
           width=plotWidth/2,height=plotHeight/2)
   cat(paste0('\nInfo: ',basename(outFile2),'[saved]'))
   #================================================================
@@ -120,7 +119,7 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
           clustering_distance_cols = "euclidean",
           clustering_method = "complete",
           main = "Correlation Heatmap",
-          file=outFile3,
+          filename=outFile3,
           width=plotWidth/2,height=plotHeight/2)
   cat(paste0('\nInfo: ',basename(outFile3),'[saved]'))
   return(cor_matrix)
@@ -197,7 +196,6 @@ ComputePCA  <- function(df, meta, scale=T, topn = 3000,varMethod="mad",groupColu
 #================================================================
 
 ComputeTSNE  <- function(PCAobj, npcs=50,perplexity=5, max_iter=5000, dims=2, seed=99){
-  library("Rtsne")
   pca <- PCAobj[["pcs"]]
   meta <-  PCAobj[["meta"]]
   npcs <- ifelse(ncol(pca$x)>npcs,npcs,ncol(pca$x))
@@ -225,8 +223,6 @@ ComputeTSNE  <- function(PCAobj, npcs=50,perplexity=5, max_iter=5000, dims=2, se
 
 DimPlot  <- function(DimReduc,  reduction = "PCA", ShapeColumn=NULL, IdColumn='Sample_Name', groupColumn='Sample_Group',
   ColorColumn="COLOR",outFile=NA, label=F, title=NA,palette="Default",alpha=0.8){
-  library(ggplot2)
-  library(ggrepel)
   options(bitmapType = "cairo")
   #-----------------------------------------------
   meta <- DimReduc[["meta"]]
@@ -407,7 +403,7 @@ DimPlot  <- function(DimReduc,  reduction = "PCA", ShapeColumn=NULL, IdColumn='S
       pg2 <- pg
     }
     adj <- ifelse(length(levels(GROUPS))>16,2,0) + ifelse(length(levels(SHAPES))>10,2,0) # in case there are many legend labels
-    ggsave(file = outFile, pg2, width = 7+adj, height = 6+adj, units = "in")
+    ggsave(filename = outFile, pg2, width = 7+adj, height = 6+adj, units = "in")
     cat("\n\t", basename(outFile),"[saved]")
   }
   return(pg1)
@@ -480,7 +476,6 @@ Meth_TSNE_Adv <- function(dat,meta=NULL, ShapeColumn=NULL,IdColumn='Sample_Name'
 #'
 #' @return A ggplot object.
 BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 1) {
-  suppressMessages(suppressWarnings(library(ggplot2)))
   options(ggplot2.verbose = FALSE)
   resolved <- .resolve_beta_meta_inputs(beta, meta, require_meta = TRUE)
   beta <- resolved$beta
@@ -563,13 +558,13 @@ BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
 #' @param ylab Y-axis label.
 #' @param xlab X-axis label.
 #' @param legend Logical; include legend page in saved output.
+#' @param title,subtitle Plot title and optional subtitle.
+#' @param width,height Optional image dimensions in inches for saving; `NULL` sizes the image from the
+#'   number of samples.
 #'
 #' @return A patchwork/ggplot object.
 BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 1, orderByGroup=FALSE, ylab="Methylation (\u03b2)", xlab="ID", legend=TRUE, title="ImprintomeR: beeswarm", subtitle=NULL, width=NULL, height=NULL) {
   # https://r-charts.com/distribution/ggbeeswarm/
-  suppressMessages(suppressWarnings(library(ggplot2)))
-  suppressMessages(suppressWarnings(library("ggbeeswarm")))
-  suppressMessages(suppressWarnings(library("grid")))
   options(ggplot2.verbose = FALSE)
   resolved <- .resolve_beta_meta_inputs(beta, meta, require_meta = TRUE)
   beta <- resolved$beta
@@ -642,10 +637,10 @@ BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
   if (!is.null(outFile)) {
     if (!is.null(width)) {
       imgWidth <- width
-      #ggsave(file = outFile, pg1, width = imgWidth, height = imgHeight, units = "in", limitsize = F)
+      #ggsave(filename = outFile, pg1, width = imgWidth, height = imgHeight, units = "in", limitsize = F)
     } else {
       imgWidth <- min(5 + ncol(beta) / 10 + nrow(beta) / 400, 45)
-      #ggsave(file = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = T)
+      #ggsave(filename = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = T)
     }
     outFile <- paste0(tools::file_path_sans_ext(outFile), ".pdf")
     pdf(outFile,width=imgWidth, height = imgHeight)
@@ -658,7 +653,7 @@ BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
     cat("\n\t", basename(outFile), "[saved]")
   }
 
-  #ggsave(file = outFile, pg2, width = imgWidth, height = imgHeight, units = "in", limitsize = F)
+  #ggsave(filename = outFile, pg2, width = imgWidth, height = imgHeight, units = "in", limitsize = F)
   return(plots)
 }
 
@@ -666,8 +661,6 @@ BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
 
 BetaBeePlot_SNP <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 1, ctrlgrp="germline",low_cutoff=0.3,  high_cutoff=0.7) {
   # https://r-charts.com/distribution/ggbeeswarm/
-  suppressMessages(suppressWarnings(library(ggplot2)))
-  suppressMessages(suppressWarnings(library("ggbeeswarm")))
     if(sum(grepl(ctrlgrp, meta$Sample_Group))==0){
      # no control group found, color dot by SAMPLE_GROUP instead of AA,AB,BB
      plot1 <- BetaBeePlot(beta, meta, SAMPLEID = SAMPLEID, outFile = outFile, alpha = alpha)
@@ -724,10 +717,10 @@ BetaBeePlot_SNP <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL
   if (!is.null(outFile)) {
     if (ncol(beta) > 20) {
       imgWidth <- 5 + ncol(beta) / 5 + nrow(beta) / 400
-      ggsave(file = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = F)
+      ggsave(filename = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = F)
     } else {
       imgWidth <- min(5 + ncol(beta) / 10 + nrow(beta) / 400, 45)
-      ggsave(file = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = T)
+      ggsave(filename = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = T)
     }
     cat("\n\t", basename(outFile), "[saved]")
   }
@@ -751,9 +744,6 @@ BetaBeePlot_SNP <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL
 BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 0.5,chr="chr11", probeset='chr11p15', genome = "hg38") {
   # to be done
   # https://r-charts.com/distribution/ggbeeswarm/
-  suppressMessages(suppressWarnings(library(ggplot2)))
-  suppressMessages(suppressWarnings(library("ggbeeswarm")))
-  suppressMessages(suppressWarnings(library("reshape2")))
   if(!is.null(probeset)){
     probes <- .get_probeset(probeset, genome)
     if("ORIGIN" %in% colnames(probes)){
@@ -852,12 +842,12 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
   if (!is.null(outFile)) {
     if (ncol(beta) > 20) {
       imgWidth <- 5 + ncol(beta) / 5 + nrow(beta) / 400
-      ggsave(file = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = F)
-      ggsave(file = outFile2, pg_sep, width = imgWidth*1.2, height = imgHeight, units = "in", limitsize = F)
+      ggsave(filename = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = F)
+      ggsave(filename = outFile2, pg_sep, width = imgWidth*1.2, height = imgHeight, units = "in", limitsize = F)
     } else {
       imgWidth <- min(5 + ncol(beta) / 10 + nrow(beta) / 400, 45)
-      ggsave(file = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = T)
-      ggsave(file = outFile2, pg_sep, width = imgWidth*1.2, height = imgHeight, units = "in", limitsize = F)
+      ggsave(filename = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = T)
+      ggsave(filename = outFile2, pg_sep, width = imgWidth*1.2, height = imgHeight, units = "in", limitsize = F)
     }
     cat("\n\t", basename(outFile), "[saved]")
     cat("\n\t", basename(outFile2), "[saved]")
@@ -884,9 +874,6 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
 #' @return A ggplot object.
 BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 0.5,probesets=NULL, useNA=FALSE, width=NULL, height=NULL, group="ORIGIN", genome = "hg38") {
   # https://r-charts.com/distribution/ggbeeswarm/
-  suppressMessages(suppressWarnings(library(ggplot2)))
-  suppressMessages(suppressWarnings(library("ggbeeswarm")))
-  suppressMessages(suppressWarnings(library("reshape2")))
   if(!is.null(probesets)){
     probes <- .get_probeset(probesets, genome)
     if(group %in% colnames(probes)){
@@ -974,7 +961,7 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
       imgWidth <-  ifelse(!useNA, imgWidth*3/4, imgWidth)
       imgHeight <-  ifelse(is.null(height), 4, as.numeric(height))
       outFile2 <- paste0(tools::file_path_sans_ext(outFile),"_sep.pdf")
-      ggsave(file = outFile2, pg_sep, width = imgWidth*1.2, height = imgHeight, units = "in", limitsize = F)
+      ggsave(filename = outFile2, pg_sep, width = imgWidth*1.2, height = imgHeight, units = "in", limitsize = F)
       cat("\n\t", basename(outFile2), "[saved]")
       return(pg_sep)
   }else{
@@ -1029,16 +1016,16 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
       }else{
         imgWidth <- as.numeric(width)
       }
-      ggsave(file = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = F)
-      ggsave(file = outFile2, pg_sep, width = imgWidth*1.2, height = imgHeight, units = "in", limitsize = F)
+      ggsave(filename = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = F)
+      ggsave(filename = outFile2, pg_sep, width = imgWidth*1.2, height = imgHeight, units = "in", limitsize = F)
     } else {
       if(is.null(width)){
         imgWidth <- min(5 + ncol(beta) / 10 + nrow(beta) / 400, 45)
       }else{
         imgWidth <-  as.numeric(width)
       }
-      ggsave(file = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = T)
-      ggsave(file = outFile2, pg_sep, width = imgWidth*1.2, height = imgHeight, units = "in", limitsize = F)
+      ggsave(filename = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = T)
+      ggsave(filename = outFile2, pg_sep, width = imgWidth*1.2, height = imgHeight, units = "in", limitsize = F)
     }
     cat("\n\t", basename(outFile), "[saved]")
     cat("\n\t", basename(outFile2), "[saved]")
@@ -1051,9 +1038,6 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
 
 BetaBeeswarm_chr <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, probesets=NULL, pdfFolder='pdf', genome = "hg38"){
   # Load required libraries
-  suppressMessages(suppressWarnings(library(ggplot2)))
-  suppressMessages(suppressWarnings(library("ggbeeswarm")))
-  library(reshape2)
   resolved <- .resolve_beta_meta_inputs(beta, meta, require_meta = TRUE)
   beta <- resolved$beta
   meta <- resolved$meta
@@ -1130,7 +1114,7 @@ BetaBeeswarm_chr <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFil
       panel.border = element_rect(color = "grey20", fill = NA, linewidth = 0.5))
      if(! pdfFolder %in% c(NULL, FALSE)){ # plot individual sample to seperate file
         pdfFile<- paste0(outDir,"/",sample,".jpg")
-        ggsave(file=pdfFile,pg,width=10,height=4,units="in", limitsize = TRUE)
+        ggsave(filename =pdfFile,pg,width=10,height=4,units="in", limitsize = TRUE)
      }
     print(pg)
   }
@@ -1143,9 +1127,6 @@ BetaBeeswarm_chr <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFil
 
 BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL, probesets=NULL,pdfFolder=FALSE, genome = "hg38"){
   # Load required libraries
-  suppressMessages(suppressWarnings(library(ggplot2)))
-  suppressMessages(suppressWarnings(library("ggbeeswarm")))
-  suppressMessages(suppressWarnings(library(reshape2)))
 
   #================================================================
   # prepare chromosome
@@ -1229,7 +1210,7 @@ BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
       panel.border = element_rect(color = "grey20", fill = NA, linewidth = 0.5))
        if(! pdfFolder %in% c(NULL, FALSE)){
        pdfFile<- paste0(outDir,"/",sample,".jpg")
-       ggsave(file=pdfFile,pg,width=10,height=4,units="in", limitsize = TRUE)
+       ggsave(filename =pdfFile,pg,width=10,height=4,units="in", limitsize = TRUE)
      }
     print(pg)
   }
@@ -1243,9 +1224,6 @@ BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
 
 BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn = "Sample_Group", clusterRows = TRUE, clusterColumns = TRUE,
    outFile = NULL, imgSizeFactor=0.5) {
-  suppressMessages(library(circlize))
-  suppressMessages(library(ComplexHeatmap))
-  suppressMessages(library(RColorBrewer))
   resolved <- .resolve_beta_meta_inputs(beta, meta, require_meta = TRUE)
   beta <- resolved$beta
   meta <- resolved$meta
@@ -1342,7 +1320,6 @@ BetaHeatmap <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", annoColumn 
   legend_key_title <- "Methylation"
 
   if(! clusterRows){ # sort by rowname
-    library(stringr)
     used <- used[str_order(rownames(used), numeric = TRUE), ]
   }
   hm <- Heatmap(as.matrix(used),
@@ -1425,11 +1402,6 @@ BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
                               SAMPLEID = "Sample_Name", annoColumn = "Sample_Group",
                               clusterRows = TRUE, clusterColumns = TRUE,
                               outFile = NULL, imgSizeFactor = 0.5, genome = "hg38") {
-  suppressMessages(library(circlize))
-  suppressMessages(library(ComplexHeatmap))
-  suppressMessages(library(RColorBrewer))
-  suppressMessages(library(dplyr))
-  suppressMessages(library(stringr))
 
   # Resolve input
   resolved <- .resolve_beta_meta_inputs(beta, meta, require_meta = TRUE)
@@ -1641,12 +1613,8 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
                                 format = NULL, res = 300) {
   # values of SAMPLEID column, sectionColumn must be present in meta column names
   #
-  library(ComplexHeatmap)
   # https://jokergoo.github.io/circlize_book/book/circos-heatmap.html
-  library(circlize)
-  library("colorRamp2")
-  library(grid)
-  library(gridBase)
+  .require_suggested("gridBase", "BetaCircularHeatmap()")
   resolved <- .resolve_beta_meta_inputs(beta, meta, require_meta = TRUE)
   beta <- resolved$beta
   meta <- resolved$meta
@@ -1830,7 +1798,7 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
       x = 0.05, y = 0.5, width = circle_size, height = circle_size,
       just = c("left", "center")
     ))
-    par(omi = gridOMI(), new = TRUE)  # new = TRUE to allow overwriting plot.new()
+    par(omi = gridBase::gridOMI(), new = TRUE)  # new = TRUE to allow overwriting plot.new()
     circlize_plot(beta_list, beta_anno, colors = col_meth, track_height = 0.1)
     upViewport()
     draw(lgd_meth, x = unit(1.2, "npc"), just = "left")
@@ -1846,15 +1814,14 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
 ##################################################################
 
 VennDiagram <- function(vennList,setNames=NULL, style="venn", prefix=NULL){
-    library("Vennerable")
-    library("venn")
-    library("UpSetR")
     #style: Vennerable, venn,UpSetR
     cat("\nvennList=", length(vennList))
     if(!is.null(setNames)){
       names(vennList) <- setNames
     }
     style <- tolower(style)
+    .require_suggested(switch(style, venn = "venn", upsetr = "UpSetR", vennerable = "Vennerable", "venn"),
+                       "VennDiagram()")
     plot <- NULL
     pdfFile<- paste0(prefix,"_venndiagram_",style,".pdf")
     if (length(vennList) >1) {
@@ -1866,7 +1833,7 @@ VennDiagram <- function(vennList,setNames=NULL, style="venn", prefix=NULL){
           # sncs: size for the set names
           #print(plot)
         }else if (style =="upsetr"){
-          plot <- upset(fromList(vennList),
+          plot <- UpSetR::upset(UpSetR::fromList(vennList),
                 nsets = length(vennList), order.by = "freq",
                 sets.bar.color = "#56B4E9",
                 number.angles = 30,
@@ -1875,14 +1842,14 @@ VennDiagram <- function(vennList,setNames=NULL, style="venn", prefix=NULL){
         }else if(style =="vennerable"){
           vobj <- Vennerable::Venn(vennList)
            if (length(vennList) == 4) {
-            vobj <- compute.Venn(vobj, doWeights = F,doEuler=T, type="ellipses")
+            vobj <- Vennerable::compute.Venn(vobj, doWeights = F,doEuler=T, type="ellipses")
           }else if(length(vennList) < 4){
-            vobj <- compute.Venn(vobj, doWeights = T,doEuler=T,type="circles")
+            vobj <- Vennerable::compute.Venn(vobj, doWeights = T,doEuler=T,type="circles")
           } else{
-            vobj <- compute.Venn(vobj, doWeights = T,doEuler=T)
+            vobj <- Vennerable::compute.Venn(vobj, doWeights = T,doEuler=T)
           }
-          venn_gp <- VennThemes(vobj)
-          venn_gp <- VennThemes(vobj)
+          venn_gp <- Vennerable::VennThemes(vobj)
+          venn_gp <- Vennerable::VennThemes(vobj)
           venn_gp$SetText <- lapply(venn_gp$SetText,function(x) {x$fontsize<- 12; return(x)})
           venn_gp$FaceText <- lapply(venn_gp$FaceText,function(x) {x$cex<- 0.8; return(x)})
           Vennerable::plot(vobj, gpList = venn_gp, show = list(Universe = FALSE))
@@ -1950,7 +1917,6 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
                       palette="default", alpha=0.8, legend.position="auto", legend.nrow=NULL,
                       legend.ncol=NULL, legend.page="auto", legend.page.threshold=16,
                       legend.text.size=8) {
-  library(ggplot2)
   options(bitmapType = "cairo")
 
   if (!(colorColumn %in% colnames(data))) {
@@ -1959,8 +1925,8 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
 
   # Define our 8 mechanism anchors
   mechanism_labels <- c(
-    "Pat-Gain\n(0°)", "Global-Hyper\n(45°)", "Mat-Gain\n(90°)", "Mat-Gain+Pat-Loss\n(135°)",
-    "Pat-Loss\n(180°)", "Global-Hypo\n(225°)", "Mat-Loss\n(270°)", "Pat-Gain+Mat-Loss\n(315°)"
+    "Pat-Gain\n(0\u00b0)", "Global-Hyper\n(45\u00b0)", "Mat-Gain\n(90\u00b0)", "Mat-Gain+Pat-Loss\n(135\u00b0)",
+    "Pat-Loss\n(180\u00b0)", "Global-Hypo\n(225\u00b0)", "Mat-Loss\n(270\u00b0)", "Pat-Gain+Mat-Loss\n(315\u00b0)"
   )
 
   # Calculate break points in radians (0 to 2pi)
@@ -2110,9 +2076,6 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
 MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
                                   probeset = probeset_options,
                                   outFile = NULL, max_samples = 100 ) {
-    library(ggplot2)
-    suppressMessages(suppressWarnings(library(dplyr)))
-    library(tidyr)
   resolved <- .resolve_beta_meta_inputs(betaFile, metaFile, require_meta = TRUE)
   betaFile <- resolved$beta
   metaFile <- resolved$meta
@@ -2212,20 +2175,21 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
  }
 
 #================================================================
-#' Comprehensive Imprinting Analysis for imprintomeR
+#' Rainfall Plot of Probe-Level Imprinting Deviation
 #'
-#' @param betaFile  Character. file of beta values (Probes as rownames, Samples as colnames).
-#' @param metaFile  Character. file of sample information.
-#' @param probeset  Character. the name of a predefined imprinting probeset.
+#' Plots the probe-level imprinting deviation index, IDI = (beta - 0.5) x 2, of one sample along
+#' the genome, faceted by chromosome and coloured by the annotated parental origin.
+#'
+#' @param beta Probe-by-sample beta matrix or data frame with probe IDs as row names.
+#' @param sampleID Name of the sample column to plot.
+#' @param title Plot title.
+#' @param probeset Probeset panel (default `"selected"`).
+#' @param outFile Optional output file path (12 x 6 inches).
 #' @param genome Genome build of the probeset annotation, "hg38" (default) or "hg19".
-#' @param ids_cutoff Numeric. The IDS distance threshold to call an EpiMutation (Default = 0.2).
-#' @return A data frame with metrics, directional interpretations, and mutation calls.
 #'
+#' @return A ggplot object.
 
 PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probeset=c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", "chr20q13"), outFile=NULL, genome = "hg38") {
-  library(ggplot2)
-  suppressMessages(suppressWarnings(library("dplyr")))
-  library(stringr)
   probeset <- match.arg(probeset)
   beta <- .resolve_beta_input(beta)
 
@@ -2297,10 +2261,6 @@ PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probe
 #================================================================
 
 PlotRadar1 <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=5, outFile=NULL) {
-  library(ggplot2)
-  library(dplyr)
-  library(tidyr)
-  library(stringr)
 
   # 1. Prepare Data
   # Ensure we have a data frame with metrics and values
@@ -2404,10 +2364,6 @@ PlotRadar1 <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize
 #================================================================
 
 PlotRadar <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=5, outFile=NULL) {
-  library(ggplot2)
-  library(dplyr)
-  library(tidyr)
-  library(stringr)
 
   # 1. Prepare Data
   plot_data <- data.frame(
@@ -2517,12 +2473,8 @@ PlotRadar <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=
 #================================================================
 
 PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, alpha = 0.7,probeset=probeset, genome = "hg38") {
+  .require_suggested("ggridges", "PlotRidgeline_cohort_chr_origin_()")
   suppressMessages(suppressWarnings({
-    library(ggplot2)
-    library(ggridges)
-    library(dplyr)
-    library(tidyr)
-    library(stringr)
   }))
 
   # 1. Load Annotation
@@ -2561,7 +2513,7 @@ PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, a
     geom_vline(xintercept = c(0, 0.5, 1), linetype = "dashed", color = "grey80") +
 
     # One ridge per chromosome, colored by Origin
-    geom_density_ridges(alpha = alpha, scale = scale, color = "white") +
+    ggridges::geom_density_ridges(alpha = alpha, scale = scale, color = "white") +
 
     # Split by Origin to see Maternal vs Paternal side-by-side
     facet_wrap(~ORIGIN) +
@@ -2569,7 +2521,7 @@ PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, a
     scale_fill_manual(name = .origin_legend_title, values = .imprint_origin_colors()[c("maternal", "paternal")]) +
     scale_x_continuous(limits = c(-0.05, 1.05), breaks = seq(0, 1, 0.25)) +
 
-    theme_ridges(center_axis_labels = TRUE) +
+    ggridges::theme_ridges(center_axis_labels = TRUE) +
     theme(
       legend.position = "none",
       strip.background = element_rect(fill = "grey20"),
@@ -2596,10 +2548,6 @@ PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, a
 
 BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, probeset="selected", genome = "hg38") {
   suppressMessages(suppressWarnings({
-    library(ggplot2)
-    library(dplyr)
-    library(tidyr)
-    library(stringr)
   }))
 
   # 1. Load Annotation
@@ -2688,8 +2636,6 @@ BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, pro
 #'
 #' @return A ggplot object.
 Plot_ICR_var_med <- function(plot_data, outFile=NULL, project="cohort", style="beeswarm", min_cpg=3){
-  suppressMessages(suppressWarnings(library("dplyr")))
-  suppressMessages(suppressWarnings(library("ggplot2")))
   cat("\nInfo: min_cpg per ICR=",min_cpg,"!")
     final_data <- plot_data %>%
     # 1. Filter
@@ -2724,7 +2670,6 @@ Plot_ICR_var_med <- function(plot_data, outFile=NULL, project="cohort", style="b
     mutate(Drift_Distance = abs(Median_Beta - 0.5))
 
   if(style=="beeswarm"){
-     suppressMessages(suppressWarnings(library("ggbeeswarm")))
      pg <- ggplot(plot_data, aes(x = reorder(icr_name, Drift_Distance, FUN = median), y = Median_Beta)) +
     geom_quasirandom(cex = 1, alpha = 0.5, pch=20, aes(color=ImpVar_Score)) +
         stat_summary(fun = median, geom = "errorbar", aes(ymin = after_stat(y), ymax = after_stat(y)),
@@ -2765,7 +2710,6 @@ Plot_ICR_var_med <- function(plot_data, outFile=NULL, project="cohort", style="b
 # results <- calculate_impvar(my_beta_values, my_annotations, target_icrs)
 #================================================================
 if(F){
-  library(ggplot2)
    icr.bed <- "/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/ICR/Joshi_mmc6_simple_merged_d2k.bed"
    betaFile <- "/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/imprintomeR_dev/datasets/GSE52576_CHM_450K/GSE52576_CHM_beta.txt"
    metaFile <- "/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/datasets/GSE52576/GSE52576_meta.txt"
@@ -2780,7 +2724,7 @@ if(F){
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
    outFile<- paste0("GSE52576_sig.Joshi_impvar.pdf")
-   ggsave(file=outFile,pg1,width=12,height=5,units="in", limitsize = TRUE)
+   ggsave(filename =outFile,pg1,width=12,height=5,units="in", limitsize = TRUE)
 
 # We filter for a subset (e.g., top 30 most variable ICRs) to keep the plot readable
 top_drift_icrs <- final_report %>%
@@ -2808,7 +2752,7 @@ pg0 <- ggplot(plot_data, aes(x = reorder(icr_name, Median_Beta, FUN = median), y
   img_width <- (n_groups * 2)
 
    outFile<- paste0("GSE52576_sig.Joshi_impvar_ICR_drift_faceted2.pdf")
-   ggsave(file=outFile,pg0,width=img_width,height=img_height,units="in", limitsize = FALSE)
+   ggsave(filename =outFile,pg0,width=img_width,height=img_height,units="in", limitsize = FALSE)
 
 
 
@@ -2828,7 +2772,7 @@ pg0 <- ggplot(plot_data, aes(x = reorder(icr_name, Median_Beta, FUN = median), y
        y = "Median Methylation")
 
    outFile<- paste0("GSE52576_sig.Joshi_impvar_drift_track.pdf")
-   ggsave(file=outFile,pg2,width=12,height=5,units="in", limitsize = TRUE)
+   ggsave(filename =outFile,pg2,width=12,height=5,units="in", limitsize = TRUE)
 
 pg3 <- ggplot(final_report, aes(x = Median, y = ImpVar_Score)) +
   # Add a density contour to see where most samples lie
@@ -2843,18 +2787,21 @@ pg3 <- ggplot(final_report, aes(x = Median, y = ImpVar_Score)) +
   theme_minimal()
 
    outFile<- paste0("GSE52576_sig.Joshi_impvar_drift2.pdf")
-   ggsave(file=outFile,pg3,width=12,height=5,units="in", limitsize = TRUE)
+   ggsave(filename =outFile,pg3,width=12,height=5,units="in", limitsize = TRUE)
 
 }
 
 #================================================================
 
 
-#' Validate Imprinting Deviation against Tumor Purity
-#' @param purity Numeric vector (0 to 1) representing global tumor purity
-#' @param obs_dev Numeric vector (0 to 0.5) representing observed deviation from 0.5
-#' @param sample_ids Character vector of sample names
-#' @return A dataframe with expected values and consistency metrics
+#' Plot Imprinting Deviation against Tumor Purity
+#'
+#' Scatter plot of observed deviation against tumour purity, with the line expected for a clonal
+#' loss of imprinting (slope 0.5).
+#'
+#' @param df Data frame from `validate_imprinting_fit()` with columns `Purity`, `Observed_Dev`,
+#'   `Status` and `Fit_Score`.
+#' @return A ggplot object.
 
 plot_imp_consistency <- function(df) {
   ggplot(df, aes(x = Purity, y = Observed_Dev)) +
@@ -2872,7 +2819,7 @@ plot_imp_consistency <- function(df) {
     theme_minimal()
 }
 # Interpretation of Results:
-# 1. On the Line: The imprinting loss is "clonal"Ã¢â‚¬â€it occurred in the ancestor of all tumor cells.
+# 1. On the Line: The imprinting loss is "clonal"-it occurred in the ancestor of all tumor cells.
 # 2. Far Below the Line: The sample has low deviation despite high purity. This indicates "Subclonal LOI" or "Stochastic Drift", where only some tumor cells have lost the imprint.
 # 3. Above the Line: This is mathematically impossible in a perfect model (you can't be more than 100% deviated). It usually suggests that the Global Purity estimate for that sample was too low and should be re-evaluated.
 # plot_imp_consistency(fit_data)
@@ -2880,10 +2827,6 @@ plot_imp_consistency <- function(df) {
 #================================================================
 #================================================================
 
-
-#' Calculate Global Biological Age
-#' @param beta_matrix A matrix where rows are CpG IDs and columns are Sample Names
-#' @return A data frame with HorvathAge and other clock results
 
 #' Multi-Panel Beeswarm Plot by Category/Origin
 #'
@@ -2901,9 +2844,6 @@ plot_imp_consistency <- function(df) {
 #' @return A patchwork/ggplot object.
 BetaBeePlot_orgin2 <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 0.5,probesets=NULL, useNA=FALSE, width=NULL, height=NULL, group="ORIGIN", genome = "hg38") {
   # https://r-charts.com/distribution/ggbeeswarm/
-  suppressMessages(suppressWarnings(library(ggplot2)))
-  suppressMessages(suppressWarnings(library("ggbeeswarm")))
-  suppressMessages(suppressWarnings(library("reshape2")))
   if(!is.null(probesets)){
     probes <- .get_probeset(probesets, genome)
     if(group %in% colnames(probes)){
@@ -2957,8 +2897,6 @@ BetaBeePlot_orgin2 <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = N
      used <- used[used$CATEGORY %in% c("paternal","maternal"),]
   }
 
-library(patchwork)
-suppressMessages(suppressWarnings(library(dplyr)))
 
 # 1. Create a list of plots (one for each unique ID)
 plot_list <- lapply(unique(used$ID), function(current_id) {
@@ -2991,9 +2929,9 @@ plot_list <- lapply(unique(used$ID), function(current_id) {
 # 'wrap_plots' handles a list of plots automatically
 nc <- ifelse(ncol(beta) <10, ncol(beta), 10)
 nr <- ceiling(ncol(beta)/nc)
-pg  <- wrap_plots(plot_list) +
-  plot_layout(ncol = nc) + # Adjust columns based on your cohort size
-  plot_annotation(
+pg  <- patchwork::wrap_plots(plot_list) +
+  patchwork::plot_layout(ncol = nc) + # Adjust columns based on your cohort size
+  patchwork::plot_annotation(
     title = 'Beeswarm Violin',
     subtitle = paste0( 'probeset:', probeset ),
     theme = theme(plot.title = element_text(size = 12, hjust = 0.5))
@@ -3004,7 +2942,7 @@ pg  <- wrap_plots(plot_list) +
   if (!is.null(outFile)) {
       imgWidth <- (nc * 2) + 1
       imgHeight <- (nr * 3.5) + 1
-      ggsave(file = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = F)
+      ggsave(filename = outFile, pg, width = imgWidth, height = imgHeight, units = "in", limitsize = F)
     cat("\n\t", basename(outFile), "[saved]")
   }
   return(pg)
@@ -3024,8 +2962,6 @@ pg  <- wrap_plots(plot_list) +
 #'
 #' @return `NULL`, writing plots to `outFile` as side effect.
 Beeplot_chr_vs_other <- function(dat, meta, group.by = "chr", color.by = "CATEGORY", outFile = NULL, verbose = FALSE) {
-  suppressMessages(suppressWarnings(library(ggplot2)))
-  suppressMessages(suppressWarnings(library("ggbeeswarm")))
   imgHeight <- 6
   imgWidth <- 4
   samples <- intersect(colnames(dat), meta$Sample_Name)

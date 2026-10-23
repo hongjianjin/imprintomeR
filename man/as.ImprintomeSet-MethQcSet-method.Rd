@@ -2,6 +2,7 @@
 % Please edit documentation in R/MethQcSet-convert.R
 \name{as.ImprintomeSet,MethQcSet-method}
 \alias{as.ImprintomeSet,MethQcSet-method}
+\alias{as.ImprintomeSet}
 \title{Convert MethQcSet to ImprintomeSet}
 \usage{
 \S4method{as.ImprintomeSet}{MethQcSet}(x, probeset = NULL, genome = "hg38", ...)

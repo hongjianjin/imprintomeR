@@ -2,20 +2,18 @@
 % Please edit documentation in R/module_plotting.R
 \name{plot_imp_consistency}
 \alias{plot_imp_consistency}
-\title{Validate Imprinting Deviation against Tumor Purity}
+\title{Plot Imprinting Deviation against Tumor Purity}
 \usage{
 plot_imp_consistency(df)
 }
 \arguments{
-\item{purity}{Numeric vector (0 to 1) representing global tumor purity}
-
-\item{obs_dev}{Numeric vector (0 to 0.5) representing observed deviation from 0.5}
-
-\item{sample_ids}{Character vector of sample names}
+\item{df}{Data frame from \code{validate_imprinting_fit()} with columns \code{Purity}, \code{Observed_Dev},
+\code{Status} and \code{Fit_Score}.}
 }
 \value{
-A dataframe with expected values and consistency metrics
+A ggplot object.
 }
 \description{
-Validate Imprinting Deviation against Tumor Purity
+Scatter plot of observed deviation against tumour purity, with the line expected for a clonal
+loss of imprinting (slope 0.5).
 }

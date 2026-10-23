@@ -25,7 +25,6 @@
 #' @return Logical; `TRUE` if the sheet exists, otherwise `FALSE`.
 #' @export
 CheckSheetName <-function(xlsxFile, sheetName){
-    library("openxlsx")
     # check if a sheetName does exist in xlsxFile
     if (! file.exists(xlsxFile)) {
         cat(paste0("\nFile not found. [",basename(xlsxFile),"]\n"))
@@ -58,7 +57,6 @@ CheckSheetName <-function(xlsxFile, sheetName){
 #' @return Invisible side-effect function; writes workbook to disk.
 #' @export
 SaveTable <- function(dat, sheetName = NULL, file = NULL, append = FALSE, colNames = T, rowNames = T, autoColWidth = TRUE) {
-    library("openxlsx")
   if (any(length(dat)==0)){
      cat("\n\tError: Empty input for [SaveTable].")
      return(1)
@@ -138,7 +136,6 @@ SaveTable <- function(dat, sheetName = NULL, file = NULL, append = FALSE, colNam
 #' @return Invisible side-effect function; writes workbook to disk.
 #' @export
 SaveTableStyle <- function(dat, sheetName = NULL, file = NULL, append = FALSE, colNames = T, rowNames = T, condFmt = NULL, autoColWidth = TRUE) {
-  library("openxlsx")
 
   if (any(length(dat)==0)){
      cat("\n\tError: Empty input for [SaveTableStyle].")
@@ -237,7 +234,6 @@ LoadTable<-function(xlsxFile = xlsxFile, sheet=1, skipEmptyRows = FALSE, colName
         cat("\nYour input is not xlsx format.\n")
         df <- read.table(xlsxFile, sep="\t",header=colNames,fill=TRUE,stringsAsFactors = FALSE, quote="",row.names=NULL ,check.names=F)
     }else{
-        library("openxlsx")
         df <- read.xlsx(xlsxFile, sheet = sheet, skipEmptyRows = skipEmptyRows, colNames = colNames, rowNames=rowNames,startRow = startRow)
     }
     return(df)
@@ -373,8 +369,8 @@ ParseBedFile2 <- function(bedFile) {
 #' @return A `GRanges` object.
 #' @export
 Bed2Granges <- function(bedFile) {
-  suppressMessages(suppressWarnings(library(rtracklayer)))
-  import(bedFile, format = "BED")
+  .require_suggested("rtracklayer", "Bed2Granges()")
+  rtracklayer::import(bedFile, format = "BED")
 }
 
 
@@ -487,7 +483,6 @@ LoadMeta <- function(input) {
 #' @return Beta matrix/data frame with probe IDs as row names.
 #' @export
 LoadBeta <- function(input) {
-  suppressMessages(suppressWarnings(library(data.table)))
   if (is.matrix(input)) {
     input <- as.data.frame(input, stringsAsFactors = FALSE, check.names = FALSE)
   }

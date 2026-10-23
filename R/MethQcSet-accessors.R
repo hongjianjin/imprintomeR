@@ -15,6 +15,7 @@ NULL
 # meta() accessor
 # ============================================================================
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("meta", function(x) standardGeneric("meta"))
 
@@ -22,6 +23,7 @@ methods::setGeneric("meta", function(x) standardGeneric("meta"))
 #' @export
 methods::setMethod("meta", "MethQcSet", function(x) x@meta)
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("meta<-", function(x, value) standardGeneric("meta<-"))
 
@@ -38,6 +40,7 @@ methods::setReplaceMethod("meta", "MethQcSet", function(x, value) {
 # platform() accessor
 # ============================================================================
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("platform", function(x) standardGeneric("platform"))
 
@@ -45,6 +48,7 @@ methods::setGeneric("platform", function(x) standardGeneric("platform"))
 #' @export
 methods::setMethod("platform", "MethQcSet", function(x) x@platform)
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("platform<-", function(x, value) standardGeneric("platform<-"))
 
@@ -60,6 +64,7 @@ methods::setReplaceMethod("platform", "MethQcSet", function(x, value) {
 # beta() accessor
 # ============================================================================
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("beta", function(x) standardGeneric("beta"))
 
@@ -67,6 +72,7 @@ methods::setGeneric("beta", function(x) standardGeneric("beta"))
 #' @export
 methods::setMethod("beta", "MethQcSet", function(x) x@beta)
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("beta<-", function(x, value) standardGeneric("beta<-"))
 
@@ -82,6 +88,7 @@ methods::setReplaceMethod("beta", "MethQcSet", function(x, value) {
 # detection_pval() accessor
 # ============================================================================
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("detection_pval", function(x) standardGeneric("detection_pval"))
 
@@ -89,6 +96,7 @@ methods::setGeneric("detection_pval", function(x) standardGeneric("detection_pva
 #' @export
 methods::setMethod("detection_pval", "MethQcSet", function(x) x@detection_pval)
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("detection_pval<-", function(x, value) standardGeneric("detection_pval<-"))
 
@@ -104,6 +112,7 @@ methods::setReplaceMethod("detection_pval", "MethQcSet", function(x, value) {
 # qc_tables() accessor
 # ============================================================================
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("qc_tables", function(x) standardGeneric("qc_tables"))
 
@@ -111,6 +120,7 @@ methods::setGeneric("qc_tables", function(x) standardGeneric("qc_tables"))
 #' @export
 methods::setMethod("qc_tables", "MethQcSet", function(x) x@qc_tables)
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("qc_tables<-", function(x, value) standardGeneric("qc_tables<-"))
 
@@ -126,6 +136,7 @@ methods::setReplaceMethod("qc_tables", "MethQcSet", function(x, value) {
 # aggregation_status() accessor
 # ============================================================================
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("aggregation_status", function(x) standardGeneric("aggregation_status"))
 
@@ -133,6 +144,7 @@ methods::setGeneric("aggregation_status", function(x) standardGeneric("aggregati
 #' @export
 methods::setMethod("aggregation_status", "MethQcSet", function(x) x@aggregation_status)
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("aggregation_status<-", function(x, value) standardGeneric("aggregation_status<-"))
 
@@ -148,6 +160,7 @@ methods::setReplaceMethod("aggregation_status", "MethQcSet", function(x, value) 
 # qc_params() accessor
 # ============================================================================
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("qc_params", function(x) standardGeneric("qc_params"))
 
@@ -155,6 +168,7 @@ methods::setGeneric("qc_params", function(x) standardGeneric("qc_params"))
 #' @export
 methods::setMethod("qc_params", "MethQcSet", function(x) x@qc_params)
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("qc_params<-", function(x, value) standardGeneric("qc_params<-"))
 
@@ -170,6 +184,7 @@ methods::setReplaceMethod("qc_params", "MethQcSet", function(x, value) {
 # statistics() accessor
 # ============================================================================
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("statistics", function(x) standardGeneric("statistics"))
 
@@ -177,6 +192,7 @@ methods::setGeneric("statistics", function(x) standardGeneric("statistics"))
 #' @export
 methods::setMethod("statistics", "MethQcSet", function(x) x@statistics)
 
+#' @rdname MethQcSet-accessors
 #' @export
 methods::setGeneric("statistics<-", function(x, value) standardGeneric("statistics<-"))
 

@@ -177,7 +177,6 @@ validate_meta_tier <- function(meta, tier = "B", verbose = TRUE) {
 }
 
 ##################################################################
-suppressMessages(library("openxlsx"))
 #-----------------------------------------------------
 
 SegmenPlot <- function() {
@@ -185,6 +184,13 @@ SegmenPlot <- function() {
 }
 ##################################################################
 
+#' Test Whether Values Lie in an Interval
+#'
+#' @param values Numeric vector.
+#' @param low_cutoff Lower bound, exclusive (default 0.3).
+#' @param high_cutoff Upper bound, inclusive (default 0.7).
+#'
+#' @return Logical vector, `TRUE` where `low_cutoff < values <= high_cutoff`.
 #' @export
 Between <-function(values, low_cutoff=0.3,high_cutoff=0.7){
     # return logical if values within the range [low_cutoff,high_cutoff]
@@ -484,6 +490,17 @@ IsValidColors <- function(x) {
   })
 }
 
+#' Assign or Validate Group Colours in Metadata
+#'
+#' Adds a `COLOR` column with one standard colour per group when the metadata has none. When
+#' `COLOR` holds category labels rather than colours, they are moved to `COLORGROUP` and replaced
+#' by one colour per category; when it holds colours, they must map one-to-one onto the groups.
+#'
+#' @param meta Sample metadata data frame.
+#' @param groupColumn Name of the grouping column (default `"Sample_Group"`; `"SAMPLE_GROUP"` is
+#'   used when only that is present).
+#'
+#' @return `meta` with a valid `COLOR` column (and `COLORGROUP` for category labels).
 #' @export
 Check_Meta_Color <- function(meta, groupColumn = "Sample_Group") {
   if (!(groupColumn %in% colnames(meta)) && groupColumn == "Sample_Group" && "SAMPLE_GROUP" %in% colnames(meta)) {
@@ -558,20 +575,27 @@ ggplotColours <- function(n = 6, h = c(0, 360) + 15){
 #================================================================
 PALETTES <-  c("default","seurat","viridis","plasma", "magma","inferno","inferno","inferno","kako","turbo")
 
+#' Colour Palettes
+#'
+#' @param palette Palette name: `"default"` (the package's standard colours), `"seurat"` (ggplot2
+#'   hue colours), or a viridis palette (`"viridis"`, `"plasma"`, `"magma"`, `"inferno"`,
+#'   `"rocket"`, `"cividis"`, `"kako"` for mako, `"turbo"`). Case is ignored.
+#' @param n Number of colours (default 10).
+#'
+#' @return Character vector of `n` colours, or `NULL` for an unknown palette.
 #' @export
 GetColors <- function(palette="Default",n=10) {
-  suppressMessages(suppressWarnings(library(viridis)))
   colors <- switch(tolower(palette),
                    "default" = standardColors()[1:n],
                    "seurat" = ggplotColours(n),
-                   "viridis" = viridis::viridis(n),
-                   "plasma" = viridis::plasma(n),
-                   "magma" = viridis::magma(n),
-                   "inferno" = viridis::inferno(n),
-                   "rocket" = viridis::rocket(n),
-                   "cividis" = viridis::cividis(n),
-                   "kako" = viridis::mako(n),
-                   "turbo" = viridis::turbo(n)
+                   "viridis" = viridisLite::viridis(n),
+                   "plasma" = viridisLite::plasma(n),
+                   "magma" = viridisLite::magma(n),
+                   "inferno" = viridisLite::inferno(n),
+                   "rocket" = viridisLite::rocket(n),
+                   "cividis" = viridisLite::cividis(n),
+                   "kako" = viridisLite::mako(n),
+                   "turbo" = viridisLite::turbo(n)
     )
    return(colors)                
 }
@@ -591,12 +615,29 @@ Meth_DMR <- function() {
 
 ##################################################################
 
+#' Per-ICR Methylation Variance per Sample
+#'
+#' Summarizes the probes of each imprinted region per sample: the median beta and the variance of
+#' beta across the region's probes (`ImpVar_Score`), a measure of within-region heterogeneity.
+#' Regions are either the loci of a bundled probeset (probes grouped by chromosome, parental
+#' origin and nearest gene) or the intervals of a BED file.
+#'
+#' @param betaFile Beta matrix, data frame or file path (probes by samples).
+#' @param metaFile Metadata data frame or file path with `Sample_Name`.
+#' @param icr.bed Path of a BED file of regions, used when `probeset` is `NULL`. Requires the
+#'   Bioconductor packages GenomicRanges and rtracklayer.
+#' @param probeset Name of a bundled probeset whose loci define the regions.
+#' @param assay Array type used to filter the annotation for `icr.bed`: `"450K"`, `"EPICv1"` or
+#'   `"EPICv2"`.
+#' @param genome Genome build, `"hg38"` (default) or `"hg19"`.
+#' @param outFile Optional path of a tab-separated file to write the result to.
+#'
+#' @return Data frame with one row per sample and region: `Sample_Name`, `Sample_Group` and `ID2`
+#'   when available, `icr_name`, `ImpVar_Score` (`NA` for regions with one probe), `Median_Beta`
+#'   and `CpG_Count`.
 #' @export
 Calculate_impvar <- function(betaFile, metaFile = NULL,  icr.bed=NULL, probeset=NULL,assay=c("450K","EPICv1","EPICv2"),genome=c("hg38","hg19"),outFile=NULL) {
   genome <- match.arg(genome)
-  suppressMessages(suppressWarnings(library("matrixStats")))
-  suppressMessages(suppressWarnings(library("dplyr")))
-  suppressMessages(suppressWarnings(library("GenomicRanges")))  
 
   resolved <- .resolve_beta_meta_inputs(betaFile, metaFile, require_meta = TRUE)
   betaFile <- resolved$beta
@@ -634,30 +675,31 @@ Calculate_impvar <- function(betaFile, metaFile = NULL,  icr.bed=NULL, probeset=
         cpg_annos[[chr]] <- paste("chr", gsub("chr", "", cpg_annos[[chr]]), sep = "")
       }
 
+      .require_suggested("GenomicRanges", "Calculate_impvar() with icr.bed")
       # 1. Map CpGs to ICR regions
-      cpg_gr <- GRanges(seqnames = cpg_annos[[chr]], 
-                        ranges = IRanges(start = cpg_annos[[mapinfo]], end = cpg_annos[[mapinfo]]))
+      cpg_gr <- GenomicRanges::GRanges(seqnames = cpg_annos[[chr]], 
+                        ranges = IRanges::IRanges(start = cpg_annos[[mapinfo]], end = cpg_annos[[mapinfo]]))
       names(cpg_gr) <- cpg_annos[["NAME"]]
 
       icr_regions <- Bed2Granges(icr.bed)
       icr_names <- paste0(
-          as.character(seqnames(icr_regions)), "_", 
-          start(icr_regions), "_", 
-          end(icr_regions)
+          as.character(GenomeInfoDb::seqnames(icr_regions)), "_", 
+          BiocGenerics::start(icr_regions), "_", 
+          BiocGenerics::end(icr_regions)
         )
       icr_regions$name <- icr_names
       names(icr_regions) <- icr_names
 
-      hits <- findOverlaps(cpg_gr, icr_regions)
+      hits <- IRanges::findOverlaps(cpg_gr, icr_regions)
       
       # 2. Extract and Group Data
       # We create a mapping of which CpG belongs to which ICR
       mapping <- data.frame(
-        NAME=names(cpg_gr)[queryHits(hits)],
-        CHR= as.character(seqnames(cpg_gr)[queryHits(hits)]),
-        MAPINFO = start(cpg_gr)[queryHits(hits)],
-        cpg_idx = queryHits(hits),
-        icr_name = icr_regions$name[subjectHits(hits)]
+        NAME=names(cpg_gr)[S4Vectors::queryHits(hits)],
+        CHR= as.character(GenomeInfoDb::seqnames(cpg_gr)[S4Vectors::queryHits(hits)]),
+        MAPINFO = BiocGenerics::start(cpg_gr)[S4Vectors::queryHits(hits)],
+        cpg_idx = S4Vectors::queryHits(hits),
+        icr_name = icr_regions$name[S4Vectors::subjectHits(hits)]
       )
       
   }
@@ -678,7 +720,7 @@ Calculate_impvar <- function(betaFile, metaFile = NULL,  icr.bed=NULL, probeset=
       sub_beta <- beta_matrix[.x$NAME, , drop = FALSE]
       # 2.1 Calculate Median (always possible if nrow > 0)
         # colMedians returns a vector of medians, one per sample
-        medians <- colMedians(sub_beta, na.rm = TRUE)
+        medians <- matrixStats::colMedians(sub_beta, na.rm = TRUE)
 
       # 2.2 Check if we have enough CpGs to calculate variance
         # Variance of 0 or 1 point is NA; we handle that here
@@ -686,7 +728,7 @@ Calculate_impvar <- function(betaFile, metaFile = NULL,  icr.bed=NULL, probeset=
             scores <- rep(NA_real_, ncol(sub_beta))
    
         } else {
-            scores <- colVars(sub_beta, na.rm = TRUE)
+            scores <- matrixStats::colVars(sub_beta, na.rm = TRUE)
         }
       # Calculate column-wise variance (per sample)
       # We use Var to capture the 'spread' of methylation across the ICR
@@ -762,7 +804,6 @@ Calculate_impvar <- function(betaFile, metaFile = NULL,  icr.bed=NULL, probeset=
 #'
 #' @export
 aggregate_beta_epicv2 <- function(beta_df, method = c("median", "mean")) {
-  suppressMessages(suppressWarnings(library(dplyr)))
   
   # Coerce to data.frame if needed
   if (!is.data.frame(beta_df)) {
@@ -861,3 +902,11 @@ aggregate_beta_epicv2 <- function(beta_df, method = c("median", "mean")) {
 }
 #----------------------------------------------------------------
 
+
+# Stop with an informative error when an optional (Suggests) package is not installed.
+.require_suggested <- function(pkg, what) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    stop("Package '", pkg, "' is needed for ", what, "; please install it.", call. = FALSE)
+  }
+  invisible(TRUE)
+}

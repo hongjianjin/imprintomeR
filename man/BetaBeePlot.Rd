@@ -38,6 +38,11 @@ BetaBeePlot(
 \item{xlab}{X-axis label.}
 
 \item{legend}{Logical; include legend page in saved output.}
+
+\item{title, subtitle}{Plot title and optional subtitle.}
+
+\item{width, height}{Optional image dimensions in inches for saving; \code{NULL} sizes the image from the
+number of samples.}
 }
 \value{
 A patchwork/ggplot object.

@@ -6,15 +6,25 @@
 \alias{beta<-,ImprintomeSet-method}
 \alias{meta,ImprintomeSet-method}
 \alias{meta<-,ImprintomeSet-method}
+\alias{probeset}
 \alias{probeset,ImprintomeSet-method}
+\alias{probeset<-}
 \alias{probeset<-,ImprintomeSet-method}
+\alias{genome}
 \alias{genome,ImprintomeSet-method}
+\alias{genome<-}
 \alias{genome<-,ImprintomeSet-method}
+\alias{assay}
 \alias{assay,ImprintomeSet-method}
+\alias{assay<-}
 \alias{assay<-,ImprintomeSet-method}
+\alias{results}
 \alias{results,ImprintomeSet-method}
+\alias{results<-}
 \alias{results<-,ImprintomeSet-method}
+\alias{plots}
 \alias{plots,ImprintomeSet-method}
+\alias{plots<-}
 \alias{plots<-,ImprintomeSet-method}
 \title{Accessors for ImprintomeSet}
 \usage{
@@ -26,23 +36,43 @@
 
 \S4method{meta}{ImprintomeSet}(x) <- value
 
+probeset(x)
+
 \S4method{probeset}{ImprintomeSet}(x)
+
+probeset(x) <- value
 
 \S4method{probeset}{ImprintomeSet}(x) <- value
 
+genome(x)
+
 \S4method{genome}{ImprintomeSet}(x)
+
+genome(x) <- value
 
 \S4method{genome}{ImprintomeSet}(x) <- value
 
+assay(x)
+
 \S4method{assay}{ImprintomeSet}(x)
+
+assay(x) <- value
 
 \S4method{assay}{ImprintomeSet}(x) <- value
 
+results(x)
+
 \S4method{results}{ImprintomeSet}(x)
+
+results(x) <- value
 
 \S4method{results}{ImprintomeSet}(x) <- value
 
+plots(x)
+
 \S4method{plots}{ImprintomeSet}(x)
+
+plots(x) <- value
 
 \S4method{plots}{ImprintomeSet}(x) <- value
 }

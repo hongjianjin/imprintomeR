@@ -47,10 +47,9 @@ if (!methods::isGeneric("as.ImprintomeSet")) {
 #' (hg19 or hg38) is loaded. Probe IDs are shared across 450K, EPIC, and
 #' EPICv2 (after aggregation), so the same panels serve every platform.
 #'
+#' @aliases as.ImprintomeSet
 #' @export
 methods::setMethod("as.ImprintomeSet", "MethQcSet", function(x, probeset = NULL, genome = "hg38", ...) {
-  suppressMessages(suppressWarnings(library(GenomicRanges)))
-
   # Validate single platform
   if (is.na(x@platform) || !nzchar(x@platform)) {
     stop("MethQcSet platform is empty. Cannot convert.")

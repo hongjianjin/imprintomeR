@@ -29,7 +29,6 @@ if (!methods::isGeneric("computeQC")) {
 #' @keywords internal
 methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
                                                      pcutoff = 0.05, ...) {
-  suppressMessages(suppressWarnings(library(matrixStats)))
 
   # Use provided or stored matrices
   if (is.null(detection_pval)) {
@@ -215,6 +214,7 @@ if (!methods::isGeneric("aggregate_probes")) {
 #' and values missing because all replicates were missing; see `aggregate_beta_epicv2()`.
 #' A one-line summary is also printed as a message.
 #'
+#' @aliases aggregate_probes
 #' @export
 methods::setMethod("aggregate_probes", "MethQcSet", function(x, method = c("median", "mean"), ...) {
   method <- match.arg(method)
