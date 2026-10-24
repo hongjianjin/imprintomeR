@@ -81,7 +81,8 @@ Rscript inst/scripts/run_meth_QC.R \
 | `--plot-types` | intensity,detection_pval,probe_coverage,beta_density | QC plots: `intensity`, `detection_pval`, `probe_coverage`, `qc_bar`, `beta_density`, or `all`. |
 | `--no-qc-plots` | FALSE | Suppress QC plot generation. |
 | `--no-qc-report` | FALSE | Suppress default QC report PDFs: root review PDFs plus secondary reports in `plots/`. |
-| `--skip-ewastools` | FALSE | Skip optional ewastools control metrics. |
+| `--normalization` | noob | Beta normalization: `noob`, `noob_swan`, or `raw` (unnormalized, as in earlier versions). Recorded in `qc_params(qcset)$normalization`. |
+| `--skip-ewastools` | FALSE | Skip the ewastools control-probe metrics, contamination and donor checks (ewastools is installed with the package). |
 | `--verbose` / `-v` | FALSE | Print detailed progress messages. |
 
 ### QC Outputs
@@ -177,10 +178,16 @@ The beta matrix should have probes as rows and samples as columns. Metadata shou
 | `--meta-file` / `-m` | NA | Metadata file, required unless `--rds` is used. |
 | `--outdir` / `-o` | required | Output directory. |
 | `--prefix` / `-p` | basename of `outdir` | Dataset prefix for result, plot, and RDS filenames; the normalized genome is appended automatically. |
-| `--probeset` | selected | One of `selected`, `NanoImprint`, `Joshi`, `Court`, `Rosenski`, `Jima`, `chr11p15`. |
+| `--probeset` | selected | One of `selected`, `NanoImprint`, `Joshi`, `Court`, `Rosenski`, `Jima`, `chr11p15`, `chr20q13`. |
 | `--plot-types` | default | Comma-separated plot types, `default`, or `all`. |
 | `--ids-cutoff` | 0.2 | IDS cutoff passed to `runImprintome()`. |
 | `--genome` | hg38 | Genome build for bundled probesets (`hg19` or `hg38`). Also used in output file names. |
+| `--dmr-type` | panel default | DMR types to score: `all`, or comma-separated `DMR_type` values such as `gametic` or `secondary`. The `selected` panel is scored on gametic ICRs by default; other panels on all probes. |
+| `--reference-group` | none | Comma-separated `Sample_Group` value(s) used as in-cohort controls: each probe's reference becomes the controls' median beta (controls scored leave-one-out). |
+| `--reference-file` | none | External control reference: a beta matrix file or an `.rds` from `BuildReferenceProfile()`. Without controls, the fixed 0.5 reference is used. |
+| `--infinium-type` | all | Infinium design types to score: `all`, `I`, `II`, or `balanced` (deviations computed within type I and type II probes and averaged). |
+| `--balance` | probe | Pooling for the sample-level IDS: `probe` (median over probes) or `icr` (median within each ICR, then across ICRs). |
+| `--icr` | FALSE | Also score each ICR (`AnalyzeICRStatus()`) and write the per-ICR table and its per-sample multi-locus summary. |
 | `--skip-plots` | FALSE | Skip the ordinary plot workflow; explicit `--rainfall-all`, `--radar-all`, and `--beeswarm-chr-all` outputs still run. |
 | `--rainfall-all` | NULL | Pass `TRUE` to generate one multipage rainfall PDF containing every sample. |
 | `--radar-all` | NULL | Pass `TRUE` to generate one multipage radar PDF containing every sample. |
@@ -231,7 +238,7 @@ When enabled, the ordinary single-sample `rainfall` entry is removed from the re
 
 ### Radar Plots For All Samples
 
-Pass `--radar-all TRUE` to generate one multipage radar PDF with one 12 x 12 inch page per sample:
+Pass `--radar-all TRUE` to generate one multipage radar PDF with one page per sample. Radar plots have one spoke per curated ICR, in genomic order clockwise from the top, labelled chromosome_annotated parental origin_ICR; the page size grows with the label length (about 17 x 17 inches for the `selected` panel) so that no label is clipped:
 
 ```bash
 Rscript inst/scripts/run_imprintomeR.R \

@@ -328,8 +328,8 @@ saveRDS(qcset_pass, file = file.path(qc_outdir, "GSE240091_qcset_pass.rds"))
 
 x <- as.ImprintomeSet(
   qcset_pass,
-  probeset = readRDS(system.file("extdata", "probesets_hg19.rds", package = "imprintomeR"))[["selected"]],
-  genome = "hg19"
+  probeset = readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))[["selected"]],
+  genome = "hg38"
 )
 ```
 
@@ -542,7 +542,7 @@ print(plots(x)[["heatmap_by_gene.selected"]])
 
 #### Plot 7: Radar plot
 
-```{r plot-radar, fig.width = 10, fig.height = 10}
+```{r plot-radar, fig.width = 17, fig.height = 17}
 x <- runImprintomeVisualizations(
   x,
   plot_types = "radar",

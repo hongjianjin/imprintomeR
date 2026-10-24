@@ -921,10 +921,9 @@ tryCatch({
         stringsAsFactors = FALSE
     )
 
+    # The PDF is opened at the first plot and sized from it: radar plots grow with their label length.
     pdf_opened <- FALSE
     successful <- 0L
-    grDevices::pdf(out_file, width = 12, height = 12, onefile = TRUE)
-    pdf_opened <- TRUE
     on.exit(if (isTRUE(pdf_opened)) grDevices::dev.off(), add = TRUE)
 
     for (i in seq_along(sample_ids)) {
@@ -937,6 +936,12 @@ tryCatch({
                 probeset = probeset,
                 sample_id = sample_ids[i]
             )
+            if (!pdf_opened) {
+                page_in <- attr(p, "imprintomeR_figure_size")
+                if (is.null(page_in)) page_in <- 12
+                grDevices::pdf(out_file, width = page_in, height = page_in, onefile = TRUE)
+                pdf_opened <- TRUE
+            }
             print(p)
         }, error = function(e) {
             err <<- conditionMessage(e)
@@ -952,7 +957,7 @@ tryCatch({
         }
     }
 
-    grDevices::dev.off()
+    if (pdf_opened) grDevices::dev.off()
     pdf_opened <- FALSE
     if (successful == 0L && file.exists(out_file)) {
         unlink(out_file)

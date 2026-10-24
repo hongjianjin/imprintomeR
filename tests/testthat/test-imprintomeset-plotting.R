@@ -440,10 +440,13 @@ testthat::test_that("radar-all writes one multipage PDF", {
     x <- .make_imprintomeset()
     x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
     radar_all <- .load_run_imprintome_cli_function(".generate_all_radar_plots")
+    # Pages are sized from the radar plot, which grows with its label length (at least 12 in).
     testthat::expect_match(
       paste(deparse(body(radar_all)), collapse = "\n"),
-      "width = 12, height = 12", fixed = TRUE
+      "imprintomeR_figure_size", fixed = TRUE
     )
+    p1 <- plot(x, plot_type = "radar", probeset = "selected", sample_id = colnames(beta(x))[1])
+    testthat::expect_gte(attr(p1, "imprintomeR_figure_size"), 12)
     outdir <- tempfile("imprintome-radar-all-")
     dir.create(outdir)
     on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)

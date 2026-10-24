@@ -50,11 +50,11 @@ def cli_help(workflow: str = "imprintome") -> str:
     result = subprocess.run(["Rscript", str(script), "--help"], cwd=ROOT, capture_output=True, text=True, check=False)
     return result.stdout or result.stderr
 @mcp.tool()
-def run_imprintome_analysis(rds: Optional[str] = None, beta_file: Optional[str] = None, meta_file: Optional[str] = None, outdir: str = "imprintome_results", prefix: Optional[str] = None, probeset: str = "selected", plot_types: str = "default", ids_cutoff: float = 0.2, genome: str = "hg19", radar_all: bool = False, rainfall_all: bool = False, beeswarm_chr_all: bool = False, skip_plots: bool = False, verbose: bool = False) -> str:
+def run_imprintome_analysis(rds: Optional[str] = None, beta_file: Optional[str] = None, meta_file: Optional[str] = None, outdir: str = "imprintome_results", prefix: Optional[str] = None, probeset: str = "selected", plot_types: str = "default", ids_cutoff: float = 0.2, genome: str = "hg38", radar_all: bool = False, rainfall_all: bool = False, beeswarm_chr_all: bool = False, skip_plots: bool = False, verbose: bool = False) -> str:
     """Run run_imprintomeR.R using an RDS or beta+metadata input and return outputs."""
     if bool(rds) == bool(beta_file or meta_file): raise ValueError("Provide rds, or provide both beta_file and meta_file")
     if (beta_file and not meta_file) or (meta_file and not beta_file): raise ValueError("beta_file and meta_file must be supplied together")
-    if probeset not in {"selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15"}: raise ValueError("Unsupported probeset")
+    if probeset not in {"selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", "chr20q13"}: raise ValueError("Unsupported probeset")
     if genome.lower() not in {"hg19", "hg38"}: raise ValueError("genome must be hg19 or hg38")
     output = _path(outdir)
     args = ["-o", str(output), "--probeset", probeset, "--plot-types", plot_types, "--ids-cutoff", str(ids_cutoff), "--genome", genome]

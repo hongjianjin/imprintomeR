@@ -76,7 +76,7 @@ For beta-matrix input, probes must be rows, samples must be columns, and sample 
 
 - repository checkout directory
 - array platform: automatic detection by default, or `EPIC`, `EPICv2`, or `450K`
-- probeset: `selected`, `NanoImprint`, `Joshi`, `Court`, `Rosenski`, `Jima`, or `chr11p15`
+- probeset: `selected`, `NanoImprint`, `Joshi`, `Court`, `Rosenski`, `Jima`, `chr11p15`, or `chr20q13`
 - genome build: `hg19` or `hg38`
 - QC `pcutoff`, default `0.05`
 - QC `icutoff`, default `11`
@@ -85,7 +85,7 @@ For beta-matrix input, probes must be rows, samples must be columns, and sample 
 - plot types and all-sample plot options
 - verbose logging
 
-The analysis defaults are `probeset = selected`, `genome = hg19`, `plot-types = default`, and `ids-cutoff = 0.2`. Set important parameters explicitly for reproducibility.
+The analysis defaults are `probeset = selected`, `genome = hg38`, `plot-types = default`, and `ids-cutoff = 0.2`. Set important parameters explicitly for reproducibility.
 
 ## Environment and Setup
 
@@ -136,7 +136,7 @@ Important options:
 - `--plot-types <list-or-all>`: `intensity`, `detection_pval`, `probe_coverage`, `qc_bar`, `beta_density`, or `all`
 - `--no-qc-plots`: suppress QC plots
 - `--no-qc-report`: suppress default QC report PDFs
-- `--skip-ewastools`: skip optional ewastools controls
+- `--skip-ewastools`: skip the ewastools controls (ewastools is installed with the package)
 - `--verbose`: enable detailed logging
 
 The script validates metadata, detects or uses the selected platform, processes QC, and exports QC tables, reports, plots, and a `*_qcset.rds` file.
@@ -153,7 +153,7 @@ Rscript <repo-dir>/inst/scripts/run_imprintomeR.R \
   --outdir <analysis-output-directory> \
   --prefix <output-prefix> \
   --probeset <probeset> \
-  --genome <hg19-or-hg38> \
+  --genome <hg38-or-hg19> \
   --ids-cutoff <value>
 ```
 
@@ -168,7 +168,7 @@ Rscript <repo-dir>/inst/scripts/run_imprintomeR.R \
   --outdir <analysis-output-directory> \
   --prefix <output-prefix> \
   --probeset <probeset> \
-  --genome <hg19-or-hg38> \
+  --genome <hg38-or-hg19> \
   --ids-cutoff <value>
 ```
 
@@ -240,7 +240,7 @@ The repository is at <absolute-repo-directory>.
 First run:
 
 Verify the exact *_qcset.rds created by QC. Then run:
-Rscript <absolute-repo-directory>/inst/scripts/run_imprintomeR.R --rds <exact-qcset-rds> --outdir <analysis-output-directory> --prefix <output-prefix> --probeset <probeset> --genome <hg19-or-hg38> --ids-cutoff <value>
+Rscript <absolute-repo-directory>/inst/scripts/run_imprintomeR.R --rds <exact-qcset-rds> --outdir <analysis-output-directory> --prefix <output-prefix> --probeset <probeset> --genome <hg38-or-hg19> --ids-cutoff <value>
 
 Report commands, exit status, exact output paths, warnings, R stderr, and any missing or skipped artifacts.
 ```
@@ -252,7 +252,7 @@ Use the imprintomeR simple skill.
 
 The repository is at <absolute-repo-directory>.
 Run:
-Rscript <absolute-repo-directory>/inst/scripts/run_imprintomeR.R --beta-file <beta-file> --meta-file <metadata-file> --outdir <analysis-output-directory> --prefix <output-prefix> --probeset <probeset> --genome <hg19-or-hg38> --ids-cutoff <value>
+Rscript <absolute-repo-directory>/inst/scripts/run_imprintomeR.R --beta-file <beta-file> --meta-file <metadata-file> --outdir <analysis-output-directory> --prefix <output-prefix> --probeset <probeset> --genome <hg38-or-hg19> --ids-cutoff <value>
 
 Verify sample alignment and report the command, exit status, all generated artifacts, warnings, and failures.
 ```

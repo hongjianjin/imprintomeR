@@ -125,9 +125,9 @@ exported_files <- export(
   format = c("xlsx", "rds")
 )
 # Creates two Excel workbooks:
-#   qc_table_main.xlsx: metadata, QC_matrix, Ctrl_matrix (if available), statistics
+#   qc_table_main.xlsx: metadata, QC_matrix, Ctrl_matrix (ewastools), statistics
 #   qc_table_extra.xlsx: QC_metrics (thresholds), recall_rate (if available),
-#                         contamination (if available), predUniqDonor_ID (if available)
+#                         contamination and predUniqDonor_ID (ewastools)
 # Plus: qcset.rds (full MethQcSet object)
 # Plus: qcset_summary.txt (summary report with Notes section documenting missing sheets)
 ```
@@ -165,7 +165,7 @@ Once your data passes QC, convert to analysis container:
 ```{r, eval = FALSE}
 # Load probeset annotations
 probesets <- readRDS(
-  system.file("extdata", "probesets_hg19.rds", package = "imprintomeR")
+  system.file("extdata", "probesets_hg38.rds", package = "imprintomeR")
 )
 
 # EPICv2 only: aggregate replicate probes before conversion (required)
@@ -182,7 +182,7 @@ qcset_pass <- subsetMethQC(qcset, final_qc = "PASS")
 x <- as.ImprintomeSet(
   qcset_pass,
   probeset = probesets[["selected"]],
-  genome = "hg19"
+  genome = "hg38"
 )
 ```
 
@@ -193,7 +193,7 @@ x <- ImprintomeSet(
   beta = beta,
   meta = meta,
   probeset = probesets[["selected"]],
-  genome = "hg19",
+  genome = "hg38",
   assay = "EPICv1"
 )
 ```

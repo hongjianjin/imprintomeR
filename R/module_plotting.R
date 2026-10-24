@@ -2474,8 +2474,10 @@ PlotRadar <- function(df, id="Sample1", title="Radar plot", pt.size=3, fontsize=
       plot.margin = margin(20, label_margin, 20, label_margin)
     )
 
+  # Figure size (inches) that keeps the panel at 12 in with room for the labels; multipage writers use it too.
+  fig_in <- 12 + 2 * label_margin / 72
+  attr(p, "imprintomeR_figure_size") <- fig_in
   if (!is.null(outFile)) {
-    fig_in <- 12 + 2 * label_margin / 72
     ggsave(outFile, p, width = fig_in, height = fig_in, bg = "white", limitsize = FALSE)
   }
 

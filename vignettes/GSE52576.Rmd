@@ -167,7 +167,7 @@ print(round(input$beta[1:5, 1:3], 3))
 ```{r create-imprintomeset}
 # Load probeset annotations
 probesets <- readRDS(
-  system.file("extdata", "probesets_hg19.rds", package = "imprintomeR")
+  system.file("extdata", "probesets_hg38.rds", package = "imprintomeR")
 )
 
 # Create analysis-ready ImprintomeSet
@@ -175,7 +175,7 @@ x <- ImprintomeSet(
   beta = input$beta,
   meta = input$meta,
   probeset = probesets[["selected"]],  # Use all probes; will be subset by runImprintome
-  genome = "hg19",
+  genome = "hg38",
   assay = "450K"  # GSE52576 uses Illumina 450K (close to EPIC v1)
 )
 
@@ -387,7 +387,7 @@ print(plots(x)[["heatmap_by_gene.selected"]])
 
 #### Plot 7: Radar plot
 
-```{r plot-radar, fig.width = 10, fig.height = 10}
+```{r plot-radar, fig.width = 17, fig.height = 17}
 x <- runImprintomeVisualizations(
   x,
   plot_types = "radar",

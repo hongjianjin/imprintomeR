@@ -32,11 +32,11 @@ Provide either:
 
 Beta matrices use probes as rows and samples as columns. Sample identifiers must align with metadata.
 
-Optional parameters include `EPIC`, `EPICv2`, or `450K` platform selection, probeset, genome (`hg19` or `hg38`), `ids_cutoff` (default `0.2`), plot types, output prefix, and all-sample plot flags.
+Optional parameters include `EPIC`, `EPICv2`, or `450K` platform selection, probeset, genome (`hg38`, the default, or `hg19`), `ids_cutoff` (default `0.2`), plot types, output prefix, and all-sample plot flags.
 
 ## Workflow defaults and supported values
 
-Unless the user specifies otherwise, use `probeset = selected`, `genome = hg19`, `plot-types = default`, `ids-cutoff = 0.2`, QC `pcutoff = 0.05`, and QC `icutoff = 11`. Supported array platforms are automatic detection, `EPIC`, `EPICv2`, and `450K`.
+Unless the user specifies otherwise, use `probeset = selected`, `genome = hg38`, `plot-types = default`, `ids-cutoff = 0.2`, QC `pcutoff = 0.05`, and QC `icutoff = 11`. Supported array platforms are automatic detection, `EPIC`, `EPICv2`, and `450K`.
 
 Supported ordinary plot types are `polar`, `beeswarm`, `beeswarm_origin`, `beeswarm_chr`, `heatmap_by_probe`, `heatmap_by_gene`, `circular_heatmap`, `rainfall`, `radar`, `mirror_density`, `violin`, and `cor_heatmap`.
 
@@ -69,7 +69,7 @@ Use the imprintomeR skill.
 The repository is at <absolute-repo-directory>.
 Run run_meth_QC.R with metadata <metadata-file>, metadata with absolute Basename IDAT prefixes, and QC output <qc-output-directory>.
 Verify that the run succeeded and identify the exact *_qcset.rds created.
-Then run run_imprintomeR.R with that exact RDS, output <analysis-output-directory>, prefix <prefix>, probeset selected, genome hg19, and ids-cutoff 0.2.
+Then run run_imprintomeR.R with that exact RDS, output <analysis-output-directory>, prefix <prefix>, probeset selected, genome hg38, and ids-cutoff 0.2.
 Report commands, exit statuses, warnings, and exact output paths.
 ```
 
@@ -79,7 +79,7 @@ For direct beta-matrix analysis:
 Use the imprintomeR skill.
 
 The repository is at <absolute-repo-directory>.
-Run run_imprintomeR.R with beta file <beta-file>, metadata <metadata-file>, output <analysis-output-directory>, prefix <prefix>, probeset selected, genome hg19, and ids-cutoff 0.2.
+Run run_imprintomeR.R with beta file <beta-file>, metadata <metadata-file>, output <analysis-output-directory>, prefix <prefix>, probeset selected, genome hg38, and ids-cutoff 0.2.
 Verify sample alignment, exit status, result tables, and requested plot artifacts.
 ```
 
@@ -103,7 +103,7 @@ Rscript <repo-dir>/inst/scripts/run_imprintomeR.R \
   --outdir <analysis-output-directory> \
   --prefix <prefix> \
   --probeset selected \
-  --genome hg19 \
+  --genome hg38 \
   --ids-cutoff 0.2 \
   --plot-types default
 ```

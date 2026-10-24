@@ -28,7 +28,7 @@ Visualization in imprintomeR follows the preprocessing-first architecture:
 
 The examples below are organized by visualization level:
 
-- sample-level (polar, radar, rainfall)
+- sample-level (polar), ICR-level (radar: one spoke per curated ICR) and single-sample probe-level (rainfall)
 - probe-level (beeswarm, violin, mirror density)
 - cohort-level (heatmap, cor_heatmap, circular_heatmap)
 - chromosome-level (beeswarm_chr)
@@ -82,11 +82,11 @@ if (qcset@platform == "EPICv2") {
 qcset_pass <- subsetMethQC(qcset, final_qc = "PASS")
 
 # Convert the QC-clean MethQcSet to ImprintomeSet
-probesets <- readRDS(system.file("extdata", "probesets_hg19.rds", package = "imprintomeR"))
+probesets <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))
 x <- as.ImprintomeSet(
   qcset_pass,
   probeset = probesets[["selected"]],
-  genome = "hg19"
+  genome = "hg38"
 )
 ```
 
@@ -102,7 +102,7 @@ x <- ImprintomeSet(
   beta = beta,
   meta = meta,
   probeset = probesets[["selected"]],
-  genome = "hg19",
+  genome = "hg38",
   assay = "EPICv1"
 )
 ```
@@ -230,6 +230,8 @@ p_mirror <- plot(
 ```
 
 ### 3.3 Radar Plot
+
+One spoke per curated ICR (median IDI of its probes), in genomic order clockwise from the top, labelled chromosome_annotated parental origin_ICR. The saved figure grows with the label length so that no label is clipped.
 
 ```{r, eval = FALSE}
 sample_id1 <- colnames(beta(x))[2]
@@ -453,7 +455,7 @@ p_rain <- plot(
 ### 6.3 Chromosome vs Others Beeswarm
 
 ```{r, eval = FALSE}
-probesets <- readRDS(system.file("extdata", "probesets_hg19.rds", package = "imprintomeR"))
+probesets <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))
 ps <- probesets[["selected"]]
 common_probes <- intersect(ps$NAME, rownames(beta_x))
 
