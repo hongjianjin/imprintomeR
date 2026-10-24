@@ -35,9 +35,14 @@ hg38 (GRCh38) is the default reference genome throughout: `as.ImprintomeSet()`, 
 
 Package data files are shipped under `inst/extdata/`.
 
+### Bundled probesets
+
+`probesets_hg19.rds` and `probesets_hg38.rds` contain the same eleven panels in the same order: the probe-level `Jima`, `Joshi`, `Court`, `Rosenski`, `selected` (782 probes on both 450K and EPIC), `NanoImprint`, `chr11p15` and `chr20q13` (GNAS) panels, and the region-level `Rosenski_region`, `chr11p15_region` and `chr20q13_region` panels. Every probe-level panel carries parental-origin (`ORIGIN`) labels, an `ICR_name` and a `DMR_type` (gametic, secondary, ambiguous or uncurated) following Monk et al. (2018), and the Infinium design type of each probe. Probe coordinates come from `anno.uniq_harmonized.liftover.rds`, which merges the Illumina 450K, EPIC v1.0 B5 and EPICv2 manifests; its chromosome labels were checked against the UCSC hg19ToHg38 and hg38ToHg19 chains.
+
 ## Table of Contents
 
 - [Installation](#installation)
+  - [Bundled probesets](#bundled-probesets)
 - [Architecture: Preprocessing-First Workflow](#architecture-preprocessing-first-workflow)
 - [Core Formulas](#core-formulas)
   - [Angle Direction Mapping](#angle-direction-mapping)
@@ -47,6 +52,7 @@ Package data files are shipped under `inst/extdata/`.
   - [Step 3: Run Imprinting Analysis](#step-3-run-imprinting-analysis)
     - [Reference centring and Infinium design types](#reference-centring-and-infinium-design-types)
     - [Per-ICR scores and ICR-balanced IDS](#per-icr-scores-and-icr-balanced-ids)
+    - [Uncertainty and calibration](#uncertainty-and-calibration)
   - [Step 4: Summarize, Visualize, Export](#step-4-7-summarize-visualize-export)
 - [Detailed Examples](#detailed-examples)
   - [MethQcSet: Platform-Specific Preprocessing](#methqcset-platform-specific-preprocessing)
@@ -94,14 +100,16 @@ Visualize & Export
 ## Core Formulas
 - Imprint Deviation Index(**IDI**): (beta - 0.5) × 2
 - Imprint Deviation Score(**IDS**): √((paternal_median - 0.5)² + (maternal_median - 0.5)²)
-- **Deviation Angle**: atan2(maternal_median - 0.5, paternal_median - 0.5) \
+- **Deviation Angle**: atan2(maternal_median - 0.5, paternal_median - 0.5)
 - With a control reference, 0.5 is replaced by each probe's median beta across the controls: paternal/maternal deviations are medians of (beta − reference), and IDS and Angle are computed from these deviations (see [Reference centring and Infinium design types](#reference-centring-and-infinium-design-types)).
 
-The core formulas quantify imprinting deviations using multiple complementary metrics. The Imprint Deviation Score (IDS) computes the Euclidean distance from the balanced methylation state (0.5, 0.5) based on paternal and maternal median methylation values, capturing overall deviation magnitude. The Angle represents the direction of deviation in polar coordinates, indicating the relative contribution of paternal versus maternal methylation changes. The Imprint Deviation Index (IDI), calculated as ((\beta - 0.5) \times 2), quantifies per-probe deviation scaled between (-1) and (1), reflecting the magnitude and direction of methylation shift from the balanced state. Together, IDS, Angle, and IDI provide a comprehensive numeric framework for analyzing allele-specific methylation patterns.
+Subtracting 0.5 moves the hemimethylated state of an imprinting control region to the origin (0, 0) of a plane whose axes are the paternal and maternal median deviations. Each sample is then a deviation vector: IDS is its length, the Euclidean distance from balanced imprinting, and Angle its direction. Without the shift, distance and direction would be measured from a fully unmethylated locus. IDI applies the same shift probe by probe and rescales it to [−1, 1].
+
+The paternal and maternal classes come from the probeset's `ORIGIN` annotation, and array beta values are bulk, not allele-specific, measurements. IDS and Angle are therefore descriptive summaries along the annotated parental axes, not parent-of-origin calls. The default IDS cutoff (0.2) and confidence tiers (0.1/0.2/0.4) are exploratory screening conventions; calibrate them on tissue-matched controls where possible (see [Uncertainty and calibration](#uncertainty-and-calibration)).
 
 
 ### Angle Direction Mapping
-The Angle Direction Mapping associates segments of the polar coordinate circle with specific biologically relevant methylation patterns. Each 45-degree sector corresponds to distinct imprinting mechanisms, such as paternal gain or maternal loss of methylation, or global hypo- or hypermethylation. This mapping facilitates intuitive interpretation of the polar plot by linking angular positions to parental allele-specific methylation changes.
+Each 45-degree sector of the polar plot is labelled with the direction of shift along the annotated paternal and maternal axes, such as paternal gain or maternal loss of methylation, or global hypo- or hypermethylation. Samples with IDS < 0.2 are labelled ROI (retention of imprinting). The labels are exploratory directional summaries of bulk beta values, not parent-of-origin molecular calls; with `n_boot`, `Mechanism_support` reports how stable a sample's label is under resampling.
 
 | Angle (°) | Mechanism Label                  |
 |-----------|--------------------------------|
@@ -230,23 +238,25 @@ Key MethQcSet features:
 Once QC-approved, convert to analysis-ready object:
 
 ```r
+probesets <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))
+
 # Option A: convert from a MethQcSet (recommended — carries platform/assay automatically)
 
 # EPICv2 only: aggregate replicate probes first (required)
 # as.ImprintomeSet() will error if this step is skipped for EPICv2.
 if (qcset@platform == "EPICv2") {
-  qcset <- aggregate_probes(qcset)  # ~937k → ~865k unique base probes
+  qcset <- aggregate_probes(qcset)  # ~937k → ~865k unique base probes (median of each replicate group)
+  qc_tables(qcset)$Aggregation_report # replicate groups collapsed, unchanged and malformed IDs, all-missing values
 }
 
 x <- as.ImprintomeSet(
   qcset,
   probeset = probesets[["selected"]],
-  genome = "hg19"
+  genome = "hg38"                      # default; "hg19" for GRCh37 coordinates
 )
 
 # Option B: build directly from beta + meta (QC already done externally)
 # Note: Basename column is not needed since QC step is skipped
-probesets <- readRDS(system.file("extdata", "probesets_hg19.rds", package = "imprintomeR"))
 meta <- LoadMeta("meta.tsv")  # Only needs Sample_Name and Sample_Group
 beta <- LoadBeta("cleaned_beta.tsv")   # probes × samples matrix, already QC-filtered
 
@@ -254,7 +264,7 @@ x <- ImprintomeSet(
   beta    = beta,
   meta    = meta,
   probeset = probesets[["selected"]],
-  genome  = "hg19",
+  genome  = "hg38",
   assay   = "EPIC"                     # "450K" | "EPIC" | "EPICv2"
 )
 
@@ -316,7 +326,7 @@ The sample-level IDS pools all probes of a parental class, so probe-rich ICRs do
   - **Altered call:** |deviation| ≥ 0.075 (`delta_cutoff`) and |z| ≥ 3 (`z_cutoff`) against the controls (`reference_group`/`control_group`).
   - **Thresholds:** the defaults were selected under a prespecified protocol (`benchmark/threshold_selection_protocol.md`) by leave-one-cohort-out cross-validation on six development cohorts and validated on three held-out cohorts. Versions before this used |deviation| ≥ 0.15.
   - **Without controls:** `z` is unavailable and only `delta_cutoff` applies. This setting was not validated; calls are exploratory, and a larger `delta_cutoff` (such as 0.15) is more conservative.
-  - **Summary:** `SummarizeICRStatus()` counts altered ICRs per sample and flags multi-locus imprinting disturbance (`MLID`) when altered ICRs lie on at least two chromosomes.
+  - **Summary:** `SummarizeICRStatus()` counts altered ICRs per sample and flags multi-locus imprinting disturbance (`MLID`) when altered ICRs lie on at least two chromosomes. The polymorphically imprinted `VTRNA2-1:DMR` is not counted (`exclude_icrs`). With controls from another study, between-study offsets produce non-specific calls, so the flag needs controls from the same study and processing.
   - **Heatmap:** `PlotICRHeatmap()` draws samples × ICRs.
 - **ICR-balanced IDS/Angle** (`balance = "icr"`): the median within each ICR, then the median across the class's ICRs, so that each ICR counts once.
 - **Locus panels** (`chr11p15`, `chr20q13`): two-axis IDS/Angle for a single imprinted domain.
@@ -331,6 +341,24 @@ x <- runImprintome(x, probeset = "selected", balance = "icr", icr = TRUE)
 ```
 
 From the command line: `--icr` writes the per-ICR table and summary, and `--balance icr` the ICR-balanced IDS.
+
+#### Uncertainty and calibration
+
+IDS and Angle are reported without confidence intervals or p-values by default, and there is no false-discovery-rate control. Optional resampling quantifies uncertainty:
+
+- **Bootstrap intervals** (`n_boot`): each sample's paternal and maternal deviations are recomputed by a two-stage cluster bootstrap (ICRs resampled with replacement, then probes within each ICR; `resample = "probe"` resamples probes only). The output adds `IDS_lower`/`IDS_upper`, a circular `Angle_lower`/`Angle_upper` interval and `Mechanism_support`, the fraction of replicates in the reported sector. The reference is held fixed, and because IDS is a distance its interval never includes 0.
+- **Origin permutation** (`n_perm`): the parental labels are reassigned among probes (or whole ICRs, `permute = "icr"`) and the origin contrast |paternal − maternal deviation| is recomputed; `origin_perm_p` tests whether the deviation depends on the annotated parental origin, so a shift shared by all probes is not significant. **Use it only with a control reference:** against the fixed 0.5, normal tissue already deviates slightly and unequally on the two axes, and with hundreds of probes that offset alone gives small p-values. Probe-level permutation is anti-conservative, and p-values are not adjusted for multiple testing.
+- **Calibration** (`CalibrateIDS()`): derives a cohort-specific IDS cutoff from controls (an upper quantile, the maximum, or the Youden-optimal cutoff when cases are given) and adds a robust z-score and the control percentile of each sample.
+
+```r
+x <- runImprintome(x, probeset = "chr11p15", reference_group = "control",
+                   n_boot = 2000, n_perm = 2000, seed = 1)
+res <- results(x)[["AnalyzeImprintStatus.chr11p15.ref-controls"]]
+res[, c("Sample_Name", "IDS", "IDS_lower", "IDS_upper", "Mechanism_support", "origin_perm_p")]
+
+cal <- CalibrateIDS(res, controls = "control", method = "quantile", probs = 0.99)
+attr(cal, "calibration")   # cutoff, number of controls, control median and maximum IDS
+```
 
 ### Step 4-7: Summarize, Visualize, Export
 
@@ -482,14 +510,14 @@ common_probes <- find_intersection(qcset1, qcset2, by = "probes")
 Convert QC-clean data to analysis container:
 
 ```r
-# Load probeset annotations
-probesets <- readRDS(system.file("extdata", "probesets_hg19.rds", package = "imprintomeR"))
+# Load probeset annotations (hg38; probesets_hg19.rds for GRCh37)
+probesets <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))
 
 # Convert from MethQcSet
 x <- as.ImprintomeSet(
   qcset,
   probeset = probesets[["selected"]],
-  genome = "hg19"
+  genome = "hg38"
 )
 
 # Or construct directly
@@ -497,7 +525,7 @@ x <- ImprintomeSet(
   beta = beta,
   meta = meta,
   probeset = probesets[["selected"]],
-  genome = "hg19",
+  genome = "hg38",
   assay = "EPICv1"
 )
 ```
@@ -524,7 +552,7 @@ str(x)
 #   @ beta      : num [1:865, 1:4] 0.152 0.892 0.654 0.723 ...
 #   @ meta      :'data.frame': 4 obs. of 4 variables (Sample_Name, Basename, Sample_Group, SEX)
 #   @ probeset  :'data.frame': 120 obs. of 8 variables (probeset annotations: Name, UCSC_RefGene_Name, Chromosome, etc.)
-#   @ genome    : chr "hg19"
+#   @ genome    : chr "hg38"
 #   @ assay     : chr "EPIC"
 #   @ results   :List of 1
 #     $ AnalyzeImprintStatus.selected: 'data.frame': 120 obs. of 8 variables (IDS, Angle, IDI, etc.)
@@ -550,10 +578,12 @@ s$plots
 - `violin` - methylation distribution by sample (violin plots)
 - `heatmap_by_probe` - Heatmap_by_probe (probes × samples with Illumina probe IDs)
 - `heatmap_by_gene` - gene-level aggregated heatmap (genes aggregated by Closest_TSS_gene_name)
-- `circular_heatmap` - circular heatmap with grouped sections (probes × samples arranged in circle by sample groups)
+- `circular_heatmap` - circular heatmap with grouped sections (probes × samples arranged in circle by sample groups); vector PDF by default, or raster PNG (`outFile` ending in `.png`, or `format = "png"`, `res = 300`) for large cohorts
 - `cor_heatmap` - sample-to-sample correlation heatmap
-- `rainfall` - chromosomal rainfall plot (single sample)
-- `radar` - radar/star plot of imprinting metrics (single sample)
+- `rainfall` - chromosomal rainfall plot of probe-level IDI (single sample)
+- `radar` - radar plot of ICR-level deviation (single sample): one spoke per curated ICR (median IDI of its probes), in genomic order clockwise from the top, labelled chromosome_annotated parental origin_ICR
+
+Plots coloured by parental origin use the probeset's `ORIGIN` annotation, which states which parental allele is methylated at the ICR; their legend is titled "Annotated parental origin". The colours are annotations, not allele-specific measurements.
 
 ### Standard workflow plots
 
@@ -664,7 +694,7 @@ p_circle <- plot(
   plot_type = "circular_heatmap",
   probeset = "selected",
   sectionColumn = "Sample_Group",
-  outFile = "plot_circular_heatmap.pdf"
+  outFile = "plot_circular_heatmap.pdf"   # or "plot_circular_heatmap.png" for a raster image
 )
 
 # 11) Correlation heatmap (sample-to-sample)
@@ -685,13 +715,13 @@ p_rainfall <- plot(
   outFile = paste0("plot_rainfall_", sample_id1, ".pdf")
 )
 
-# 13) Radar plot (imprinting metrics, single sample)
+# 13) Radar plot (one spoke per curated ICR, single sample)
 p_radar <- plot(
   x,
   plot_type = "radar",
-  result_name = "AnalyzeImprintStatus.selected",
+  probeset = "selected",
   sample_id = sample_id1,
-  outFile = paste0("plot_radar_", sample_id1, ".pdf")
+  outFile = paste0("plot_radar_", sample_id1, ".pdf")   # figure size grows with the label length
 )
 ```
 
@@ -811,7 +841,7 @@ The skill provides guidance only; the MCP server performs the analysis.
 
 ## Test Suite
 
-imprintomeR includes comprehensive unit tests (102+ passing tests).
+imprintomeR includes a testthat suite (139 tests), and `R CMD check` reports no errors.
 
 ### Running Tests Locally (Development)
 
@@ -840,7 +870,7 @@ export(qcset, outdir = "your_qc_output", format = c("xlsx", "rds"))
 
 # Phase 2: Analysis
 qcset <- readRDS("your_qc_output/*/data/*_qcset.rds")
-x <- as.ImprintomeSet(qcset, probeset = probesets[["selected"]])
+x <- as.ImprintomeSet(qcset)   # loads all bundled hg38 panels
 x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
 
 # Visualize and export
