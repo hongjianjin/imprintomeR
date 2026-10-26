@@ -341,9 +341,34 @@ icr_gametic <- AnalyzeICRStatus(x, probeset = "selected", reference_group = "con
 SummarizeICRStatus(icr, dmr_type = "gametic") # or count gametic ICRs only from the full table
 PlotICRHeatmap(icr_gametic, outFile = "icr_gametic_heatmap.pdf")
 
+```
+
+Within `runImprintome()`, `balance` and `icr` are independent. Every call computes one sample-level IDS/Angle table: probe-pooled by default, or ICR-balanced with `balance = "icr"`. `icr = TRUE` adds the per-ICR tables to it.
+
+```r
+# Sample-level only (probe-pooled IDS/Angle)
+x <- runImprintome(x, probeset = "selected")
+# results: AnalyzeImprintStatus.selected
+
+# Sample-level (probe-pooled) + per-ICR calls and multi-locus summary
+x <- runImprintome(x, probeset = "selected", icr = TRUE)
+# results: AnalyzeImprintStatus.selected, ICRStatus.selected, ICRSummary.selected
+
+# Sample-level (ICR-balanced) only
+x <- runImprintome(x, probeset = "selected", balance = "icr")
+# results: AnalyzeImprintStatus.selected.icr
+
+# Sample-level (ICR-balanced) + per-ICR calls and multi-locus summary
 x <- runImprintome(x, probeset = "selected", balance = "icr", icr = TRUE)
 # results: AnalyzeImprintStatus.selected.icr, ICRStatus.selected, ICRSummary.selected
+
+# Both sample-level scores: run twice; the tables have different names, so neither is overwritten
+x <- runImprintome(x, probeset = "selected", icr = TRUE)
+x <- runImprintome(x, probeset = "selected", balance = "icr")
+# results: AnalyzeImprintStatus.selected, AnalyzeImprintStatus.selected.icr, ICRStatus.selected, ICRSummary.selected
 ```
+
+Result names gain further suffixes for non-default settings, such as `.ref-controls` when scores are centred on controls.
 
 From the command line: `--icr` writes the per-ICR table, its summary and the per-ICR heatmap (`icr_heatmap` plot type), and `--balance icr` the ICR-balanced IDS.
 
