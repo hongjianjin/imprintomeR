@@ -34,6 +34,7 @@ This vignette demonstrates imprintomeR on **GSE52576**, a real-world methylation
 3. **Analyze** imprinting status across samples
 4. **Visualize** results with all available plot types
 5. **Interpret** biological patterns and aberrant imprinting
+6. **Compare** scoring options: DMR type, bootstrap intervals, ICR-balanced and per-ICR scores, and locus panels
 
 The workflow is optimized for **reproducibility** and **Jupyter notebook conversion**.
 
@@ -534,7 +535,123 @@ message("6. Compare Sample_Group summaries above to relate imprinting status to 
 ```
 ---
 
-## Phase 6: Export Results
+## Phase 6: Scoring Options
+
+The sections above use the package defaults: the `selected` panel scored on gametic ICRs against the fixed 0.5 reference. This phase shows the other scoring options on the same data. Each call adds a result table to `results(x)` under its own name, so earlier results are kept.
+
+GSE52576 has no tissue-matched control group, so all scores here use the fixed 0.5 reference.
+
+### Gametic ICRs, all probes and secondary DMRs
+
+`runImprintome()` scores the core `selected` panel on gametic ICRs by default (`dmr_type = "gametic"`). `dmr_type = "all"` scores every probe, as in earlier package versions, and `dmr_type = "secondary"` scores the secondary DMRs separately.
+
+```{r dmr-type}
+x <- runImprintome(x, probeset = "selected", dmr_type = "all")
+x <- runImprintome(x, probeset = "selected", dmr_type = "secondary")
+res <- results(x)
+
+scored <- c(gametic    = "AnalyzeImprintStatus.selected",
+            all_probes = "AnalyzeImprintStatus.selected.all",
+            secondary  = "AnalyzeImprintStatus.selected.secondary")
+
+# Probes per parental class for each selection
+t(sapply(scored, function(nm) unlist(res[[nm]][1, c("n_paternal_probes", "n_maternal_probes")])))
+
+# Mechanism of each sample under each selection
+mechanism_by_selection <- data.frame(
+  Sample_Name  = status$Sample_Name,
+  Sample_Group = status$Sample_Group,
+  sapply(scored, function(nm) res[[nm]]$Mechanism[match(status$Sample_Name, res[[nm]]$Sample_Name)])
+)
+mechanism_by_selection[order(mechanism_by_selection$Sample_Group), ]
+```
+
+The gametic paternal class is essentially the H19/IGF2 IG-DMR, so report `n_paternal_probes` alongside gametic scores.
+
+### Bootstrap confidence intervals
+
+`n_boot` adds percentile intervals for IDS and Angle from a two-stage bootstrap (ICRs, then probes within ICRs), and `Mechanism_support`, the fraction of replicates that fall in the reported sector. Use at least 1,000 replicates for reporting; 200 keep this example fast.
+
+```{r bootstrap}
+x <- runImprintome(x, probeset = "selected", n_boot = 200, seed = 2026,
+                   result_name = "AnalyzeImprintStatus.selected.boot")
+boot <- results(x)[["AnalyzeImprintStatus.selected.boot"]]
+boot[, c("Sample_Name", "Sample_Group", "IDS", "IDS_lower", "IDS_upper",
+         "Angle", "Angle_lower", "Angle_upper", "Mechanism", "Mechanism_support")]
+```
+
+The intervals are conditional on the reference. The origin permutation test (`n_perm`) is interpretable only for scores centred on control samples (`reference_group`), and `CalibrateIDS()` needs tissue-matched controls, so neither is shown here.
+
+### ICR-balanced IDS and per-ICR calls
+
+The sample-level IDS pools all probes of a parental class, so probe-rich ICRs dominate it. `balance = "icr"` takes the median within each ICR and then across ICRs, so that each ICR counts once. `icr = TRUE` also scores each ICR on its own and summarizes the altered ICRs per sample.
+
+```{r per-icr}
+x <- runImprintome(x, probeset = "selected", balance = "icr", icr = TRUE)
+res <- results(x)
+
+# Probe-pooled versus ICR-balanced IDS
+balanced <- res[["AnalyzeImprintStatus.selected.icr"]]
+data.frame(Sample_Name      = status$Sample_Name,
+           Sample_Group     = status$Sample_Group,
+           IDS_pooled       = status$IDS,
+           IDS_icr_balanced = balanced$IDS[match(status$Sample_Name, balanced$Sample_Name)])
+
+# Per-ICR table (one row per sample and ICR) and per-sample summary
+icr_table   <- res[["ICRStatus.selected"]]
+icr_summary <- res[["ICRSummary.selected"]]
+table(icr_table$DMR_type[!duplicated(icr_table$ICR_name)])   # ICRs scored, by DMR type
+icr_summary[, c("Sample_Name", "Sample_Group", "n_icrs", "n_altered", "n_gain", "n_loss",
+                "n_altered_chromosomes", "MLID")]
+
+# Count gametic ICRs only
+SummarizeICRStatus(icr_table, dmr_type = "gametic")[, c("Sample_Name", "n_icrs", "n_altered", "MLID")]
+```
+
+Per-ICR calls cover all annotated ICRs, secondary DMRs included. The call thresholds (|deviation| ≥ 0.075 and |z| ≥ 3) were validated with control samples. GSE52576 has normal tissues but no control group matched to the other samples' tissue. Without controls, `z` is unavailable and only the deviation criterion applies, so tissue-specific methylation is called altered. Note how many ICRs are called altered in samples expected to be normal. Treat these calls as exploratory, or rerun with controls from the same study (`reference_group`), or with a larger `delta_cutoff` such as 0.15.
+
+### Locus panels: chr11p15 and chr20q13 (GNAS)
+
+Locus panels give a two-axis IDS/Angle for a single imprinted domain: IC1 and IC2 at 11p15.5 (`chr11p15`), and GNAS-NESP against the maternal GNAS DMRs at 20q13 (`chr20q13`).
+
+```{r locus-panels}
+x <- runImprintome(x, probeset = "chr11p15")
+x <- runImprintome(x, probeset = "chr20q13")
+res <- results(x)
+
+do.call(rbind, lapply(c("chr11p15", "chr20q13"), function(p) {
+  res[[paste0("AnalyzeImprintStatus.", p)]] %>%
+    group_by(Sample_Group) %>%
+    summarise(panel = p, n = n(), median_IDS = round(median(IDS), 3), max_IDS = round(max(IDS), 3),
+              .groups = "drop")
+}))
+```
+
+### Per-ICR heatmap
+
+The `icr_heatmap` plot type draws the stored per-ICR table, samples by ICRs; non-gametic ICRs are marked with `*`. `runImprintomeVisualizations()` includes it in the default set whenever `runImprintome(..., icr = TRUE)` has been run.
+
+```{r plot-icr-heatmap, fig.width = 12, fig.height = 8}
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "icr_heatmap",
+  probeset = "selected",
+  prefix = "GSE52576_icr_heatmap",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+options(repr.plot.width = 12, repr.plot.height = 8)
+print(plots(x)[["icr_heatmap.selected"]])
+```
+
+```{r scoring-results}
+names(results(x))
+```
+
+---
+
+## Phase 7: Export Results
 
 ```{r export-results, eval = FALSE}
 manifest <- export(
