@@ -39,6 +39,17 @@ Package data files are shipped under `inst/extdata/`.
 
 `probesets_hg19.rds` and `probesets_hg38.rds` contain the same eleven panels in the same order: the probe-level `Jima`, `Joshi`, `Court`, `Rosenski`, `selected` (782 probes, selected on 450K and EPIC v1 and/or EPICv2: all 782 on 450K, 742 on EPIC v1, 683 on EPICv2), `NanoImprint`, `chr11p15` and `chr20q13` (GNAS) panels, and the region-level `Rosenski_region`, `chr11p15_region` and `chr20q13_region` panels. Every probe-level panel carries parental-origin (`ORIGIN`) labels, an `ICR_name` and a `DMR_type` (gametic, secondary, ambiguous or uncurated) following Monk et al. (2018), and the Infinium design type of each probe. Probe coordinates come from `anno.uniq_harmonized.liftover.rds`, which merges the Illumina 450K, EPIC v1.0 B5 and EPICv2 manifests; its chromosome labels were checked against the UCSC hg19ToHg38 and hg38ToHg19 chains.
 
+Platform coverage of the 782 `selected` probes (`ASSAY` column of `anno.uniq_harmonized.liftover.rds`). Every probe is on 450K and on EPIC v1, EPICv2 or both:
+
+| Arrays | Probes |
+|---|---|
+| 450K + EPIC v1 + EPICv2 | 643 |
+| 450K + EPIC v1 only | 99 |
+| 450K + EPICv2 only | 40 |
+| **On 450K** | **782** |
+| **On EPIC v1** | **742** |
+| **On EPICv2** | **683** |
+
 ## Table of Contents
 
 - [Installation](#installation)
