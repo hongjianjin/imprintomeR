@@ -335,10 +335,11 @@ The sample-level IDS pools all probes of a parental class, so probe-rich ICRs do
 ```r
 icr <- AnalyzeICRStatus(x, probeset = "selected", reference_group = "control")
 SummarizeICRStatus(icr)                       # altered ICRs and MLID flag per sample
+PlotICRHeatmap(icr, outFile = "icr_heatmap.pdf")
 icr_gametic <- AnalyzeICRStatus(x, probeset = "selected", reference_group = "control",
                                 dmr_type = "gametic")   # score gametic ICRs only
 SummarizeICRStatus(icr, dmr_type = "gametic") # or count gametic ICRs only from the full table
-PlotICRHeatmap(icr, outFile = "icr_heatmap.pdf")
+PlotICRHeatmap(icr_gametic, outFile = "icr_gametic_heatmap.pdf")
 
 x <- runImprintome(x, probeset = "selected", balance = "icr", icr = TRUE)
 # results: AnalyzeImprintStatus.selected.icr, ICRStatus.selected, ICRSummary.selected
