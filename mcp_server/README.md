@@ -38,7 +38,7 @@ claude mcp add --transport http imprintomeR http://127.0.0.1:8000/mcp
 claude mcp list
 ```
 
-After registration, ask the client to call `package_info`. The response should report package version `1.1.5`. If no imprintomeR tools appear, confirm that the server process is still running, the client is using the same machine/environment, and that the endpoint is exactly `http://127.0.0.1:8000/mcp`.
+After registration, ask the client to call `package_info`. The response should report package version `1.5.0`. If no imprintomeR tools appear, confirm that the server process is still running, the client is using the same machine/environment, and that the endpoint is exactly `http://127.0.0.1:8000/mcp`.
 
 Codex can use the same `http://127.0.0.1:8000/mcp` endpoint through its MCP/server settings.
 ## Analysis tools

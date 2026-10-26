@@ -1,6 +1,6 @@
 # Session information
 
-The R session used to build and test imprintomeR 1.1.5 (2026-10-26), recorded with:
+The R session used to build and test imprintomeR 1.5.0 (2026-10-26), recorded with:
 
 ```r
 library(imprintomeR)
@@ -29,7 +29,7 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
-[1] imprintomeR_1.1.5
+[1] imprintomeR_1.5.0
 
 loaded via a namespace (and not attached):
  [1] tidyr_1.3.1           generics_0.1.4        shape_1.4.6.1        

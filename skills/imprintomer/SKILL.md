@@ -6,7 +6,7 @@ version: 1.0.0
 validated_against:
   - date: 2026-08-25
     package: imprintomeR
-    package_version: 1.1.5
+    package_version: 1.5.0
     checks: Direct CLI entry points and workflow consistency review
 tags:
   - skill

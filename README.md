@@ -947,4 +947,4 @@ Detailed workflows and visualization tutorials are available in the package vign
 
 ## SessionInfo
 
-The R session used to build and test this version (R 4.3.3, imprintomeR 1.1.5), with the versions of the declared dependencies, is recorded in [vignettes/sessionInfo.md](vignettes/sessionInfo.md).
+The R session used to build and test this version (R 4.3.3, imprintomeR 1.5.0), with the versions of the declared dependencies, is recorded in [vignettes/sessionInfo.md](vignettes/sessionInfo.md).
