@@ -351,6 +351,29 @@ test_that("export uses 12 x 12 inch default for stored radar PDFs", {
   expect_true(grepl("/MediaBox \\[0 0 864 864\\]", pdf_text, useBytes = TRUE))
 })
 
+test_that("export keeps the figure size a radar plot records, unless width/height are given", {
+  skip_if_not_installed("ggplot2")
+
+  d <- make_synthetic_imprintome_inputs()
+  x <- ImprintomeSet(beta = d$beta, meta = d$meta, probeset = d$probeset, genome = "hg19", assay = "EPICv1")
+  p <- ggplot2::ggplot(data.frame(x = 1:3, y = 1:3), ggplot2::aes(x, y)) + ggplot2::geom_point()
+  attr(p, "imprintomeR_figure_size") <- 17          # as recorded by PlotRadar()
+  plots(x) <- c(plots(x), list(radar.selected = p))
+
+  media_box <- function(f) {
+    txt <- paste(rawToChar(readBin(f, what = "raw", n = file.info(f)$size), multiple = TRUE), collapse = "")
+    regmatches(txt, regexpr("/MediaBox \\[[0-9 .]+\\]", txt, useBytes = TRUE))
+  }
+  outdir <- tempfile("imprintome_export_radar_size_")
+  on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)
+
+  export(x, outdir = outdir, prefix = "demo", save_plots = TRUE, plot_names = "radar.selected")
+  expect_equal(media_box(file.path(outdir, "demo_plot_radar.selected.pdf")), "/MediaBox [0 0 1224 1224]")
+
+  export(x, outdir = outdir, prefix = "fixed", save_plots = TRUE, plot_names = "radar.selected", width = 10, height = 9)
+  expect_equal(media_box(file.path(outdir, "fixed_plot_radar.selected.pdf")), "/MediaBox [0 0 720 648]")
+})
+
 test_that("Meth_QC returns deterministic tabular QC outputs", {
   with_synthetic_probeset_fixture({
     d <- make_synthetic_imprintome_inputs()

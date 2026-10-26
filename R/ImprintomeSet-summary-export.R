@@ -127,10 +127,12 @@ methods::setMethod(
 #' @param plot_names Character vector of plot names to export when `save_plots=TRUE`.
 #'   `NULL` means all stored plots.
 #' @param plot_device Graphics device for ggplot export (`"pdf"` or `"png"`).
-#' @param width Plot width in inches. `NULL` uses plot-specific defaults
-#'   (`12` for radar plots, otherwise `8`).
-#' @param height Plot height in inches. `NULL` uses plot-specific defaults
-#'   (`12` for radar plots, otherwise `6`).
+#' @param width Plot width in inches. `NULL` uses the figure size recorded by the
+#'   plot (radar plots from [PlotRadar()] record a square size that leaves room for
+#'   their labels, about 17 in for the `selected` panel), otherwise plot-specific
+#'   defaults (`12` for radar plots, otherwise `8`).
+#' @param height Plot height in inches. `NULL` uses the recorded figure size as for
+#'   `width`, otherwise plot-specific defaults (`12` for radar plots, otherwise `6`).
 #' @param overwrite Logical; overwrite existing files.
 #' @param ... Reserved for future extensions.
 #'
@@ -264,18 +266,23 @@ methods::setMethod(
           stop("plot_device must be one of: pdf, png")
         }
 
-        plot_dims <- function(plot_name) {
+        plot_dims <- function(plot_name, pobj) {
+          # A plot that records its own figure size (PlotRadar() sizes the page to fit its labels) keeps it.
+          fig_in <- attr(pobj, "imprintomeR_figure_size")
+          fig_in <- if (is.numeric(fig_in) && length(fig_in) == 1L && is.finite(fig_in) && fig_in > 0) fig_in else NULL
           is_radar <- grepl("(^|[_.-])radar([_.-]|$)", plot_name, ignore.case = TRUE)
+          default_w <- if (!is.null(fig_in)) fig_in else if (is_radar) 12 else 8
+          default_h <- if (!is.null(fig_in)) fig_in else if (is_radar) 12 else 6
           c(
-            width = if (is.null(width)) if (is_radar) 12 else 8 else as.numeric(width)[1],
-            height = if (is.null(height)) if (is_radar) 12 else 6 else as.numeric(height)[1]
+            width = if (is.null(width)) default_w else as.numeric(width)[1],
+            height = if (is.null(height)) default_h else as.numeric(height)[1]
           )
         }
 
         for (nm in plot_names) {
           pobj <- p_list[[nm]]
           safe_nm <- sanitize_name(nm)
-          dims <- plot_dims(nm)
+          dims <- plot_dims(nm, pobj)
 
           if (inherits(pobj, "ggplot") || inherits(pobj, "patchwork")) {
             fpath <- file.path(outdir, paste0(safe_prefix, "_plot_", safe_nm, ".", plot_device))
