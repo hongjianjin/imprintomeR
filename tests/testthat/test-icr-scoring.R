@@ -148,3 +148,35 @@ test_that("SummarizeICRStatus leaves polymorphic VTRNA2-1 out of the counts by d
   expect_false(SummarizeICRStatus(tab)$MLID)
   expect_true(SummarizeICRStatus(tab, exclude_icrs = NULL)$MLID)
 })
+
+test_that("dmr_type restricts per-ICR scores and the multi-locus summary", {
+  d <- .make_icr_fixture()
+  d$probeset$DMR_type[d$probeset$ICR_name %in% "matB"] <- "secondary"
+  .with_icr_panel(d$probeset, {
+    all_icrs <- .quiet(AnalyzeICRStatus(d$beta, d$meta, probeset = "selected", reference = "fixed"))
+    expect_setequal(unique(all_icrs$ICR_name), c("matA", "matB", "patP"))   # default scores every ICR
+    expect_equal(unique(all_icrs$DMR_type[all_icrs$ICR_name == "matB"]), "secondary")
+    expect_equal(.quiet(AnalyzeICRStatus(d$beta, d$meta, probeset = "selected", reference = "fixed", dmr_type = "all")),
+                 all_icrs)
+
+    gametic <- .quiet(AnalyzeICRStatus(d$beta, d$meta, probeset = "selected", reference = "fixed", dmr_type = "gametic"))
+    expect_setequal(unique(gametic$ICR_name), c("matA", "patP"))
+    expect_true(all(gametic$DMR_type == "gametic"))
+    key <- c("Sample_Name", "ICR_name", "deviation", "altered")
+    expect_equal(gametic[, key], all_icrs[all_icrs$ICR_name != "matB", key], ignore_attr = TRUE)  # each ICR scored on its own
+
+    # X2 is altered at matA (chr1) and secondary matB (chr2): multi-locus only when matB is counted.
+    s_all <- SummarizeICRStatus(all_icrs)
+    s_gam <- SummarizeICRStatus(all_icrs, dmr_type = "gametic")
+    expect_equal(s_all$n_altered[s_all$Sample_Name == "X2"], 2)
+    expect_true(s_all$MLID[s_all$Sample_Name == "X2"])
+    expect_equal(s_gam$n_altered[s_gam$Sample_Name == "X2"], 1)
+    expect_false(s_gam$MLID[s_gam$Sample_Name == "X2"])
+    expect_equal(SummarizeICRStatus(gametic)[, c("n_altered", "MLID")], s_gam[, c("n_altered", "MLID")], ignore_attr = TRUE)
+  })
+  no_type <- d$probeset[, setdiff(colnames(d$probeset), "DMR_type")]
+  .with_icr_panel(no_type, {
+    expect_error(.quiet(AnalyzeICRStatus(d$beta, d$meta, probeset = "selected", dmr_type = "gametic")),
+                 "no DMR_type column")
+  })
+})
