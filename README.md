@@ -94,6 +94,7 @@ Platform coverage of the 782 `selected` probes (`ASSAY` column of `anno.uniq_har
 - [Test Suite](#test-suite)
   - [Running Tests Locally (Development)](#running-tests-locally-development)
 - [Vignettes](#vignettes)
+- [SessionInfo](#sessioninfo)
 
 ## Architecture: Preprocessing-First Workflow
 
@@ -943,3 +944,7 @@ Detailed workflows and visualization tutorials are available in the package vign
 - [imprintomeR_cli_README.md](vignettes/imprintomeR_cli_README.md) - Command-line QC and imprintome analysis workflows
 - [GSE52567.ipynb](vignettes/GSE52567.ipynb) - GitHub-renderable notebook for a public GEO workflow
 - [GSE240091.ipynb](vignettes/GSE240091.ipynb) - GitHub-renderable notebook for QC and imprintomeR workflow on a public GEO cohort
+
+## SessionInfo
+
+The R session used to build and test this version (R 4.3.3, imprintomeR 1.1.5), with the versions of the declared dependencies, is recorded in [vignettes/sessionInfo.md](vignettes/sessionInfo.md).
