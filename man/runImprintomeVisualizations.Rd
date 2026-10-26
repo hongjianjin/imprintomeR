@@ -30,7 +30,10 @@ runImprintomeVisualizations(
 \item{x}{An \code{ImprintomeSet} object.}
 
 \item{plot_types}{Character vector of plot types. Use \code{"default"} for the
-standard workflow set, or \code{"all"} for all supported non-auto plot types.}
+standard workflow set, or \code{"all"} for all supported non-auto plot types.
+\code{"icr_heatmap"} draws \code{\link[=PlotICRHeatmap]{PlotICRHeatmap()}} from the per-ICR table stored by
+\code{runImprintome(icr = TRUE)}; \code{"default"} and \code{"all"} include it when that
+table is present.}
 
 \item{probeset}{Probeset name passed to plot backends.}
 

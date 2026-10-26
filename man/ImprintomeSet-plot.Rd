@@ -17,9 +17,13 @@
 \item \code{plot_type}: one of \code{"auto"}, \code{"polar"}, \code{"mirror_density"},
 \code{"beeswarm"}, \code{"beeswarm_origin"}, \code{"beeswarm_chr"}, \code{"violin"},
 \code{"heatmap_by_probe"}, \code{"heatmap_by_gene"}, \verb{"circular_heatmap",}
-\code{"cor_heatmap"}, \code{"rainfall"}, \code{"radar"}.
+\code{"cor_heatmap"}, \code{"rainfall"}, \code{"radar"}, \code{"icr_heatmap"}.
 \item \code{plot_name}: specific stored plot name in \code{plots(x)}.
 \item \code{result_name}: specific results table name in \code{results(x)}.
+\code{plot_type = "icr_heatmap"} draws \code{\link[=PlotICRHeatmap]{PlotICRHeatmap()}} from the per-ICR table
+\verb{ICRStatus.<probeset>} stored by \code{runImprintome(icr = TRUE)} (or from
+\code{result_name} when it names an \code{\link[=AnalyzeICRStatus]{AnalyzeICRStatus()}} table); \code{limit} sets
+the colour limit (default 0.4).
 \item \code{colorColumn}: grouping column for \code{PlotPolar()} (default \code{"Sample_Group"}; if missing from result data, automatically created with all samples grouped as \code{"All"}).
 \item \code{title}: plot title (default \code{"ImprintomeR:Polar"}).
 \item \code{palette}: palette passed to \code{PlotPolar()} (default \code{"default"}).

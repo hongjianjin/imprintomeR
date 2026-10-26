@@ -11,9 +11,13 @@
 #'   - `plot_type`: one of `"auto"`, `"polar"`, `"mirror_density"`,
 #'     `"beeswarm"`, `"beeswarm_origin"`, `"beeswarm_chr"`, `"violin"`,
 #'     `"heatmap_by_probe"`, `"heatmap_by_gene"`, `"circular_heatmap",`
-#'     `"cor_heatmap"`, `"rainfall"`, `"radar"`.
+#'     `"cor_heatmap"`, `"rainfall"`, `"radar"`, `"icr_heatmap"`.
 #'   - `plot_name`: specific stored plot name in `plots(x)`.
 #'   - `result_name`: specific results table name in `results(x)`.
+#'     `plot_type = "icr_heatmap"` draws [PlotICRHeatmap()] from the per-ICR table
+#'     `ICRStatus.<probeset>` stored by `runImprintome(icr = TRUE)` (or from
+#'     `result_name` when it names an [AnalyzeICRStatus()] table); `limit` sets
+#'     the colour limit (default 0.4).
 #'   - `colorColumn`: grouping column for `PlotPolar()` (default `"Sample_Group"`; if missing from result data, automatically created with all samples grouped as `"All"`).
 #'   - `title`: plot title (default `"ImprintomeR:Polar"`).
 #'   - `palette`: palette passed to `PlotPolar()` (default `"default"`).
@@ -100,6 +104,19 @@ if (!methods::isGeneric("plot")) {
     return(NULL)
   }
   r_list[[valid_names[1]]]
+}
+
+# Per-ICR table (AnalyzeICRStatus output) for plot_type = "icr_heatmap": `result_name` when it names
+# one, otherwise ICRStatus.<probeset> as stored by runImprintome(icr = TRUE); NULL if absent.
+.imprint_icr_table <- function(r_list, result_name = NULL, probeset_name = "selected") {
+  icr_cols <- c("Sample_Name", "ICR_name", "deviation", "ORIGIN", "altered")
+  for (nm in c(result_name, paste0("ICRStatus.", probeset_name))) {
+    if (!is.null(nm) && nzchar(nm) && nm %in% names(r_list)) {
+      tbl <- r_list[[nm]]
+      if (is.data.frame(tbl) && all(icr_cols %in% colnames(tbl))) return(tbl)
+    }
+  }
+  NULL
 }
 
 .imprint_choose_sample_id <- function(beta_x, meta_x = NULL, requested_sample = NULL) {
@@ -403,6 +420,7 @@ methods::setMethod(
       "cor_heatmap" = "ImprintomeR: Correlation",
       "rainfall" = "ImprintomeR: Rainfall",
       "radar" = "ImprintomeR: Radar",
+      "icr_heatmap" = "Per-ICR deviation",
       "ImprintomeR:Polar"  # fallback
     )
     title <- .imprint_get_arg_chr(args, "title", default_title)
@@ -430,7 +448,7 @@ methods::setMethod(
 
     valid_plot_types <- c(
       "auto", "polar", "mirror_density", "beeswarm", "beeswarm_origin", "beeswarm_chr", "violin",
-      "heatmap_by_probe", "heatmap_by_gene", "circular_heatmap", "cor_heatmap", "rainfall", "radar"
+      "heatmap_by_probe", "heatmap_by_gene", "circular_heatmap", "cor_heatmap", "rainfall", "radar", "icr_heatmap"
     )
     if (!(plot_type %in% valid_plot_types)) {
       stop("Unsupported plot_type: ", plot_type)
@@ -542,6 +560,24 @@ methods::setMethod(
           legend.page = legend.page,
           legend.page.threshold = legend.page.threshold,
           legend.text.size = legend.text.size
+        )
+      )
+    }
+
+    if (plot_type == "icr_heatmap") {
+      icr_table <- .imprint_icr_table(r_list, result_name, probeset_name)
+      if (is.null(icr_table)) {
+        stop("plot_type='icr_heatmap' requires the per-ICR table ICRStatus.", probeset_name,
+             " in results(x); run runImprintome(x, probeset = \"", probeset_name, "\", icr = TRUE) first.")
+      }
+      return(
+        PlotICRHeatmap(
+          icr_table,
+          title = title,
+          limit = if (!is.null(args$limit)) as.numeric(args$limit)[1] else 0.4,
+          outFile = outFile,
+          width = if (!is.null(args$width)) width else 12,
+          height = if (!is.null(args$height)) height else 8
         )
       )
     }

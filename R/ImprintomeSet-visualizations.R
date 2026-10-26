@@ -8,6 +8,9 @@
 #' @param x An `ImprintomeSet` object.
 #' @param plot_types Character vector of plot types. Use `"default"` for the
 #'   standard workflow set, or `"all"` for all supported non-auto plot types.
+#'   `"icr_heatmap"` draws [PlotICRHeatmap()] from the per-ICR table stored by
+#'   `runImprintome(icr = TRUE)`; `"default"` and `"all"` include it when that
+#'   table is present.
 #' @param probeset Probeset name passed to plot backends.
 #' @param result_name Optional result table name for result-driven plots.
 #' @param sample_id Optional sample ID for sample-level plot types.
@@ -81,13 +84,17 @@ runImprintomeVisualizations <- function(x,
     "circular_heatmap",
     "cor_heatmap",
     "rainfall",
-    "radar"
+    "radar",
+    "icr_heatmap"
   )
+  # The per-ICR heatmap needs the ICRStatus table of runImprintome(icr = TRUE); the default and
+  # "all" sets include it only when that table is present.
+  has_icr <- !is.null(.imprint_icr_table(results(x), result_name, probeset))
 
   if (identical(plot_types, "default")) {
-    plot_types <- default_types
+    plot_types <- c(default_types, if (has_icr) "icr_heatmap")
   } else if (identical(plot_types, "all")) {
-    plot_types <- all_types
+    plot_types <- if (has_icr) all_types else setdiff(all_types, "icr_heatmap")
   }
   plot_types <- unique(tolower(as.character(plot_types)))
 

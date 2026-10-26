@@ -40,7 +40,7 @@ option_list <- list(
         help = "ICR probeset: selected, NanoImprint, Joshi, Court, Rosenski, Jima, chr11p15, chr20q13 [default: %default]"),
 
     make_option(c("--plot-types"), type = "character", default = "default",
-        help = "Comma-separated plot types, or default/all. Supported: polar, beeswarm, beeswarm_origin, beeswarm_chr, heatmap_by_probe, heatmap_by_gene, circular_heatmap, rainfall, radar, mirror_density, violin, cor_heatmap [default: %default]"),
+        help = "Comma-separated plot types, or default/all. Supported: polar, beeswarm, beeswarm_origin, beeswarm_chr, heatmap_by_probe, heatmap_by_gene, circular_heatmap, rainfall, radar, mirror_density, violin, cor_heatmap, icr_heatmap (needs --icr) [default: %default]"),
 
     make_option(c("--ids-cutoff"), type = "double", default = 0.2,
         help = "IDS cutoff threshold for plot filtering [default: %default]"),
@@ -219,7 +219,7 @@ tryCatch({
 
     # Validate plot types if specified
     if (!is.na(args$`plot-types`)) {
-        valid_plots <- c("default", "polar", "beeswarm", "beeswarm_origin", "beeswarm_chr", "heatmap_by_probe", "heatmap_by_gene", "circular_heatmap", "rainfall", "radar", "mirror_density", "violin", "cor_heatmap", "all")
+        valid_plots <- c("default", "polar", "beeswarm", "beeswarm_origin", "beeswarm_chr", "heatmap_by_probe", "heatmap_by_gene", "circular_heatmap", "rainfall", "radar", "mirror_density", "violin", "cor_heatmap", "icr_heatmap", "all")
         plot_types <- strsplit(tolower(args$`plot-types`), ",\\s*")[[1]]
         invalid_plots <- setdiff(plot_types, valid_plots)
         if (length(invalid_plots) > 0 && !("all" %in% plot_types)) {

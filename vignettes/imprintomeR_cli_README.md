@@ -187,7 +187,7 @@ The beta matrix should have probes as rows and samples as columns. Metadata shou
 | `--reference-file` | none | External control reference: a beta matrix file or an `.rds` from `BuildReferenceProfile()`. Without controls, the fixed 0.5 reference is used. |
 | `--infinium-type` | all | Infinium design types to score: `all`, `I`, `II`, or `balanced` (deviations computed within type I and type II probes and averaged). |
 | `--balance` | probe | Pooling for the sample-level IDS: `probe` (median over probes) or `icr` (median within each ICR, then across ICRs). |
-| `--icr` | FALSE | Also score each ICR (`AnalyzeICRStatus()`) and write the per-ICR table and its per-sample multi-locus summary. |
+| `--icr` | FALSE | Also score each ICR (`AnalyzeICRStatus()`) and write the per-ICR table, its per-sample multi-locus summary and, with the default or `all` plot set, the per-ICR heatmap (`icr_heatmap`). |
 | `--skip-plots` | FALSE | Skip the ordinary plot workflow; explicit `--rainfall-all`, `--radar-all`, and `--beeswarm-chr-all` outputs still run. |
 | `--rainfall-all` | NULL | Pass `TRUE` to generate one multipage rainfall PDF containing every sample. |
 | `--radar-all` | NULL | Pass `TRUE` to generate one multipage radar PDF containing every sample. |
@@ -206,6 +206,7 @@ The beta matrix should have probes as rows and samples as columns. Metadata shou
 - `radar`
 - `beeswarm_chr`
 - `rainfall`
+- `icr_heatmap` (with `--icr`): samples × ICRs heatmap of the per-ICR deviations (`PlotICRHeatmap()`); non-gametic ICRs are marked with `*`
 
 `circular_heatmap` is not included in `default`. Request it explicitly when needed:
 

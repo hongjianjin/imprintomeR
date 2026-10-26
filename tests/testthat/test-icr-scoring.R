@@ -180,3 +180,30 @@ test_that("dmr_type restricts per-ICR scores and the multi-locus summary", {
                  "no DMR_type column")
   })
 })
+
+test_that("icr_heatmap plot type draws the stored per-ICR table", {
+  d <- .make_icr_fixture()
+  .with_icr_panel(d$probeset, {
+    x0 <- ImprintomeSet(beta = d$matrix, meta = d$meta, probeset = d$probeset, genome = "hg38", assay = "EPICv1")
+    expect_error(plot(x0, plot_type = "icr_heatmap"), "icr = TRUE")
+    x <- .quiet(suppressWarnings(runImprintome(x0, probeset = "selected", icr = TRUE)))
+
+    p <- plot(x, plot_type = "icr_heatmap")
+    expect_true(inherits(p, "ggplot"))
+    expect_equal(p$labels$title, "Per-ICR deviation")
+    expect_setequal(unique(as.character(p$data$ICR_name)), unique(results(x)[["ICRStatus.selected"]]$ICR_name))
+    f <- tempfile(fileext = ".pdf")
+    plot(x, plot_type = "icr_heatmap", outFile = f, title = "ICRs")
+    expect_true(file.exists(f) && file.info(f)$size > 0)
+
+    v <- runImprintomeVisualizations(x, plot_types = "icr_heatmap", verbose = FALSE)
+    expect_true(inherits(plots(v)[["icr_heatmap.selected"]], "ggplot"))
+    expect_equal(attr(v, "visualization_manifest")$status, "stored")
+
+    # Included in the default set only when the per-ICR table is present.
+    with_icr <- suppressWarnings(runImprintomeVisualizations(x, store_plots = FALSE, verbose = FALSE))
+    without <- suppressWarnings(runImprintomeVisualizations(x0, store_plots = FALSE, verbose = FALSE))
+    expect_true("icr_heatmap" %in% attr(with_icr, "visualization_manifest")$plot_type)
+    expect_false("icr_heatmap" %in% attr(without, "visualization_manifest")$plot_type)
+  })
+})

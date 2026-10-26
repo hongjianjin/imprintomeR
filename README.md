@@ -328,7 +328,7 @@ The sample-level IDS pools all probes of a parental class, so probe-rich ICRs do
   - **Without controls:** `z` is unavailable and only `delta_cutoff` applies. This setting was not validated; calls are exploratory, and a larger `delta_cutoff` (such as 0.15) is more conservative.
   - **Summary:** `SummarizeICRStatus()` counts altered ICRs per sample and flags multi-locus imprinting disturbance (`MLID`) when altered ICRs lie on at least two chromosomes. The polymorphically imprinted `VTRNA2-1:DMR` is not counted (`exclude_icrs`). With controls from another study, between-study offsets produce non-specific calls, so the flag needs controls from the same study and processing.
   - **ICRs scored:** all annotated ICRs, gametic and secondary; the `DMR_type` column records each ICR's type. This differs from the sample-level default for `selected` (gametic only). Pooling secondary DMRs into a parental class lets their tissue variability shift the class median. Per-ICR, each ICR is scored on its own, against the controls where a cohort has them, so a secondary DMR cannot distort the others. Several diagnostically relevant DMRs are secondary (for example `GNAS A/B:TSS-DMR`, `MEG3:TSS-DMR` and the `SNRPN` DMRs). To restrict to gametic ICRs, set `dmr_type = "gametic"` in `AnalyzeICRStatus()` or `SummarizeICRStatus()`. This is worth doing in cohorts without controls, where the fixed 0.5 reference cannot absorb tissue-specific methylation at secondary DMRs.
-  - **Heatmap:** `PlotICRHeatmap()` draws samples × ICRs; non-gametic ICRs are marked with `*`.
+  - **Heatmap:** `PlotICRHeatmap()` draws samples × ICRs; non-gametic ICRs are marked with `*`. After `runImprintome(icr = TRUE)`, `plot(x, plot_type = "icr_heatmap")` and `runImprintomeVisualizations()` draw it from the stored `ICRStatus.<probeset>` table.
 - **ICR-balanced IDS/Angle** (`balance = "icr"`): the median within each ICR, then the median across the class's ICRs, so that each ICR counts once.
 - **Locus panels** (`chr11p15`, `chr20q13`): two-axis IDS/Angle for a single imprinted domain.
 
@@ -345,7 +345,7 @@ x <- runImprintome(x, probeset = "selected", balance = "icr", icr = TRUE)
 # results: AnalyzeImprintStatus.selected.icr, ICRStatus.selected, ICRSummary.selected
 ```
 
-From the command line: `--icr` writes the per-ICR table and summary, and `--balance icr` the ICR-balanced IDS.
+From the command line: `--icr` writes the per-ICR table, its summary and the per-ICR heatmap (`icr_heatmap` plot type), and `--balance icr` the ICR-balanced IDS.
 
 #### Uncertainty and calibration
 
@@ -592,7 +592,7 @@ Plots coloured by parental origin use the probeset's `ORIGIN` annotation, which 
 
 ### Standard workflow plots
 
-`plot_types = "default"` runs the standard workflow set: `polar`, `beeswarm_origin`, `mirror_density`, `heatmap_by_probe`, `heatmap_by_gene`, `radar`, `beeswarm_chr`, and `rainfall`. `circular_heatmap` is available when requested explicitly, or with `plot_types = "all"`.
+`plot_types = "default"` runs the standard workflow set: `polar`, `beeswarm_origin`, `mirror_density`, `heatmap_by_probe`, `heatmap_by_gene`, `radar`, `beeswarm_chr`, and `rainfall`. `circular_heatmap` is available when requested explicitly, or with `plot_types = "all"`. After `runImprintome(icr = TRUE)`, both sets also include `icr_heatmap`, the per-ICR heatmap.
 
 ```r
 sample_id1 <- colnames(beta(x))[2]
