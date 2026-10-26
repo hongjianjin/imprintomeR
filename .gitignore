@@ -17,3 +17,6 @@ test_set/
 .Rdata
 .RProfile
 
+
+# Local rebuttal notes
+tmp_rebuttal_progress.md
