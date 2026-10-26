@@ -76,7 +76,7 @@ Package data files are shipped under `inst/extdata/`.
 Raw methylation arrays often come from mixed platforms (450K, EPICv1, EPICv2). The **MethQcSet** container isolates QC processing for a single platform, preventing silent data corruption from cross-platform merging.
 
 <p align="center">
-  <img src="images/Figure1_workflow.png" alt="imprintomeR workflow" width="720" />
+  <img src="images/workflow.jpg" alt="imprintomeR workflow" width="720" />
 </p>
 
 ```
