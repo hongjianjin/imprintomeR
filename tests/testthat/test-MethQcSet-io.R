@@ -166,3 +166,15 @@ test_that("SaveTableStyle formats ctrl_metrics with ewastools (Bkg) columns", {
   expect_true(any(grepl("^B2:B3$", names(cf))))   # "Bisulfite Conversion I Green" itself, not its (Bkg) column
   expect_false(any(grepl("^C2:C3$", names(cf))))
 })
+
+test_that(".quiet_ewastools hides printing and the type.convert as.is warning only", {
+  noisy <- function() {
+    print(1051943)
+    warning("'as.is' should be specified by the caller; using TRUE")
+    42
+  }
+  expect_silent(res <- .quiet_ewastools(noisy()))
+  expect_equal(res, 42)
+  expect_warning(.quiet_ewastools({ warning("other problem"); 1 }), "other problem")
+  expect_error(.quiet_ewastools(stop("boom")), "boom")
+})

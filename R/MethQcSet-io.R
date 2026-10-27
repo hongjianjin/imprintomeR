@@ -469,10 +469,10 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
   # ------------------------------------------------------------------
   tryCatch({
     message("Running ewastools-based QC (ctrl_metrics, contamination, predUniqDonor_ID)...")
-    meth_et <- ewastools::read_idats(meta$Basename, quiet = TRUE)
+    meth_et <- .quiet_ewastools(ewastools::read_idats(meta$Basename, quiet = TRUE))
 
     # Control probe metrics
-    ctrls   <- ewastools::control_metrics(meth_et)
+    ctrls   <- .quiet_ewastools(ewastools::control_metrics(meth_et))
     ctrl_df <- as.data.frame(do.call(cbind, lapply(ctrls, as.numeric)))
     colnames(ctrl_df) <- names(ctrls)
     ctrl_df <- cbind(
@@ -495,16 +495,16 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
     beta_ew   <- pmax(meth_et$M, 1) / (pmax(meth_et$U, 1) + pmax(meth_et$M, 1))
     snp_rows  <- meth_et$manifest[meth_et$manifest$probe_type == "rs", ]
     snps      <- beta_ew[snp_rows$index, , drop = FALSE]
-    genotypes <- ewastools::call_genotypes(snps, learn = FALSE)
+    genotypes <- .quiet_ewastools(ewastools::call_genotypes(snps, learn = FALSE))
 
     # Contamination: SNP agreement check
     donor_ids <- if ("Donor_ID" %in% colnames(meta)) meta$Donor_ID else meta$Sample_Name
     sample_ids <- if ("Sample_Name" %in% colnames(meta)) meta$Sample_Name else colnames(beta)
-    cont_res <- ewastools::check_snp_agreement(genotypes, donor_ids, sample_ids)
+    cont_res <- .quiet_ewastools(ewastools::check_snp_agreement(genotypes, donor_ids, sample_ids))
     qcset@qc_tables[["contamination"]] <- as.data.frame(cont_res)
 
     # Predicted unique donor IDs
-    pred_donor <- ewastools::enumerate_sample_donors(genotypes)
+    pred_donor <- .quiet_ewastools(ewastools::enumerate_sample_donors(genotypes))
     qm <- qcset@qc_tables[["QC_matrix"]]
     qm$predictedDonorID <- pred_donor
     qcset@qc_tables[["QC_matrix"]] <- qm
@@ -779,4 +779,17 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
     !is.na(value) & value < threshold
   })
   ifelse(Reduce(`|`, failed), "FAIL", "PASS")
+}
+
+# Run an ewastools call without its console noise: read_idats() prints the number of SNP probes
+# even with quiet = TRUE, and some ewastools/dependency versions call type.convert() without
+# as.is. Only that warning is muffled; other warnings and errors propagate.
+.quiet_ewastools <- function(expr) {
+  out <- NULL
+  utils::capture.output(out <- withCallingHandlers(expr, warning = function(w) {
+    if (grepl("'as.is' should be specified by the caller", conditionMessage(w), fixed = TRUE)) {
+      invokeRestart("muffleWarning")
+    }
+  }))
+  out
 }
