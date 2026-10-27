@@ -131,3 +131,17 @@ test_that("runMethQC() errors when IDAT files don't exist", {
 test_that("runMethQC() errors when meta is not a data.frame", {
   expect_error(runMethQC("not_a_df"), regexp = "data.frame")
 })
+
+test_that("CtrlMetrics.QC fails only on bisulfite conversion I", {
+  metric <- function(v, threshold) structure(v, threshold = threshold)
+  ctrls <- list(
+    `Bisulfite Conversion I Green` = metric(c(5, 0.5, 5, 5, NA), 1),
+    `Bisulfite Conversion I Red`   = metric(c(5, 5, 0.8, 5, 5), 1),
+    `Bisulfite Conversion II`      = metric(c(5, 5, 5, 0.2, 5), 1),
+    `Staining Green`               = metric(c(9, 9, 9, 1, 9), 5)
+  )
+  # Sample 4 fails bisulfite conversion II and staining, which are reported but not used.
+  expect_equal(.ctrl_metrics_qc(ctrls), c("PASS", "FAIL", "FAIL", "PASS", "PASS"))
+  expect_true(all(ewastools::sample_failure(ctrls)[2:4]))   # ewastools would fail sample 4 too
+  expect_error(.ctrl_metrics_qc(ctrls[-1]), "Bisulfite Conversion I Green")
+})

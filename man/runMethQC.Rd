@@ -101,6 +101,13 @@ for platform \code{"EPICv2"} (or an unrecognized array with more than 1.1 millio
 probes) the minfi annotation is set to \code{IlluminaHumanMethylationEPICv2} /
 \verb{20a1.hg38}. This requires the \code{IlluminaHumanMethylationEPICv2manifest} and
 \code{IlluminaHumanMethylationEPICv2anno.20a1.hg38} packages.
+
+\code{Final.QC} in \code{qc_tables(x)$QC_matrix} is \code{"PASS"} when at least 95\% of
+probes are detected at p < 0.05 and, when the ewastools control metrics
+could be computed, \code{CtrlMetrics.QC} is \code{"PASS"}. \code{CtrlMetrics.QC} is \code{"FAIL"}
+only when Bisulfite Conversion I Green or Red falls below its ewastools
+threshold (1). The other control metrics are reported in
+\code{qc_tables(x)$ctrl_metrics} but do not fail a sample.
 }
 \examples{
 \dontrun{

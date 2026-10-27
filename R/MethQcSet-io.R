@@ -301,6 +301,14 @@ check_platform <- function(meta, max_retries = 5) {
 #'   the resolved platform name is used.
 #' @param ... Additional arguments passed to `minfi::read.metharray.exp()`.
 #'
+#' @details
+#' `Final.QC` in `qc_tables(x)$QC_matrix` is `"PASS"` when at least 95% of
+#' probes are detected at p < 0.05 and, when the ewastools control metrics
+#' could be computed, `CtrlMetrics.QC` is `"PASS"`. `CtrlMetrics.QC` is `"FAIL"`
+#' only when Bisulfite Conversion I Green or Red falls below its ewastools
+#' threshold (1). The other control metrics are reported in
+#' `qc_tables(x)$ctrl_metrics` but do not fail a sample.
+#'
 #' @return A `MethQcSet` object with:
 #'   \itemize{
 #'     \item `beta` slot populated from `minfi::getBeta()` after `normalization`
@@ -471,7 +479,7 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
       data.frame(Sample_Name = colnames(beta), stringsAsFactors = FALSE),
       round(ctrl_df, 2)
     )
-    ctrl_df$CtrlMetrics.QC <- ifelse(ewastools::sample_failure(ctrls), "FAIL", "PASS")
+    ctrl_df$CtrlMetrics.QC <- .ctrl_metrics_qc(ctrls)
     qcset@qc_tables[["ctrl_metrics"]] <- ctrl_df
 
     # Update Final.QC to also require ctrl_metrics PASS
@@ -755,3 +763,20 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
   )
 }
 
+
+# CtrlMetrics.QC from ewastools::control_metrics(): "FAIL" only when bisulfite conversion I
+# (Green or Red) falls below its ewastools threshold; the other control metrics are reported but
+# do not fail a sample. A missing value does not fail a sample.
+.ctrl_metrics_qc <- function(ctrls, required = c("Bisulfite Conversion I Green", "Bisulfite Conversion I Red")) {
+  absent <- setdiff(required, names(ctrls))
+  if (length(absent) > 0L) {
+    stop("ewastools control metrics lack: ", paste(absent, collapse = ", "))
+  }
+  failed <- lapply(required, function(m) {
+    threshold <- attr(ctrls[[m]], "threshold")
+    if (is.null(threshold)) threshold <- 1
+    value <- as.numeric(ctrls[[m]])
+    !is.na(value) & value < threshold
+  })
+  ifelse(Reduce(`|`, failed), "FAIL", "PASS")
+}
