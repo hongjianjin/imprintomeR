@@ -2,18 +2,26 @@
 % Please edit documentation in R/ImprintomeSet-summary-export.R
 \name{summarize}
 \alias{summarize}
+\alias{summarize,ANY-method}
 \alias{summarize,ImprintomeSet-method}
 \title{Summarize ImprintomeSet Contents}
 \usage{
+\S4method{summarize}{ANY}(object, ...)
+
 \S4method{summarize}{ImprintomeSet}(object, ...)
 }
 \arguments{
-\item{object}{An \code{ImprintomeSet} object.}
+\item{object}{An \code{ImprintomeSet} object. Any other object (for example a
+data frame or grouped tibble) is passed to \code{\link[dplyr:summarise]{dplyr::summarise()}}, so
+\code{summarize()} keeps working in dplyr pipelines when imprintomeR is
+attached after dplyr.}
 
-\item{...}{Reserved for future extensions.}
+\item{...}{Reserved for future extensions; for other objects, passed to
+\code{\link[dplyr:summarise]{dplyr::summarise()}}.}
 }
 \value{
-A list with \code{object}, \code{results}, and \code{plots} summary tables.
+For an \code{ImprintomeSet}, a list with \code{object}, \code{results}, and \code{plots}
+summary tables; otherwise the result of \code{\link[dplyr:summarise]{dplyr::summarise()}}.
 }
 \description{
 Returns a concise, deterministic summary of object slots and stored outputs.

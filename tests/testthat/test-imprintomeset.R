@@ -596,3 +596,15 @@ test_that("plot() CircularHeatmap errors on invalid sample names", {
     )
   })
 })
+
+test_that("summarize() passes non-ImprintomeSet objects to dplyr::summarise()", {
+  status <- data.frame(Sample_Group = c("a", "a", "b"), Mechanism = c("NORMAL", "NORMAL", "ROI"),
+                       IDS = c(0.1, 0.3, 0.5))
+  grouped <- dplyr::group_by(status, Sample_Group, Mechanism)
+  # imprintomeR's generic, as when imprintomeR is attached after dplyr
+  res <- imprintomeR::summarize(grouped, n = dplyr::n(), median_IDS = median(IDS), .groups = "drop")
+  expect_equal(as.data.frame(res),
+               data.frame(Sample_Group = c("a", "b"), Mechanism = c("NORMAL", "ROI"),
+                          n = c(2L, 1L), median_IDS = c(0.2, 0.5)))
+  expect_equal(nrow(imprintomeR::summarize(status, total = sum(IDS))), 1L)
+})

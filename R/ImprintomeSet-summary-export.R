@@ -2,10 +2,15 @@
 #'
 #' Returns a concise, deterministic summary of object slots and stored outputs.
 #'
-#' @param object An `ImprintomeSet` object.
-#' @param ... Reserved for future extensions.
+#' @param object An `ImprintomeSet` object. Any other object (for example a
+#'   data frame or grouped tibble) is passed to [dplyr::summarise()], so
+#'   `summarize()` keeps working in dplyr pipelines when imprintomeR is
+#'   attached after dplyr.
+#' @param ... Reserved for future extensions; for other objects, passed to
+#'   [dplyr::summarise()].
 #'
-#' @return A list with `object`, `results`, and `plots` summary tables.
+#' @return For an `ImprintomeSet`, a list with `object`, `results`, and `plots`
+#'   summary tables; otherwise the result of [dplyr::summarise()].
 #' @name summarize
 #' @export
 #'
@@ -18,6 +23,14 @@
 if (!methods::isGeneric("summarize")) {
   methods::setGeneric("summarize", function(object, ...) standardGeneric("summarize"))
 }
+
+# Anything other than an ImprintomeSet goes to dplyr, whose summarize() this generic masks
+# when imprintomeR is attached after dplyr.
+#' @rdname summarize
+#' @export
+methods::setMethod("summarize", signature(object = "ANY"), function(object, ...) {
+  dplyr::summarise(object, ...)
+})
 
 #' @rdname summarize
 #' @export
