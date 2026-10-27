@@ -260,7 +260,7 @@ names(plots(x))
 
 ```{r display-stored-plots, fig.width = 10, fig.height = 6}
 if (!is.null(plots(x)[["polar.selected"]])) {
-  options(repr.plot.width = 8, repr.plot.height = 8)
+  options(repr.plot.width = 10, repr.plot.height = 10)
   print(plots(x)[["polar.selected"]])
 }
 
@@ -408,7 +408,7 @@ if (!is.na(radar_name)) {
 
 #### Plot 8: Beeswarm by chromosome
 
-```{r plot-beeswarm-chr, fig.width = 12, fig.height = 6}
+```{r plot-beeswarm-chr, fig.width = 16, fig.height = 6}
 x <- runImprintomeVisualizations(
   x,
   plot_types = "beeswarm_chr",

@@ -359,7 +359,7 @@ print(table(status[, c("Sample_Group", "Mechanism")]))
 
 stat_summary <- status %>%
   group_by(Sample_Group, Mechanism) %>%
-  summarize(
+  dplyr::summarize(
     n = n(),
     median_IDS = median(IDS, na.rm = TRUE),
     median_Angle = median(Angle, na.rm = TRUE),
@@ -419,16 +419,16 @@ if (!is.null(plots(x)[["beeswarm_origin.selected"]])) {
   print(plots(x)[["beeswarm_origin.selected"]])
 }
 
-if (!is.null(plots(x)[["circular.selected"]])) {
-  options(repr.plot.width = 10, repr.plot.height = 10)
-  print(plots(x)[["circular.selected"]])
-}
-
 rainfall_name <- grep("^rainfall\\.", names(plots(x)), value = TRUE)[1]
 if (!is.na(rainfall_name)) {
   options(repr.plot.width = 12, repr.plot.height = 6)
   print(plots(x)[[rainfall_name]])
 }
+
+x <- runImprintomeVisualizations(x, plot_types = "circular_heatmap", probeset = "selected")
+plot(x, plot_type = "circular_heatmap", probeset = "selected", outFile = "circular.png")
+IRdisplay::display_png(file = "circular.png", width=800)
+
 ```
 
 ### Visualizations by plot_type
@@ -499,13 +499,13 @@ x <- runImprintomeVisualizations(
   save_plots = FALSE,
   verbose = TRUE
 )
-options(repr.plot.width = 10, repr.plot.height = 10)
-print(plots(x)[["circular.selected"]])
+plot(x, plot_type = "circular_heatmap", probeset = "selected", outFile = "circular.png")
+
 ```
 
 #### Plot 5: Beta heatmap by probe
 
-```{r plot-heatmap-by-probe, fig.width = 10, fig.height = 8}
+```{r plot-heatmap-by-probe, fig.width = 8, fig.height = 8}
 x <- runImprintomeVisualizations(
   x,
   plot_types = "heatmap_by_probe",
@@ -523,7 +523,7 @@ print(plots(x)[["heatmap.selected"]])
 
 #### Plot 6: Beta heatmap by gene
 
-```{r plot-heatmap-by-gene, fig.width = 10, fig.height = 12}
+```{r plot-heatmap-by-gene, fig.width = 8, fig.height = 10}
 x <- runImprintomeVisualizations(
   x,
   plot_types = "heatmap_by_gene",
@@ -543,7 +543,7 @@ print(plots(x)[["heatmap_by_gene.selected"]])
 
 #### Plot 7: Radar plot
 
-```{r plot-radar, fig.width = 17, fig.height = 17}
+```{r plot-radar, fig.width = 12, fig.height = 12}
 x <- runImprintomeVisualizations(
   x,
   plot_types = "radar",
