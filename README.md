@@ -234,6 +234,13 @@ plot(qcset, type = "ctrl_metrics_detail",            outFile = "qc_ctrl_matrix_d
 export(qcset, outdir = "qc_output", format = c("xlsx", "rds"))
 ```
 
+**QC pass criteria.** A sample is `Final.QC = "PASS"` when both hold:
+
+1. at least 95% of probes are detected at p < 0.05 (`pctDetectedCpG_dP0.05 >= 95`; detection p-values from `minfi::detectionP()`);
+2. `CtrlMetrics.QC` is PASS, which means that the ewastools Bisulfite Conversion I Green and Red control metrics are both at least 1. If the ewastools step cannot run (or `run_meth_QC.R --skip-ewastools` is used), only criterion 1 applies.
+
+All other values are reported for review and do not affect `Final.QC`: the other control metrics (staining, extension, hybridization, specificity and so on), median intensities, predicted sex, SNP contamination and predicted donor IDs. `subsetMethQC(qcset, final_qc = "PASS")` keeps the passing samples.
+
 > **Already have QC-cleaned data?** Skip to [Step 2 Option B](#step-2-create-analysis-container-imprintomeset) and construct `ImprintomeSet` directly from `beta` + `meta`.
 
 Key MethQcSet features:
