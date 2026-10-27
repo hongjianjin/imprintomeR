@@ -181,8 +181,9 @@ SaveTableStyle <- function(dat, sheetName = NULL, file = NULL, append = FALSE, c
       failStyle <- openxlsx::createStyle(fontColour = "#f9f9f9", bgFill = "#d9534f") # bootstrap white /red
       warnStyle <- createStyle(fontColour = "#363636", bgFill = "#ffe63b") # bootstrap black/yellow
       for (cI in commItems) {
-        indRow_condFmt <- grep(cI, condFmtItems)
-        indCol_dat <- grep(cI, datColNames)
+        # Exact matches: a partial match would also hit e.g. "Bisulfite Conversion I Green (Bkg)".
+        indRow_condFmt <- which(condFmtItems == cI)[1]
+        indCol_dat <- which(datColNames == cI)[1]
         if (grepl("Final", datColNames[indCol_dat], ignore.case = T) | grepl("QC", datColNames[indCol_dat], ignore.case = T)) {
           expType <- "contains"
           openxlsx::conditionalFormatting(wb1, sheetName,

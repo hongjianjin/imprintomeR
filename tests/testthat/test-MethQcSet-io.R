@@ -145,3 +145,24 @@ test_that("CtrlMetrics.QC fails only on bisulfite conversion I", {
   expect_true(all(ewastools::sample_failure(ctrls)[2:4]))   # ewastools would fail sample 4 too
   expect_error(.ctrl_metrics_qc(ctrls[-1]), "Bisulfite Conversion I Green")
 })
+
+test_that("SaveTableStyle formats ctrl_metrics with ewastools (Bkg) columns", {
+  ctrl <- data.frame(
+    Sample_Name = c("S1", "S2"),
+    `Bisulfite Conversion I Green` = c(5, 0.5),
+    `Bisulfite Conversion I Green (Bkg)` = c(4, 0.4),
+    `Specificity II` = c(3, 3),
+    `Specificity II (Bkg)` = c(2, 2),
+    CtrlMetrics.QC = c("PASS", "FAIL"),
+    check.names = FALSE
+  )
+  f <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(f), add = TRUE)
+  expect_no_error(suppressMessages(capture.output(
+    SaveTableStyle(dat = ctrl, sheetName = "Ctrl_matrix", file = f, rowNames = FALSE, condFmt = ctrlMatCutoffs)
+  )))
+  expect_true(file.exists(f))
+  cf <- openxlsx::loadWorkbook(f)$worksheets[[1]]$conditionalFormatting
+  expect_true(any(grepl("^B2:B3$", names(cf))))   # "Bisulfite Conversion I Green" itself, not its (Bkg) column
+  expect_false(any(grepl("^C2:C3$", names(cf))))
+})
