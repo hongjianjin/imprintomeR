@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use imprintomeR, please cite it using the metadata below."
 type: software
-title: "imprintomeR: Quantitative Analysis and Visualization of Genomic Imprinting from DNA Methylation Arrays"
+title: "imprintomeR: An R Package for Methylation Array-Based Imprinting Disturbance Analysis"
 authors:
   - family-names: Jin
     given-names: Hongjian
