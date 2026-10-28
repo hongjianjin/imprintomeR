@@ -280,7 +280,7 @@ SubsetBeta_By_Probeset <- function(beta, probeset=probeset_options, prefix=NULL,
       stop("probeset must be a single non-empty character value.")
     }
     probesets_all <- .load_probesets(genome)
-    if (probeset %in% names(probesets_all)){# c("chr11p15", "Jima", "Joshi", "NanoImprint","zambegrp", "all", "selected")) {
+    if (probeset %in% names(probesets_all)){# c("chr11p15", "Jima", "Joshi", "NanoImprint", "all", "selected")) {
       probesets <- probesets_all[[probeset]]
       .validate_probeset_annotation(probesets, probeset)
       rownames(probesets) <- probesets$NAME

@@ -2724,9 +2724,9 @@ Plot_ICR_var_med <- function(plot_data, outFile=NULL, project="cohort", style="b
 # results <- calculate_impvar(my_beta_values, my_annotations, target_icrs)
 #================================================================
 if(F){
-   icr.bed <- "/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/ICR/Joshi_mmc6_simple_merged_d2k.bed"
-   betaFile <- "/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/imprintomeR_dev/datasets/GSE52576_CHM_450K/GSE52576_CHM_beta.txt"
-   metaFile <- "/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/datasets/GSE52576/GSE52576_meta.txt"
+   icr.bed <- "path/to/projects/ImprintomeR/ICR/Joshi_mmc6_simple_merged_d2k.bed"
+   betaFile <- "path/to/projects/ImprintomeR/imprintomeR_dev/datasets/GSE52576_CHM_450K/GSE52576_CHM_beta.txt"
+   metaFile <- "path/to/projects/ImprintomeR/datasets/GSE52576/GSE52576_meta.txt"
    outFile <- "GSE52576_sig.Joshi_Median_Drift.txt"
   final_report <- Calculate_impvar(betaFile, metaFile, icr.bed, assay="EPICv1",genome="hg19",outFile=NULL)
   pg1 <- ggplot(final_report, aes(x = icr_name, y = ImpVar_Score, fill = SAMPLE_GROUP)) +

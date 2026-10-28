@@ -271,7 +271,7 @@ AnnotateProbesetCytoband <- function(probeset, assay = "EPICV1", version = "HG19
     stop("bedtools not available.", call. = FALSE)
   }
 
-  cytobandFile <- paste0("/home/hjin/projects/ImprintomeR/package/inst/extdata/", tolower(version), "_cytoband_arm.txt")
+  cytobandFile <- paste0("path/to/projects/ImprintomeR/package/inst/extdata/", tolower(version), "_cytoband_arm.txt")
   if (!file.exists(cytobandFile)) {
     stop("cytoban file is missing.", call. = FALSE)
   }
@@ -744,11 +744,11 @@ Build_classfier_v6 <-function(dataset, probeset="selected", p=0.7, ntree = 100, 
 #================================================================
 
 Build_ML_classfier <-function(metaFile, betaFile, mdlFile="GSE64244_rf.model.rds",probeset="selected"){
-    model_path <- "/research/rgs01/home/clusterHome/hjin/projects/imprintomeR_dev/selected/"
+    model_path <- "path/to/projects/imprintomeR_dev/selected/"
     if (!requireNamespace("caret", quietly = TRUE)) install.packages("caret")
     library(caret)
-    # metaFile <- "/research/rgs01/home/clusterHome/hjin/projects/imprintomeR_dev/selected/golden_std_wb_meta.txt"
-    # betaFile <- "/research/rgs01/home/clusterHome/hjin/projects/imprintomeR_dev/selected/golden_std_wb_selected_beta.txt"
+    # metaFile <- "path/to/projects/imprintomeR_dev/selected/golden_std_wb_meta.txt"
+    # betaFile <- "path/to/projects/imprintomeR_dev/selected/golden_std_wb_selected_beta.txt"
     if(F){
       metaFile <- "GSE64244_meta_ML.txt"
       meta <- read.table(metaFile, sep="\t",header=TRUE,fill=TRUE,stringsAsFactors = FALSE, as.is=TRUE,row.names=NULL ,check.names=FALSE ,comment.char = "")
@@ -1084,7 +1084,7 @@ Calc_CDF_Stat <- function(betaFile,metaFile,prefix=NULL,SAMPLEID="Sample_Name", 
   meta <- input[["meta"]]
   beta0 <- input[["beta"]]
   if (!is.null(probeset)) {
-      probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+      probesets <- readRDS("path/to/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
       if (probeset %in% names(probesets)) {
         probes <- probesets[[probeset]]
       } else {
@@ -1212,7 +1212,7 @@ Calc_CDF_Stat_sep <- function(betaFile,metaFile,prefix=NULL,SAMPLEID="Sample_Nam
   meta <- input[["meta"]]
   beta0 <- input[["beta"]]
   if (!is.null(probeset)) {
-      probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+      probesets <- readRDS("path/to/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
       if (probeset %in% names(probesets)) {
         probes <- probesets[[probeset]]
       } else {
@@ -1283,7 +1283,7 @@ Calc_CDF_Stat_sep <- function(betaFile,metaFile,prefix=NULL,SAMPLEID="Sample_Nam
   names(objEcdf)[length(objEcdf)] <- "meta"
   objStat <- list()
   #norm <- ImputedNorm(ncol=1,nrow=nrow(beta), size=50, p_success=0.5,adj=-0.5, seed=123) # simulate imprinted norm and calculate deviation
-  norm_data <- readRDS( "/home/hjin/projects/ImprintomeR/package/inst/extdata/GTEX_wholeblood_classifier2_aveBeta_normdf.rds")
+  norm_data <- readRDS( "path/to/projects/ImprintomeR/package/inst/extdata/GTEX_wholeblood_classifier2_aveBeta_normdf.rds")
   norm_data$value <-  norm_data$value - 0.5 # calculate deviation from imprinted norm
   objEcdf[[length(objEcdf)+1]] <- norm_data
   names(objEcdf)[length(objEcdf)] <- "norm"
@@ -1430,7 +1430,7 @@ Calc_KS  <- function(data1,data2) {
 #================================================================
 
 Calc_Stat_Chr_v6 <- function(beta,probeset="selected", chrs=NULL, low_cutoff=0.3, high_cutoff=0.7){
-  probesets_all <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+  probesets_all <- readRDS("path/to/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
   probeset <- probesets_all[[probeset]]
   common_probes <- intersect(probeset$NAME, rownames(beta))
   probeset <- probeset[probeset$NAME %in% common_probes, ]
@@ -2372,7 +2372,7 @@ DETECT_LOH_ICR <- function(beta, meta, chr="all", group="ORIGIN", mosaic_thresho
   if(!is.null(probeset)){
   suppressMessages(suppressWarnings(library(ggplot2)))
   suppressMessages(suppressWarnings(library("ggridges")))
-    probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds") 
+    probesets <- readRDS("path/to/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds") 
     if (probeset %in% names(probesets)) {
       probes <- probesets[[probeset]]
     } else {
@@ -2391,7 +2391,7 @@ DETECT_LOH_ICR <- function(beta, meta, chr="all", group="ORIGIN", mosaic_thresho
     version <- "HG19"
     # load aggregated annotation object
     if (is.null(probes.all)) {
-      probes.all <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/anno.uniq_harmonized.liftover.rds")
+      probes.all <- readRDS("path/to/projects/ImprintomeR/package/inst/extdata/anno.uniq_harmonized.liftover.rds")
     }
     chr <- paste0("CHR_", toupper(version))
     mapinfo <- paste0("MAPINFO_", toupper(version))
@@ -2600,7 +2600,7 @@ DIST_FAST <- function(sample, control, probeset = "selected", outPrefix = NULL, 
       return(result)
   }
 
-  probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+  probesets <- readRDS("path/to/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
   # need to be pre-loaded from package.
   beta <- sample[["beta"]]
   meta <- sample[["meta"]]
@@ -2834,7 +2834,7 @@ GGplot2Html <- function(pg, prefix) {
 
 
 ICR_Filepath <- function(icrFile) {
-  ICR_DIR <- "/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/ICR/"
+  ICR_DIR <- "path/to/projects/ImprintomeR/ICR/"
   # Convert to uppercase for comparison
   clean_input <- toupper(basename(icrFile))
   icrFile <- dplyr::case_when(
@@ -2857,9 +2857,9 @@ ICR_Filepath <- function(icrFile) {
 #' @param icr_regions A GRanges object defining the start/end of ICRs
 #' @return A data frame of Variance scores per ICR per sample
 
-#  icr.bed <- "/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/ICR/Joshi_mmc6_simple_merged_d2k.bed"
-# betaFile <- "/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/imprintomeR_dev/datasets/GSE52576_CHM_450K/GSE52576_CHM_beta.txt"
-# metaFile <- "/research/rgs01/home/clusterHome/hjin/projects/ImprintomeR/datasets/GSE52576/GSE52576_meta.txt"
+#  icr.bed <- "path/to/projects/ImprintomeR/ICR/Joshi_mmc6_simple_merged_d2k.bed"
+# betaFile <- "path/to/projects/ImprintomeR/imprintomeR_dev/datasets/GSE52576_CHM_450K/GSE52576_CHM_beta.txt"
+# metaFile <- "path/to/projects/ImprintomeR/datasets/GSE52576/GSE52576_meta.txt"
 
 Imprintome_Classifier <- function(betaFile, metaFile, probeset = "selected",prefix=NULL,low_cutoff=0.3, high_cutoff=0.7 ) {
   # betaFile
@@ -3152,12 +3152,12 @@ Impute_chr_dataset_v6 <- function(metaFile=NULL, betaFile=NULL,outPrefix=NULL,pr
    # 2. chr11 - mUPD+pUPD + UPD_chr11
    # 3. chr20 ...
     if(is.null(metaFile) & is.null(betaFile) ){
-      metaFile <- "/home/hjin/projects/imprintomeR_dev/final2025/final_std1_joined_ML_meta.txt"
-      betaFile <- "/home/hjin/projects/imprintomeR_dev/final2025/final_std1_selected_joined_beta.txt"
+      metaFile <- "path/to/projects/imprintomeR_dev/final2025/final_std1_joined_ML_meta.txt"
+      betaFile <- "path/to/projects/imprintomeR_dev/final2025/final_std1_selected_joined_beta.txt"
     }  
     dir.create(dirname(outPrefix), showWarnings = FALSE,recursive=T)
     if(is.null(outPrefix) ){
-      outPrefix <- "/home/hjin/projects/imprintomeR_dev/final2025/model_v6/final_std1_joined_ML_v6_imputed"
+      outPrefix <- "path/to/projects/imprintomeR_dev/final2025/model_v6/final_std1_joined_ML_v6_imputed"
     } 
 
     input <- LoadMetaBeta(metaFile, betaFile, probeset = probeset)
@@ -3165,7 +3165,7 @@ Impute_chr_dataset_v6 <- function(metaFile=NULL, betaFile=NULL,outPrefix=NULL,pr
     beta <- input[["beta"]]
    
 
-    probesets_all <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")    
+    probesets_all <- readRDS("path/to/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")    
     probeset <- probesets_all[[probeset]]
     common_probes <- intersect(probeset$NAME, rownames(beta))
     probeset <- probeset[probeset$NAME %in% common_probes, ]
@@ -4074,7 +4074,7 @@ PlotSankey <- function(beta, meta, outFile=NULL,low_cutoff=0.3,high_cutoff=0.7 )
 
 Predict_UPD <- function(meta, beta, mdlFile="GSE64244_rf.model.rds", threshold=0.8,threshold2=0.7, outFile=NULL){
   library(randomForest)
-  model_path <- "/research/rgs01/home/clusterHome/hjin/projects/imprintomeR_dev/selected/"
+  model_path <- "path/to/projects/imprintomeR_dev/selected/"
   rdsFile <- paste0(model_path,"/",mdlFile)
   rf_model <- readRDS(rdsFile)
   dfTest <- as.data.frame(t(beta))
@@ -4110,7 +4110,7 @@ Predict_UPD_CDF_stat <-  function(data,meta,SAMPLEID="ID2",mdlFile="all4sets_cla
   suppressMessages(suppressWarnings(library(randomForest)))   
   outPrefix <- tools::file_path_sans_ext(outFile)
   if(!file.exists(mdlFile)){
-    model_path <- "/research/rgs01/home/clusterHome/hjin/projects/imprintomeR_dev/final2025/selected"
+    model_path <- "path/to/projects/imprintomeR_dev/final2025/selected"
     rdsFile <- paste0(model_path,"/",mdlFile)  
   }else{
     rdsFile <- mdlFile
@@ -4277,11 +4277,11 @@ Predict_UPD_chr_v6 <-  function(meta, beta,mdlFile="final_std1_selected_v6_chr_r
   library(randomForest)
   outPrefix <- tools::file_path_sans_ext(outFile)
   if(!file.exists(mdlFile)){
-      model_path <- "/home/hjin/projects/imprintomeR_dev/final2025/model_v6/"
+      model_path <- "path/to/projects/imprintomeR_dev/final2025/model_v6/"
       rdsFile <- paste0(model_path,"/",mdlFile)
   }
   if(!file.exists(rdsFile)){
-      model_path <- "/home/hjin/projects/imprintomeR_dev/final2025/model_v7_mclust/"
+      model_path <- "path/to/projects/imprintomeR_dev/final2025/model_v7_mclust/"
       rdsFile <- paste0(model_path,"/",mdlFile)
   }
   if(file.exists(rdsFile)){
@@ -4320,11 +4320,11 @@ Predict_UPD_PCA <-  function(data,meta,SAMPLEID="ID2",mdlFile="final_std3_classi
     rdsFile <- mdlFile
   }else{
     if(!file.exists(mdlFile)){
-      model_path <- "/research/rgs01/home/clusterHome/hjin/projects/imprintomeR_dev/final2025/selected/PCA_selected"
+      model_path <- "path/to/projects/imprintomeR_dev/final2025/selected/PCA_selected"
       rdsFile <- paste0(model_path,"/",mdlFile)  
     }
     if(!file.exists(mdlFile)){
-      model_path <- "/research/rgs01/home/clusterHome/hjin/projects/imprintomeR_dev/11p15_classifier/set7_censored_PCA"
+      model_path <- "path/to/projects/imprintomeR_dev/11p15_classifier/set7_censored_PCA"
       rdsFile <- paste0(model_path,"/",mdlFile)  
     }
   }
@@ -4392,22 +4392,22 @@ Prepare_control <- function(probeset="selected",assay="EPIC"){
   # availalbe probesets
     #names(probesets)
     #[1] "Jima"     "Joshi"   "NanoImprint"  "chr11p15"  "selected"  
-    #[6] "all"    "zambegrp"
+    #[6] "all"
 
   if(grepl("EPIC",assay,ignore.case = T)){
-    metaFile1 <- "/home/hjin/projects/imprintomeR_dev/control/EPICV2_imputed.ctrl_meta.txt"
-    betaFile1 <- "/home/hjin/projects/imprintomeR_dev/control/EPICV2_imputed.ctrl_beta.txt"
+    metaFile1 <- "path/to/projects/imprintomeR_dev/control/EPICV2_imputed.ctrl_meta.txt"
+    betaFile1 <- "path/to/projects/imprintomeR_dev/control/EPICV2_imputed.ctrl_beta.txt"
   }else if(grepl("450K",assay,ignore.case = T)) {
-    metaFile1 <- "/home/hjin/projects/imprintomeR_dev/control/HM450K_imputed.ctrl_meta.txt"
-    betaFile1 <- "/home/hjin/projects/imprintomeR_dev/control/HM450K_imputed.ctrl_beta.txt"
-    #metaFile <- "/home/hjin/projects/imprintomeR_dev/GSE64244.UPD_Clay2019.control_join_meta.txt"
-    #betaFile <- "/home/hjin/projects/imprintomeR_dev/GSE64244.UPD_Clay2019.control_join_beta.txt"
+    metaFile1 <- "path/to/projects/imprintomeR_dev/control/HM450K_imputed.ctrl_meta.txt"
+    betaFile1 <- "path/to/projects/imprintomeR_dev/control/HM450K_imputed.ctrl_beta.txt"
+    #metaFile <- "path/to/projects/imprintomeR_dev/GSE64244.UPD_Clay2019.control_join_meta.txt"
+    #betaFile <- "path/to/projects/imprintomeR_dev/GSE64244.UPD_Clay2019.control_join_beta.txt"
   }else{
     cat("\nWARN: invalid array.",assay," is unavailable. Use EPIC control instead.")
-    metaFile1 <- "/home/hjin/projects/imprintomeR_dev/control/EPICV2_imputed.mUPD_meta.txt"
-    betaFile1 <- "/home/hjin/projects/imprintomeR_dev/control/EPICV2_imputed.mUPD_beta.txt"
+    metaFile1 <- "path/to/projects/imprintomeR_dev/control/EPICV2_imputed.mUPD_meta.txt"
+    betaFile1 <- "path/to/projects/imprintomeR_dev/control/EPICV2_imputed.mUPD_beta.txt"
   }
-  rdsFile <- paste0("/home/hjin/projects/ImprintomeR/package/inst/extdata/imprintomeR_control_assay.",assay,"_set.",probeset,".rds")
+  rdsFile <- paste0("path/to/projects/ImprintomeR/package/inst/extdata/imprintomeR_control_assay.",assay,"_set.",probeset,".rds")
 
   if(file.exists(rdsFile)){
      control <- readRDS(rdsFile)
@@ -4425,8 +4425,8 @@ Prepare_control <- function(probeset="selected",assay="EPIC"){
 Probeset_Imprinting_Source <- function( probeset="selected"){
   cat("\nINFO: Determine probeset's imprinting source \n")  
   # EPIC
-    metaFile1 <- "/home/hjin/projects/imprintomeR_dev/control/EPICV2_imputed.ctrl_meta.txt"
-    betaFile1 <- "/home/hjin/projects/imprintomeR_dev/control/EPICV2_imputed.ctrl_beta.txt"
+    metaFile1 <- "path/to/projects/imprintomeR_dev/control/EPICV2_imputed.ctrl_meta.txt"
+    betaFile1 <- "path/to/projects/imprintomeR_dev/control/EPICV2_imputed.ctrl_beta.txt"
     control1 <- LoadMetaBeta(metaFile1, betaFile1, probeset =probeset)
    beta1 <- control1[["beta"]]
    meta1 <- control1[["meta"]]
@@ -4440,11 +4440,11 @@ Probeset_Imprinting_Source <- function( probeset="selected"){
     beta_grp1[beta_grp1$origin %in% "ROI",]
 
   # "450K"
-    #metaFile2 <- "/home/hjin/projects/imprintomeR_dev/control/HM450K_imputed.ctrl_meta.txt"
-    #betaFile2 <- "/home/hjin/projects/imprintomeR_dev/control/HM450K_imputed.ctrl_beta.txt"
+    #metaFile2 <- "path/to/projects/imprintomeR_dev/control/HM450K_imputed.ctrl_meta.txt"
+    #betaFile2 <- "path/to/projects/imprintomeR_dev/control/HM450K_imputed.ctrl_beta.txt"
     
-    metaFile2 <- "/home/hjin/projects/imprintomeR_dev/GSE183798_GCT/GSE183798_GCT_subset21_meta.txt"
-    betaFile2 <- "/home/hjin/projects/imprintomeR_dev/GSE183798_GCT/GSE183798_GCT_subset21_beta.txt"
+    metaFile2 <- "path/to/projects/imprintomeR_dev/GSE183798_GCT/GSE183798_GCT_subset21_meta.txt"
+    betaFile2 <- "path/to/projects/imprintomeR_dev/GSE183798_GCT/GSE183798_GCT_subset21_beta.txt"
     control2 <- LoadMetaBeta(metaFile2, betaFile2, probeset =probeset)
     beta2 <- control2[["beta"]]
     meta2 <- control2[["meta"]]
@@ -4470,7 +4470,7 @@ Probeset_Imprinting_Source <- function( probeset="selected"){
   print(table(origins$origin))
 #  maternal     paternal undetermined
 #     269           89          114
-    pFile <- "/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds"
+    pFile <- "path/to/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds"
     probesets0 <- readRDS(pFile)
     p <- probesets0[[probeset]]
     p$ORIGIN <- origins$origin[match(p$NAME,origins$Row.names)]
@@ -4482,10 +4482,10 @@ Probeset_Imprinting_Source <- function( probeset="selected"){
 # ================================================================
 
 Probeset_Imprinting_Source2 <- function( probeset="selected"){
-   # cd /home/hjin/projects/imprintomeR_dev/selected/
+   # cd path/to/projects/imprintomeR_dev/selected/
     cat("\nINFO: Determine probeset's imprinting source \n")  
-    metaFile1 <- "/home/hjin/projects/imprintomeR_dev/selected/golden_std_wb_meta.txt"
-    betaFile1 <- "/home/hjin/projects/imprintomeR_dev/selected/golden_std_wb_selected_beta.txt"
+    metaFile1 <- "path/to/projects/imprintomeR_dev/selected/golden_std_wb_meta.txt"
+    betaFile1 <- "path/to/projects/imprintomeR_dev/selected/golden_std_wb_selected_beta.txt"
     control1 <- LoadMetaBeta(metaFile1, betaFile1, probeset =probeset)
    beta1 <- control1[["beta"]]
    meta1 <- control1[["meta"]]
@@ -4495,7 +4495,7 @@ Probeset_Imprinting_Source2 <- function( probeset="selected"){
 
    beta_grp1$origin <- colnames(beta_grp1)[max_indices1]
 
-    pFile <- "/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds"
+    pFile <- "path/to/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds"
     probesets0 <- readRDS(pFile)
     p <- probesets0[[probeset]]
     p$ORIGIN <- beta_grp1$origin[match(p$NAME,rownames(beta_grp1))]
@@ -4556,8 +4556,8 @@ ReadGmtToList <- function(gmtFile) {
 
 
 Run_MethylToSNP <- function(){
-  b="/research_jude/rgs01_jude/groups/zambegrp/projects/ACT_XAF1_TP53/common/cab/ACT/Methylation/zambegrp_846323_EPICv2/QC.Raw/CAB_7690_beta.txt"
-  m="/research_jude/rgs01_jude/groups/zambegrp/projects/ACT_XAF1_TP53/common/cab/ACT/Methylation/zambegrp_846323_EPICv2/CAB_7690_sampleInfo_final.txt"
+  b="path/to/epicv2_cohort/cohort_beta.txt"
+  m="path/to/epicv2_cohort/cohort_sampleInfo.txt"
   input <- LoadMetaBeta(m, b, probeset = NULL)
   meta <- input[["meta"]]
   beta <- input[["beta"]]
@@ -4573,11 +4573,11 @@ Run_MethylToSNP <- function(){
   # gap.sum.ratio	 The ratio of the sum of two gaps relative to the total range of values should be above the threshold.
   # verbose	 Show additional information. Useful for debugging.
   # outlier.sd	 Do not consider outliers that are more than the specified number of standard deviations from the cluster center
-  rdsFile <- "CAB_7690_MethylToSNP.result.rds"
+  rdsFile <- "cohort_MethylToSNP.result.rds"
   saveRDS(res,file=rdsFile)
   cat(paste0('\n ',basename(rdsFile),' [saved]'))
 
-  outFile <-"CAB_7690_MethylToSNP.result.txt"
+  outFile <-"cohort_MethylToSNP.result.txt"
   write.table(cbind(TargetID=rownames(res),res), outFile, sep="\t", quote=FALSE, row.names=FALSE, col.names=TRUE)
   cat("\n[",basename(outFile),"[saved]")
 
@@ -4596,7 +4596,7 @@ Run_MethylToSNP <- function(){
 
   x <- data.frame(n_LOH_in_ACT,n_Het_in_germline)
   x1 <- x[x$n_Het_in_germline>0 & (x$n_LOH_in_ACT > x$n_Het_in_germline),]
-  probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+  probesets <- readRDS("path/to/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
   selected_probeset <- probesets[["selected"]]
 
   probes <- intersect(selected_probeset$NAME,rownames(x1))
@@ -4664,7 +4664,7 @@ RunEnricment <- function(beta, meta, probeset="selected", prefix=NULL, method="s
       stop("invalid gmt file. two probesets are resuired: paternal, maternal.", call. = FALSE)
     }
   }else if (!is.null(probeset)) {
-      probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+      probesets <- readRDS("path/to/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
       if (probeset %in% names(probesets)) {
         probes <- probesets[[probeset]]
       } else {
@@ -4770,7 +4770,7 @@ RunPSEA <- function(beta, meta, probeset="selected", prefix=NULL,nrow_imputed_no
       stop("invalid gmt file. two probesets are resuired: paternal, maternal.", call. = FALSE)
     }
   }else if (!is.null(probeset)) {
-      probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+      probesets <- readRDS("path/to/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
       if (probeset %in% names(probesets)) {
         probes <- probesets[[probeset]]
       } else {
@@ -4886,7 +4886,7 @@ UPD_SCORE_FAST <- function(sample, control, probeset = "selected", outPrefix = N
       return(result)
   }
 
-  probesets <- readRDS("/home/hjin/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
+  probesets <- readRDS("path/to/projects/ImprintomeR/package/inst/extdata/probesets_hg19.rds")
   # need to be pre-loaded from package.
   beta <- sample[["beta"]]
   meta <- sample[["meta"]]
