@@ -6,8 +6,10 @@ authors:
   - family-names: Jin
     given-names: Hongjian
     email: hongjian.jin@stjude.org
+    orcid: "https://orcid.org/0000-0003-3833-7170"
   - family-names: Wu
     given-names: Gang
+    email: gang.wu@stjude.org
     orcid: "https://orcid.org/0000-0002-1678-5864"
 version: 1.5.1
 date-released: 2026-10-28

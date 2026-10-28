@@ -96,6 +96,8 @@ Platform coverage of the 782 `selected` probes (`ASSAY` column of `anno.uniq_har
 - [Test Suite](#test-suite)
   - [Running Tests Locally (Development)](#running-tests-locally-development)
 - [Vignettes](#vignettes)
+- [Maintainers](#maintainers)
+- [Contact](#contact)
 - [SessionInfo](#sessioninfo)
 
 ## Architecture: Preprocessing-First Workflow
@@ -954,6 +956,19 @@ Detailed workflows and visualization tutorials are available in the package vign
 - [GSE52567.ipynb](vignettes/GSE52567.ipynb) ([Markdown version](vignettes/GSE52576.md)) - GitHub-renderable notebook for a public GEO workflow (GSE52576)
 - [GSE240091.ipynb](vignettes/GSE240091.ipynb) ([Markdown version](vignettes/GSE240091.md)) - GitHub-renderable notebook for QC and imprintomeR workflow on a public GEO cohort
 - [GSE74738.ipynb](vignettes/GSE74738.ipynb) ([Markdown version](vignettes/GSE74738.md)) - GitHub-renderable notebook for a 450K placenta cohort scored against its own controls: control-centred scores, per-ICR calls, bootstrap intervals, the origin permutation test and a control-calibrated IDS cutoff
+
+## Maintainers
+
+- **Hongjian Jin** (maintainer), hongjian.jin@stjude.org, ORCID [0000-0003-3833-7170](https://orcid.org/0000-0003-3833-7170)
+- **Gang Wu**, gang.wu@stjude.org, ORCID [0000-0002-1678-5864](https://orcid.org/0000-0002-1678-5864)
+
+Center for Applied Bioinformatics, St. Jude Children's Research Hospital, Memphis, TN 38105, USA.
+
+## Contact
+
+- **Bug reports, questions and feature requests:** open an issue at https://github.com/hongjianjin/imprintomeR/issues, with the imprintomeR version (`packageVersion("imprintomeR")`), the command or code you ran and the error message.
+- **Other enquiries:** email the maintainer, Hongjian Jin (hongjian.jin@stjude.org).
+- **Citing imprintomeR:** use the "Cite this repository" button on GitHub (from `CITATION.cff`) or the Zenodo DOI [10.5281/zenodo.23741652](https://doi.org/10.5281/zenodo.23741652).
 
 ## SessionInfo
 

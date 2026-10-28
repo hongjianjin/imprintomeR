@@ -18,11 +18,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Hongjian Jin \email{hongjian.jin@stjude.org}
+\strong{Maintainer}: Hongjian Jin \email{hongjian.jin@stjude.org} (\href{https://orcid.org/0000-0003-3833-7170}{ORCID})
 
 Authors:
 \itemize{
-  \item Gang Wu (\href{https://orcid.org/0000-0002-1678-5864}{ORCID})
+  \item Gang Wu \email{gang.wu@stjude.org} (\href{https://orcid.org/0000-0002-1678-5864}{ORCID})
 }
 
 }

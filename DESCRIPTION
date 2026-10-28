@@ -7,12 +7,14 @@ Authors@R: c(
         given = "Hongjian",
         family = "Jin",
         role = c("aut", "cre"),
-        email = "hongjian.jin@stjude.org"
+        email = "hongjian.jin@stjude.org",
+        comment = c(ORCID = "0000-0003-3833-7170")
     ),
     person(
         given = "Gang",
         family = "Wu",
         role = "aut",
+        email = "gang.wu@stjude.org",
         comment = c(ORCID = "0000-0002-1678-5864")
     ))
 Description: 
