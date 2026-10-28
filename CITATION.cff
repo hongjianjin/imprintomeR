@@ -6,6 +6,9 @@ authors:
   - family-names: Jin
     given-names: Hongjian
     email: hongjian.jin@stjude.org
+  - family-names: Wu
+    given-names: Gang
+    orcid: "https://orcid.org/0000-0002-1678-5864"
 version: 1.5.1
 date-released: 2026-10-28
 doi: 10.5281/zenodo.23741652

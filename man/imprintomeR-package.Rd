@@ -20,5 +20,10 @@ Useful links:
 \author{
 \strong{Maintainer}: Hongjian Jin \email{hongjian.jin@stjude.org}
 
+Authors:
+\itemize{
+  \item Gang Wu (\href{https://orcid.org/0000-0002-1678-5864}{ORCID})
+}
+
 }
 \keyword{internal}

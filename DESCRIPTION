@@ -2,13 +2,19 @@ Package: imprintomeR
 Type: Package
 Title: Quantitative Analysis and Visualization of Genomic Imprinting from DNA Methylation Arrays
 Version: 1.5.0
-Authors@R: 
+Authors@R: c(
     person(
         given = "Hongjian",
         family = "Jin",
         role = c("aut", "cre"),
         email = "hongjian.jin@stjude.org"
-    )
+    ),
+    person(
+        given = "Gang",
+        family = "Wu",
+        role = "aut",
+        comment = c(ORCID = "0000-0002-1678-5864")
+    ))
 Description: 
     imprintomeR provides a framework for quantitative analysis of genomic imprinting 
     using DNA methylation array data (Illumina 450K and EPIC platforms). The package 
