@@ -88,7 +88,7 @@ Platform coverage of the 782 `selected` probes (`ASSAY` column of `anno.uniq_har
   - [Standard Workflow Plots](#standard-workflow-plots)
   - [Example Plots](#example-plots)
 - [Export QC Results](#export-qc-results)
-- [MCP Server](https://github.com/hongjianjin/imprintomeR/tree/master#mcp-server)
+- [MCP Server](#mcp-server)
   - [Local Setup](#local-setup)
 - [Agent Skill](#agent-skill)
 - [Test Suite](#test-suite)
