@@ -275,7 +275,8 @@ SummarizeICRStatus <- function(icr_table, min_chromosomes = 2L, dmr_type = NULL,
 #'
 #' Tiles of the per-ICR deviation from [AnalyzeICRStatus()], samples in rows (grouped by
 #' `Sample_Group`) and ICRs in columns (maternal then paternal, by chromosome position).
-#' Altered ICRs are marked with a dot.
+#' Altered ICRs are marked with a dot. A colour bar above the samples shows each ICR's
+#' annotated parental origin (legend "Annotated parental origin").
 #'
 #' @param icr_table Output of [AnalyzeICRStatus()].
 #' @param title Plot title.
@@ -298,11 +299,31 @@ PlotICRHeatmap <- function(icr_table, title = "Per-ICR deviation", limit = 0.4, 
   grp <- if ("Sample_Group" %in% colnames(d)) d$Sample_Group else "all"
   sample_order <- unique(d$Sample_Name[order(grp, d$Sample_Name)])
   d$Sample <- factor(d$Sample_Name, levels = rev(sample_order))
-  d$Group <- grp
   d$value <- pmax(pmin(d$deviation, limit), -limit)
+  # Colour bar of each ICR's annotated parental origin: a one-row facet above the samples. Its tiles
+  # take fixed colours, so the deviation fill scale stays the only fill scale; an invisible point
+  # layer supplies the legend.
+  bar_row <- " "
+  ann <- unique(d[, c("ICR", "ORIGIN")])
+  ann$Sample <- factor(bar_row, levels = c(levels(d$Sample), bar_row))
+  ann$Group <- bar_row
+  d$Sample <- factor(d$Sample, levels = levels(ann$Sample))
+  d$Group <- grp
+  group_levels <- c(bar_row, unique(grp[order(grp)]))
+  d$Group <- factor(d$Group, levels = group_levels)
+  ann$Group <- factor(ann$Group, levels = group_levels)
+  origin_cols <- .imprint_origin_colors()
+  ann_fill <- unname(origin_cols[as.character(ann$ORIGIN)])
+  ann_fill[is.na(ann_fill)] <- origin_cols[["reference"]]
   p <- ggplot2::ggplot(d, ggplot2::aes(x = ICR, y = Sample, fill = value)) +
     ggplot2::geom_tile(colour = "white", linewidth = 0.2) +
     ggplot2::geom_point(data = d[d$altered, , drop = FALSE], size = 0.8, colour = "black") +
+    ggplot2::geom_tile(data = ann, ggplot2::aes(x = ICR, y = Sample), inherit.aes = FALSE,
+                       fill = ann_fill, colour = "white", linewidth = 0.2) +
+    ggplot2::geom_point(data = ann, ggplot2::aes(x = ICR, y = Sample, colour = ORIGIN), inherit.aes = FALSE,
+                        alpha = 0) +
+    ggplot2::scale_colour_manual(name = .origin_legend_title, values = origin_cols,
+                                 guide = ggplot2::guide_legend(override.aes = list(alpha = 1, shape = 15, size = 5))) +
     ggplot2::scale_fill_gradient2(name = "Deviation", low = "#2166AC", mid = "white", high = "#B2182B",
                                   midpoint = 0, limits = c(-limit, limit)) +
     ggplot2::facet_grid(Group ~ ORIGIN, scales = "free", space = "free") +

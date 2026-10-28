@@ -30,5 +30,6 @@ A ggplot object.
 \description{
 Tiles of the per-ICR deviation from \code{\link[=AnalyzeICRStatus]{AnalyzeICRStatus()}}, samples in rows (grouped by
 \code{Sample_Group}) and ICRs in columns (maternal then paternal, by chromosome position).
-Altered ICRs are marked with a dot.
+Altered ICRs are marked with a dot. A colour bar above the samples shows each ICR's
+annotated parental origin (legend "Annotated parental origin").
 }

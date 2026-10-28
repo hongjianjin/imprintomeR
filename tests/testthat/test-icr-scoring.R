@@ -191,6 +191,10 @@ test_that("icr_heatmap plot type draws the stored per-ICR table", {
     p <- plot(x, plot_type = "icr_heatmap")
     expect_true(inherits(p, "ggplot"))
     expect_equal(p$labels$title, "Per-ICR deviation")
+    # Colour bar of annotated parental origin, with its own legend
+    expect_equal(p$scales$get_scales("colour")$name, "Annotated parental origin")
+    bar <- ggplot2::layer_data(p, 3)
+    expect_setequal(unique(bar$fill), unname(imprintomeR:::.imprint_origin_colors()[c("maternal", "paternal")]))
     expect_setequal(unique(as.character(p$data$ICR_name)), unique(results(x)[["ICRStatus.selected"]]$ICR_name))
     f <- tempfile(fileext = ".pdf")
     plot(x, plot_type = "icr_heatmap", outFile = f, title = "ICRs")
