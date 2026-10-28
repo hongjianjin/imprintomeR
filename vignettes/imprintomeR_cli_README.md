@@ -5,6 +5,7 @@ This guide describes the package-installed command-line scripts for running meth
 The two scripts, `run_meth_QC.R` and `run_imprintomeR.R`, live in `inst/scripts/` of the source package and are installed into the `scripts/` folder of the installed package. Locate that folder once per shell session; the examples below use `$SCRIPTS`:
 
 ```bash
+unset R_HOME
 SCRIPTS=$(Rscript -e 'cat(system.file("scripts", package = "imprintomeR"))')
 [ -n "$SCRIPTS" ] || echo "imprintomeR is not installed for this Rscript" >&2
 echo "$SCRIPTS"    # e.g. ~/R/x86_64-pc-linux-gnu-library/4.3/imprintomeR/scripts
@@ -271,6 +272,33 @@ When enabled, the ordinary single-sample `beeswarm_chr` entry is removed from th
 Each page shows only chromosomes with at least five usable (finite) probe values for that sample.
 
 
+## Per-ICR Scores
+
+The sample-level IDS pools all probes of a parental class, so a defect at one ICR or on one chromosome changes it little. Add `--icr` to also score each ICR on its own and summarize the altered ICRs per sample:
+
+```bash
+Rscript "$SCRIPTS"/run_imprintomeR.R \
+  -r qc_results/epic/data/epic_qcset.rds \
+  -o imprintome_results \
+  --prefix GSE240091 \
+  --probeset selected \
+  --reference-group control \
+  --icr \
+  -v
+```
+
+`--icr` writes, in addition to the sample-level table:
+
+- `<prefix>_<genome>_results_ICRStatus.<probeset>.tsv`: one row per sample and ICR, with the deviation, `z`, the altered call, and the ICR's annotated parental origin and `DMR_type`;
+- `<prefix>_<genome>_results_ICRSummary.<probeset>.tsv`: per sample, the numbers of altered ICRs (gains and losses), the chromosomes involved and the multi-locus (`MLID`) flag;
+- `<prefix>_<genome>_icr_heatmap.<probeset>.pdf`: samples by ICRs heatmap of the deviations, drawn with `--plot-types default` or `all` (or alone with `--plot-types icr_heatmap`); non-gametic ICRs are marked with `*`.
+
+An ICR is called altered when |deviation| ≥ 0.075 and |z| ≥ 3 against the controls. These thresholds were validated with control samples: give in-cohort controls with `--reference-group` or an external reference with `--reference-file`. Without controls, `z` is unavailable, only the deviation criterion applies and the calls are exploratory. Per-ICR scores cover all annotated ICRs, secondary DMRs included; `--dmr-type` changes only the sample-level score.
+
+`--balance icr` is a separate option: it computes the sample-level IDS/Angle with each ICR counted once (median within each ICR, then across ICRs). It can be combined with `--icr`.
+
+The per-ICR thresholds (`delta_cutoff`, `z_cutoff`) and restricting per-ICR scores to gametic ICRs (`dmr_type = "gametic"`) are available from R, through `runImprintome()`, `AnalyzeICRStatus()` and `SummarizeICRStatus()`, but not as command-line options.
+
 ## Imprintome Outputs
 
 A typical analysis directory (default `--genome hg38`) contains:
@@ -280,8 +308,11 @@ imprintome_results/
 +-- run_imprintomeR.log
 +-- GSE240091_hg38_imprintomeSet.rds
 +-- GSE240091_hg38_results_AnalyzeImprintStatus.selected.tsv
++-- GSE240091_hg38_results_ICRStatus.selected.tsv     (--icr)
++-- GSE240091_hg38_results_ICRSummary.selected.tsv    (--icr)
 +-- GSE240091_hg38_polar.selected.pdf
 +-- GSE240091_hg38_heatmap_by_gene.selected.pdf
++-- GSE240091_hg38_icr_heatmap.selected.pdf          (--icr)
 +-- GSE240091_hg38_radar.<probeset>.<sample_id>.pdf
 +-- GSE240091_hg38_rainfall.<probeset>.<sample_id>.pdf
 ```
