@@ -17,9 +17,19 @@ knitr::opts_chunk$set(
 
 ## Overview
 
-This vignette demonstrates a complete `imprintomeR` workflow using core functions without relying on S4 objects such as `ImprintomeSet`.
+This vignette runs the core imprintomeR analysis on a plain beta table and a metadata table, without building an `ImprintomeSet`. It covers sample-level scores, per-ICR calls, uncertainty, and the plots that take tables directly.
 
-### 1. Load Data
+Defaults to keep in mind:
+
+- the genome build is **hg38** (`genome = "hg19"` for GRCh37 coordinates);
+- the core `selected` panel is scored on **gametic ICRs** (`dmr_type = "gametic"`); `dmr_type = "all"` scores every probe;
+- without controls, scores are relative to the fixed 0.5 reference; with controls (`reference_group`), they are centred on the controls.
+
+The polar, radar, beeswarm and mirror-density plots are drawn by `plot()` on an `ImprintomeSet`; the last section shows the short route from the same tables.
+
+## 1. Load data
+
+The metadata table needs `Sample_Name` and `Sample_Group`. The beta table has one row per probe (first column: probe ID) and one column per sample, with beta values from QC-clean data.
 
 ```{r, eval=FALSE}
 library(imprintomeR)
@@ -28,44 +38,63 @@ meta <- LoadMeta("meta.tsv")
 beta <- LoadBeta("cleaned_beta.tsv")
 ```
 
-### 2. Run Analysis
+## 2. Sample-level scores
+
+`AnalyzeImprintStatus()` returns one row per sample: the paternal and maternal median deviations, the Imprinting Deviation Score (IDS), its direction (Angle), the sector label (Mechanism) and the status at the IDS cutoff.
 
 ```{r, eval=FALSE}
 res <- AnalyzeImprintStatus(betaFile = beta, metaFile = meta, probeset = "selected", ids_cutoff = 0.2)
-head(res)
+res[, c("Sample_Name", "Sample_Group", "n_paternal_probes", "n_maternal_probes", "IDS", "Angle", "Mechanism", "Status")]
 ```
 
-### 3. Visualization
-
-#### Polar Plot
+Other selections and references use the same call:
 
 ```{r, eval=FALSE}
-p_polar <- PlotPolar(
-  data = res,
-  colorColumn = "Sample_Group",
-  title = "imprintomeR Polar Plot",
-  outFile = "polar.pdf"
-)
+res_all <- AnalyzeImprintStatus(beta, meta, probeset = "selected", dmr_type = "all")  # every probe
+res_11p <- AnalyzeImprintStatus(beta, meta, probeset = "chr11p15")                    # 11p15.5 locus panel
+# With control samples in the cohort (Sample_Group "control"):
+# res_ctrl <- AnalyzeImprintStatus(beta, meta, probeset = "selected", reference_group = "control")
 ```
 
-#### Beeswarm Plot
+## 3. Uncertainty
+
+`n_boot` adds bootstrap intervals for IDS and Angle and `Mechanism_support`, the fraction of replicates in the reported sector. Use at least 1,000 replicates for reporting.
 
 ```{r, eval=FALSE}
-p_beeswarm <- BetaBeePlot(
-  beta = beta,
-  meta = meta,
-  SAMPLEID = "Sample_Name",
-  probeset = "selected",
-  outFile = "beeswarm.pdf"
-)
+res_boot <- AnalyzeImprintStatus(beta, meta, probeset = "selected", n_boot = 200, seed = 1)
+res_boot[, c("Sample_Name", "IDS", "IDS_lower", "IDS_upper", "Mechanism", "Mechanism_support")]
 ```
 
+With a control reference, `n_perm` adds a permutation test of the dependence on the annotated parental origin (`origin_perm_p`), and `CalibrateIDS()` derives an IDS cutoff from the controls:
 
-#### Heatmap by Gene
+```{r, eval=FALSE}
+# res_ctrl <- AnalyzeImprintStatus(beta, meta, probeset = "selected", reference_group = "control",
+#                                  n_boot = 1000, n_perm = 1000, seed = 1)
+# cal <- CalibrateIDS(res_ctrl, controls = "control", method = "quantile", probs = 0.99)
+# attr(cal, "calibration")
+```
 
-You can generate gene-level aggregated methylation heatmaps directly using the `BetaHeatmapByGene()` function:
+## 4. Per-ICR calls
 
-```r
+`AnalyzeICRStatus()` scores each imprinting control region on its own; `SummarizeICRStatus()` counts the altered ICRs per sample and flags multi-locus disturbance (MLID). The call thresholds (|deviation| ≥ 0.075 and |z| ≥ 3) assume control samples; without controls only the deviation criterion applies and the calls are exploratory.
+
+```{r, eval=FALSE}
+icr <- AnalyzeICRStatus(beta, meta, probeset = "selected")
+head(icr[, c("Sample_Name", "ICR_name", "ORIGIN", "DMR_type", "deviation", "direction", "altered")])
+
+icr_summary <- SummarizeICRStatus(icr)
+icr_summary[, c("Sample_Name", "Sample_Group", "n_icrs", "n_altered", "n_gain", "n_loss", "MLID")]
+```
+
+Per-ICR calls cover all annotated ICRs, secondary DMRs included; `dmr_type = "gametic"` restricts them.
+
+## 5. Heatmaps from tables
+
+```{r, eval=FALSE}
+# Samples x ICRs, with a colour bar of each ICR's annotated parental origin
+PlotICRHeatmap(icr, outFile = "icr_heatmap.pdf")
+
+# Median beta per gene label of the panel, genes x samples
 hm <- BetaHeatmapByGene(
   beta = beta,
   meta = meta,
@@ -78,7 +107,28 @@ hm <- BetaHeatmapByGene(
 )
 ```
 
-This function aggregates probe-level beta values by gene using the median within each gene and produces a hierarchical clustered heatmap useful for identifying imprinting patterns across the sample cohort.
+`BetaHeatmapByGene()` takes the median of each gene label's probes, so one ICR can appear as several rows when its probes carry different gene labels; `PlotICRHeatmap()` shows one column per ICR.
+
+## 6. Polar, radar and other plots
+
+These plots are drawn by `plot()` on an `ImprintomeSet`, which can be built from the same tables:
+
+```{r, eval=FALSE}
+x <- ImprintomeSet(
+  beta = beta,
+  meta = meta,
+  probeset = readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))[["selected"]],
+  genome = "hg38",
+  assay = "450K"   # or "EPIC", "EPICv2"
+)
+x <- runImprintome(x, probeset = "selected")
+
+plot(x, plot_type = "polar", probeset = "selected", outFile = "polar.pdf")
+plot(x, plot_type = "radar", probeset = "selected", sample_id = meta$Sample_Name[1], outFile = "radar.pdf")
+plot(x, plot_type = "beeswarm_origin", probeset = "selected", outFile = "beeswarm_origin.pdf")
+```
+
+See `vignette("imprintomeset-quickstart")` and `vignette("imprintomeset-results-export")` for the full set of plots and exports.
 
 ## Session Info
 

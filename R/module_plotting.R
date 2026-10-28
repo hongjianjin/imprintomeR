@@ -1407,6 +1407,10 @@ BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
   resolved <- .resolve_beta_meta_inputs(beta, meta, require_meta = TRUE)
   beta <- resolved$beta
   meta <- resolved$meta
+  # LoadBeta() output keeps a probe-ID column (TargetID) next to the row names; keep the numeric columns.
+  if (is.data.frame(beta)) {
+    beta <- as.matrix(beta[, vapply(beta, is.numeric, logical(1)), drop = FALSE])
+  }
 
   # Load probeset and aggregate by gene
   probeset_df <- .get_probeset(probeset, genome)
