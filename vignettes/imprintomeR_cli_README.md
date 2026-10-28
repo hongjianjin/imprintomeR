@@ -2,19 +2,18 @@
 
 This guide describes the package-installed command-line scripts for running methylation QC and imprinting analysis with `imprintomeR`.
 
-The two scripts are installed under `inst/scripts/` in the source package:
-
-```text
-inst/scripts/run_meth_QC.R
-inst/scripts/run_imprintomeR.R
-```
-
-After installing the package, the scripts can also be located from R:
+The two scripts, `run_meth_QC.R` and `run_imprintomeR.R`, live in `inst/scripts/` of the source package and are installed into the `scripts/` folder of the installed package. Locate that folder once per shell session; the examples below use `$SCRIPTS`:
 
 ```bash
-Rscript $(Rscript -e 'cat(system.file("scripts/run_meth_QC.R", package="imprintomeR"))') --help
-Rscript $(Rscript -e 'cat(system.file("scripts/run_imprintomeR.R", package="imprintomeR"))') --help
+SCRIPTS=$(Rscript -e 'cat(system.file("scripts", package = "imprintomeR"))')
+[ -n "$SCRIPTS" ] || echo "imprintomeR is not installed for this Rscript" >&2
+echo "$SCRIPTS"    # e.g. ~/R/x86_64-pc-linux-gnu-library/4.3/imprintomeR/scripts
+
+Rscript "$SCRIPTS"/run_meth_QC.R --help
+Rscript "$SCRIPTS"/run_imprintomeR.R --help
 ```
+
+`system.file()` returns an empty string when imprintomeR is not installed for the `Rscript` on your `PATH`; on a cluster, load the same R module you installed the package with. To run the scripts from a source checkout instead, set `SCRIPTS=/path/to/imprintomeR/inst/scripts`.
 
 ## Workflow Overview
 
@@ -24,13 +23,13 @@ Rscript $(Rscript -e 'cat(system.file("scripts/run_imprintomeR.R", package="impr
 The recommended end-to-end workflow is:
 
 ```bash
-Rscript inst/scripts/run_meth_QC.R \
+Rscript "$SCRIPTS"/run_meth_QC.R \
   -m metadata.tsv \
   -o qc_results \
   --platform EPIC \
   -v
 
-Rscript inst/scripts/run_imprintomeR.R \
+Rscript "$SCRIPTS"/run_imprintomeR.R \
   -r qc_results/epic/data/epic_qcset.rds \
   -o imprintome_results \
   --prefix GSE240091 \
@@ -66,7 +65,7 @@ Compressed `.idat.gz` files are accepted. Lowercase `*_red.idat` / `*_green.idat
 ### Basic QC Run
 
 ```bash
-Rscript inst/scripts/run_meth_QC.R \
+Rscript "$SCRIPTS"/run_meth_QC.R \
   -m metadata.tsv \
   -o qc_results
 ```
@@ -140,7 +139,7 @@ qc_results/epic/data/epic_qcset.rds
 ### Recommended Input: MethQcSet RDS
 
 ```bash
-Rscript inst/scripts/run_imprintomeR.R \
+Rscript "$SCRIPTS"/run_imprintomeR.R \
   -r qc_results/epic/data/epic_qcset.rds \
   -o imprintome_results \
   --prefix GSE240091 \
@@ -159,7 +158,7 @@ If no sample has `Final.QC == "PASS"`, the script stops.
 ### Alternative Input: Beta and Metadata Files
 
 ```bash
-Rscript inst/scripts/run_imprintomeR.R \
+Rscript "$SCRIPTS"/run_imprintomeR.R \
   -b /data/beta.txt \
   -m /data/meta.txt \
   -o imprintome_results \
@@ -211,7 +210,7 @@ The beta matrix should have probes as rows and samples as columns. Metadata shou
 `circular_heatmap` is not included in `default`. Request it explicitly when needed:
 
 ```bash
-Rscript inst/scripts/run_imprintomeR.R \
+Rscript "$SCRIPTS"/run_imprintomeR.R \
   -r qc_results/epic/data/epic_qcset.rds \
   -o imprintome_results \
   --prefix GSE240091 \
@@ -227,7 +226,7 @@ Plots are saved directly as PDF files and are not embedded in the exported `Impr
 Pass `--rainfall-all TRUE` to generate one multipage rainfall PDF with one 12 x 6 inch page per sample:
 
 ```bash
-Rscript inst/scripts/run_imprintomeR.R \
+Rscript "$SCRIPTS"/run_imprintomeR.R \
   -r qc_results/epic/data/epic_qcset.rds \
   -o imprintome_results \
   --prefix GSE240091 \
@@ -242,7 +241,7 @@ When enabled, the ordinary single-sample `rainfall` entry is removed from the re
 Pass `--radar-all TRUE` to generate one multipage radar PDF with one page per sample. Radar plots have one spoke per curated ICR, in genomic order clockwise from the top, labelled chromosome_annotated parental origin_ICR; the page size grows with the label length (about 17 x 17 inches for the `selected` panel) so that no label is clipped:
 
 ```bash
-Rscript inst/scripts/run_imprintomeR.R \
+Rscript "$SCRIPTS"/run_imprintomeR.R \
   -r qc_results/epic/data/epic_qcset.rds \
   -o imprintome_results \
   --prefix GSE240091 \
@@ -259,7 +258,7 @@ Single-sample rainfall and radar files use `<prefix>_<genome>_rainfall.<probeset
 Pass `--beeswarm-chr-all TRUE` to generate one multipage PDF with one 10 x 4 inch page per sample:
 
 ```bash
-Rscript inst/scripts/run_imprintomeR.R \
+Rscript "$SCRIPTS"/run_imprintomeR.R \
   -r qc_results/epic/data/epic_qcset.rds \
   -o imprintome_results \
   --prefix GSE166531 \
@@ -321,7 +320,7 @@ The same dataset and genome share this RDS across probesets. Different genomes u
 ```bash
 module load R/4.2.2
 
-Rscript inst/scripts/run_meth_QC.R \
+Rscript "$SCRIPTS"/run_meth_QC.R \
   -m GSE240091_metadata.tsv \
   -b GSE240091_raw/idats \
   -o GSE240091_qc \
@@ -329,23 +328,13 @@ Rscript inst/scripts/run_meth_QC.R \
   --plot-types all \
   -v
 
-Rscript inst/scripts/run_imprintomeR.R \
+Rscript "$SCRIPTS"/run_imprintomeR.R \
   -r GSE240091_qc/epic/data/epic_qcset.rds \
   -o GSE240091_imprintome \
   --prefix GSE240091 \
   --probeset selected \
   --plot-types default \
   -v
-```
-
-For installed packages, use `system.file()` to avoid hard-coding the source tree path:
-
-```bash
-QC_SCRIPT=$(Rscript -e 'cat(system.file("scripts/run_meth_QC.R", package="imprintomeR"))')
-IMP_SCRIPT=$(Rscript -e 'cat(system.file("scripts/run_imprintomeR.R", package="imprintomeR"))')
-
-Rscript "$QC_SCRIPT" -m metadata.tsv -o qc_results -v
-Rscript "$IMP_SCRIPT" -r qc_results/epic/data/epic_qcset.rds -o imprintome_results --prefix GSE240091 -v
 ```
 
 ## Troubleshooting
