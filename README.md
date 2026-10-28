@@ -949,8 +949,8 @@ Detailed workflows and visualization tutorials are available in the package vign
 - `vignette("imprintomeset-results-export")` - Visualization and export
 - `vignette("imprintomeR-workflow-basic")` - End-to-end workflow using core functions without relying on S4 objects
 - [imprintomeR_cli_README.md](vignettes/imprintomeR_cli_README.md) - Command-line QC and imprintome analysis workflows
-- [GSE52567.ipynb](vignettes/GSE52567.ipynb) - GitHub-renderable notebook for a public GEO workflow
-- [GSE240091.ipynb](vignettes/GSE240091.ipynb) - GitHub-renderable notebook for QC and imprintomeR workflow on a public GEO cohort
+- [GSE52567.ipynb](vignettes/GSE52567.ipynb) ([R Markdown version](vignettes/GSE52576.Rmd)) - GitHub-renderable notebook for a public GEO workflow (GSE52576)
+- [GSE240091.ipynb](vignettes/GSE240091.ipynb) ([R Markdown version](vignettes/GSE240091.Rmd)) - GitHub-renderable notebook for QC and imprintomeR workflow on a public GEO cohort
 - [GSE74738.ipynb](vignettes/GSE74738.ipynb) ([Markdown version](vignettes/GSE74738.md)) - GitHub-renderable notebook for a 450K placenta cohort scored against its own controls: control-centred scores, per-ICR calls, bootstrap intervals, the origin permutation test and a control-calibrated IDS cutoff
 
 ## SessionInfo
