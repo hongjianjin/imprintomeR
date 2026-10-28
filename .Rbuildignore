@@ -14,3 +14,4 @@
 ^LICENSE$
 ^tmp_jupyter$
 ^tmp_cli$
+^CITATION\.cff$

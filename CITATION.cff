@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use imprintomeR, please cite it using the metadata below."
+type: software
+title: "imprintomeR: Quantitative Analysis and Visualization of Genomic Imprinting from DNA Methylation Arrays"
+authors:
+  - family-names: Jin
+    given-names: Hongjian
+    email: hongjian.jin@stjude.org
+version: 1.5.1
+date-released: 2026-10-28
+doi: 10.5281/zenodo.23741652
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.23741652
+    description: "Concept DOI: all versions, resolves to the latest"
+  - type: doi
+    value: 10.5281/zenodo.23741653
+    description: "Version DOI: release v1.5.1"
+repository-code: "https://github.com/hongjianjin/imprintomeR"
+license: Apache-2.0
+keywords:
+  - genomic imprinting
+  - DNA methylation
+  - Illumina methylation arrays
+  - imprinting control regions
+  - R
+abstract: >-
+  imprintomeR provides quantitative analysis and visualization of genomic
+  imprinting from Illumina 450K, EPIC and EPICv2 methylation arrays: QC
+  preprocessing, sample-level imprinting deviation scores (IDS and Angle),
+  per-ICR calls with a multi-locus summary, reference centring on control
+  samples, and plots including polar, radar and per-ICR heatmaps.
