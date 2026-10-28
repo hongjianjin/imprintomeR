@@ -13,3 +13,4 @@
 ^legacy$
 ^LICENSE$
 ^tmp_jupyter$
+^tmp_cli$
