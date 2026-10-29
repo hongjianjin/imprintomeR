@@ -715,6 +715,15 @@ p_radar <- plot(
   sample_id = sample_id1,
   outFile = paste0("plot_radar_", sample_id1, ".pdf")   # figure size grows with the label length
 )
+
+# 14) Per-ICR heatmap (samples × ICRs; needs the per-ICR calls from icr = TRUE)
+x <- runImprintome(x, probeset = "selected", reference_group = "control", icr = TRUE)
+p_icr <- plot(
+  x,
+  plot_type = "icr_heatmap",
+  probeset = "selected",
+  outFile = "plot_icr_heatmap.pdf"
+)
 ```
 
 ## Export QC Results
