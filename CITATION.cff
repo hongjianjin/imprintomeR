@@ -19,8 +19,8 @@ identifiers:
     value: 10.5281/zenodo.23741652
     description: "Concept DOI: all versions, resolves to the latest"
   - type: doi
-    value: 10.5281/zenodo.23741653
-    description: "Version DOI: release v1.5.1"
+    value: 10.5281/zenodo.23769049
+    description: "Version DOI: release v1.5.2"
 repository-code: "https://github.com/hongjianjin/imprintomeR"
 license: Apache-2.0
 keywords:
