@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23741652.svg)](https://doi.org/10.5281/zenodo.23741652)
 
-imprintomeR measures and visualizes genomic imprinting disturbance from Illumina 450K, EPIC and EPICv2 methylation arrays. Starting from IDAT files, it runs quality control (QC) and preprocessing, then scores each sample at imprinting control regions (ICRs):
+imprintomeR measures and visualizes genomic imprinting disturbance from Illumina 450K, EPICv1 and EPICv2 methylation arrays. Starting from IDAT files, it runs quality control (QC) and preprocessing, then scores each sample at imprinting control regions (ICRs):
 
 - **Scores:**
   - The Imprinting Deviation Index (IDI), (β − 0.5) × 2, places each probe on a −1 to 1 scale, where 0 is the half-methylated state expected at an ICR.
@@ -105,7 +105,7 @@ Each step is described in the [Recommended workflow](#recommended-workflow).
 
 ## Architecture: Preprocessing-First Workflow
 
-Raw methylation arrays often come from mixed platforms (450K, EPICv1, EPICv2). The **MethQcSet** container isolates QC processing for a single platform, preventing silent data corruption from cross-platform merging.
+Raw methylation arrays often come from mixed platforms (450K, EPICv1, EPICv2). The **MethQcSet** container isolates QC processing for a single platform, preventing silent data corruption from cross-platform merging. In code, `check_platform()`, `runMethQC(platform = )` and the `Platform` column use the values `"450K"`, `"EPIC"` (EPICv1) and `"EPICv2"`.
 
 <p align="center">
   <img src="images/workflow.jpg" alt="imprintomeR workflow" width="720" />
@@ -292,7 +292,7 @@ Key MethQcSet features:
   - `"noob_swan"`: adds SWAN type I/II adjustment (fixed seed, reproducible);
   - `"raw"`: unnormalized beta.
 
-  All three normalize each sample on its own and work on 450K, EPIC and EPICv2. Detection p-values, intensities and predicted sex always use unnormalized data. The method is stored in `qc_params(qcset)$normalization` and carried into `BuildReferenceProfile()` profiles; use the same method for cohorts and the reference profiles they are centred on. EPICv2 needs the `IlluminaHumanMethylationEPICv2manifest` and `IlluminaHumanMethylationEPICv2anno.20a1.hg38` packages (Bioconductor >= 3.19); `runMethQC()` sets the EPICv2 minfi annotation automatically, because earlier minfi releases do not recognize the array.
+  All three normalize each sample on its own and work on 450K, EPICv1 and EPICv2. Detection p-values, intensities and predicted sex always use unnormalized data. The method is stored in `qc_params(qcset)$normalization` and carried into `BuildReferenceProfile()` profiles; use the same method for cohorts and the reference profiles they are centred on. EPICv2 needs the `IlluminaHumanMethylationEPICv2manifest` and `IlluminaHumanMethylationEPICv2anno.20a1.hg38` packages (Bioconductor >= 3.19); `runMethQC()` sets the EPICv2 minfi annotation automatically, because earlier minfi releases do not recognize the array.
 - **Canonical `qc_tables` keys** (populated by `runMethQC()`):
   - `QC_matrix` — per-sample detection stats, intensity, predictedSex, `Final.QC`. `Final.QC` is PASS when at least 95% of probes are detected at p < `pcutoff` (default 0.05) and, when the ewastools control metrics are available, `CtrlMetrics.QC` is PASS. `CtrlMetrics.QC` fails only on Bisulfite Conversion I Green or Red below 1; the other control metrics are reported, not used.
   - `recall_rate` — per-probe % detected across all / PASS / FAIL samples
