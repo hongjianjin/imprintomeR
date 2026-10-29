@@ -21,7 +21,8 @@ if (!methods::isGeneric("computeQC")) {
 #'
 #' @param x A `MethQcSet` object.
 #' @param detection_pval Optional matrix of detection p-values. If NULL, uses x@detection_pval.
-#' @param pcutoff Numeric, maximum mean detection p-value cutoff (default: 0.05).
+#' @param pcutoff Detection p-value threshold (default 0.05): a sample passes when at least 95% of its
+#'   probes are detected at p < `pcutoff`. The per-probe recall rate uses the same threshold.
 #' @param ... Additional arguments (reserved for future use).
 #'
 #' @return A `MethQcSet` object with updated qc_tables and qc_params.
@@ -49,6 +50,10 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
   # Replace NAs with 1 (non-detected)
   dP[is.na(dP)] <- 1
 
+  if (!is.numeric(pcutoff) || length(pcutoff) != 1L || is.na(pcutoff) || pcutoff <= 0 || pcutoff >= 1) {
+    stop("pcutoff must be a single number between 0 and 1.")
+  }
+
   # Compute detection p-value statistics per sample
   aveDetPval <- colMeans(dP, na.rm = TRUE)
   DetPval0.01 <- colSums(dP < 0.01, na.rm = TRUE)
@@ -67,10 +72,15 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
     stringsAsFactors = FALSE
   )
 
-  # Final.QC: PASS requires pctDetectedCpG_dP0.05 > 95
-  qc_matrix$Final.QC <- ifelse(qc_matrix$pctDetectedCpG_dP0.05 >= 95, "PASS", "FAIL")
+  # Final.QC: PASS when at least 95% of probes are detected at p < pcutoff. The 0.01 and 0.05 columns are
+  # always reported; another pcutoff adds its own column.
+  pct_col <- paste0("pctDetectedCpG_dP", format(pcutoff, trim = TRUE, scientific = FALSE))
+  if (!pct_col %in% colnames(qc_matrix)) {
+    qc_matrix[[pct_col]] <- round(colSums(dP < pcutoff, na.rm = TRUE) / nrow(dP) * 100, 2)
+  }
+  qc_matrix$Final.QC <- ifelse(qc_matrix[[pct_col]] >= 95, "PASS", "FAIL")
 
-  # Per-probe recall rate (% of samples detecting each CpG at p < 0.05)
+  # Per-probe recall rate (% of samples detecting each CpG at p < pcutoff)
   pass_idx <- qc_matrix$Final.QC == "PASS"
   fail_idx <- qc_matrix$Final.QC == "FAIL"
   n_all  <- ncol(dP)
@@ -79,18 +89,18 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
 
   recall_rate <- data.frame(
     CpG = rownames(dP),
-    pct_detected_all = round(rowSums(dP < 0.05, na.rm = TRUE) / n_all * 100, 2),
+    pct_detected_all = round(rowSums(dP < pcutoff, na.rm = TRUE) / n_all * 100, 2),
     stringsAsFactors = FALSE
   )
   if (n_pass > 0) {
     recall_rate$pct_detected_pass <- round(
-      rowSums(dP[, pass_idx, drop = FALSE] < 0.05, na.rm = TRUE) / n_pass * 100, 2)
+      rowSums(dP[, pass_idx, drop = FALSE] < pcutoff, na.rm = TRUE) / n_pass * 100, 2)
   } else {
     recall_rate$pct_detected_pass <- NA_real_
   }
   if (n_fail > 0) {
     recall_rate$pct_detected_fail <- round(
-      rowSums(dP[, fail_idx, drop = FALSE] < 0.05, na.rm = TRUE) / n_fail * 100, 2)
+      rowSums(dP[, fail_idx, drop = FALSE] < pcutoff, na.rm = TRUE) / n_fail * 100, 2)
   } else {
     recall_rate$pct_detected_fail <- NA_real_
   }
@@ -99,7 +109,7 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
   # Structured to match legacy meth_QC.R for compatibility
   cutoffs <- data.frame(
     criteria = c(
-      "log2MedianIntensity", "aveDetectionPval", "pctDetectedCpG_dP0.05",
+      "log2MedianIntensity", "aveDetectionPval", pct_col,
       "snps_outliers_aveLogOdds",
       "Restoration", "Staining_Green", "Staining_Red",
       "Extension_Green", "Extension_Red", "Hybridization_High/Medium", "Hybridization_Medium/Low",
@@ -110,7 +120,7 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
       "CtrlMetrics.QC"
     ),
     cutoff   = c(
-      "reported", paste0("<", pcutoff), ">95",
+      "reported", "reported", ">=95",
       ">-4",
       ">0", ">5", ">5", ">5", ">5", ">1", ">1",
       ">1", ">1",
@@ -119,7 +129,7 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
       "PASS"
     ),
     Pass = c(
-      "reported", paste0("<=", pcutoff), ">=95",
+      "reported", "NA", ">=95",
       "NA",
       ">0", ">5", ">5", ">5", ">5", ">1", ">1",
       ">1", ">1",
@@ -128,7 +138,7 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
       "PASS"
     ),
     Fail = c(
-      "reported", paste0(">", pcutoff), "<=95",
+      "reported", "NA", "<95",
       "NA",
       "<=0", "<=5", "<=5", "<=5", "<=5", "<=1", "<=1",
       "<=1", "<=1",
@@ -137,7 +147,7 @@ methods::setMethod("computeQC", "MethQcSet", function(x, detection_pval = NULL,
       "FAIL"
     ),
     Final.QC = c(
-      NA, "required", "required",
+      NA, NA, "required",
       NA,
       NA, NA, NA, NA, NA, NA, NA, NA, NA,
       "required", "required", NA, NA, NA, NA, NA, NA,

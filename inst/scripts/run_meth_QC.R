@@ -31,7 +31,7 @@ option_list <- list(
         help = "Output directory for results (will be created if not exists) [REQUIRED]"),
 
     make_option(c("-p", "--pcutoff"), type = "double", default = 0.05,
-        help = "Detection p-value threshold (max mean p-val to pass QC) [default: %default]"),
+        help = "Detection p-value threshold for Final.QC: a sample passes when >= 95% of probes are detected at p < this value [default: %default]"),
 
     make_option(c("-i", "--icutoff"), type = "double", default = 11,
         help = "Reference line for intensity QC plots only; intensity no longer determines Final.QC [default: %default]"),

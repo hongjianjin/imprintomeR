@@ -280,7 +280,8 @@ check_platform <- function(meta, max_retries = 5) {
 #'     \item{Explicit string (e.g. `"EPIC"`)}{Use provided value; any existing
 #'       `Platform` column in meta is ignored.}
 #'   }
-#' @param pcutoff Numeric. Maximum mean detection p-value to pass QC (default: 0.05).
+#' @param pcutoff Detection p-value threshold for `Final.QC` (default 0.05): at least 95% of probes
+#'   must be detected at p < `pcutoff`.
 #' @param normalization Beta-value normalization:
 #'   - `"noob"` (default): background and dye-bias correction
 #'     (`minfi::preprocessNoob(dyeMethod = "single")`);
@@ -303,7 +304,7 @@ check_platform <- function(meta, max_retries = 5) {
 #'
 #' @details
 #' `Final.QC` in `qc_tables(x)$QC_matrix` is `"PASS"` when at least 95% of
-#' probes are detected at p < 0.05 and, when the ewastools control metrics
+#' probes are detected at p < `pcutoff` (default 0.05) and, when the ewastools control metrics
 #' could be computed, `CtrlMetrics.QC` is `"PASS"`. `CtrlMetrics.QC` is `"FAIL"`
 #' only when Bisulfite Conversion I Green or Red falls below its ewastools
 #' threshold (1). The other control metrics are reported in

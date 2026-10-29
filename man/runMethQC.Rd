@@ -40,7 +40,8 @@ run \code{check_platform(meta)} first.}
 \code{Platform} column in meta is ignored.}
 }}
 
-\item{pcutoff}{Numeric. Maximum mean detection p-value to pass QC (default: 0.05).}
+\item{pcutoff}{Detection p-value threshold for \code{Final.QC} (default 0.05): at least 95\% of probes
+must be detected at p < \code{pcutoff}.}
 
 \item{normalization}{Beta-value normalization:
 \itemize{
@@ -103,7 +104,7 @@ probes) the minfi annotation is set to \code{IlluminaHumanMethylationEPICv2} /
 \code{IlluminaHumanMethylationEPICv2anno.20a1.hg38} packages.
 
 \code{Final.QC} in \code{qc_tables(x)$QC_matrix} is \code{"PASS"} when at least 95\% of
-probes are detected at p < 0.05 and, when the ewastools control metrics
+probes are detected at p < \code{pcutoff} (default 0.05) and, when the ewastools control metrics
 could be computed, \code{CtrlMetrics.QC} is \code{"PASS"}. \code{CtrlMetrics.QC} is \code{"FAIL"}
 only when Bisulfite Conversion I Green or Red falls below its ewastools
 threshold (1). The other control metrics are reported in

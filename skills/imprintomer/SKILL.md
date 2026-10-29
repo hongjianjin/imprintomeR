@@ -130,7 +130,7 @@ Rscript <repo-dir>/inst/scripts/run_meth_QC.R \
 
 Important options:
 
-- `--pcutoff <number>`: detection p-value threshold; default `0.05`
+- `--pcutoff <number>`: detection p-value threshold for `Final.QC` (at least 95% of probes detected at p < this value); default `0.05`
 - `--icutoff <number>`: intensity plot reference line; default `11`
 - `--platform EPIC|EPICv2|450K`: override platform detection
 - `--plot-types <list-or-all>`: `intensity`, `detection_pval`, `probe_coverage`, `qc_bar`, `beta_density`, or `all`

@@ -76,7 +76,7 @@ Rscript "$SCRIPTS"/run_meth_QC.R \
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--platform` | auto-detect | Override platform detection: EPIC, EPICv2, 450K, or 27K. |
-| `--pcutoff` / `-p` | 0.05 | Detection p-value threshold used for `Final.QC`. |
+| `--pcutoff` / `-p` | 0.05 | Detection p-value threshold used for `Final.QC`: a sample passes when at least 95% of probes are detected at p < this value (and the bisulfite conversion I controls pass). |
 | `--icutoff` / `-i` | 11 | Reference line for intensity plots only. Low intensity no longer fails `Final.QC`. |
 | `--plot-types` | intensity,detection_pval,probe_coverage,beta_density | QC plots: `intensity`, `detection_pval`, `probe_coverage`, `qc_bar`, `beta_density`, or `all`. |
 | `--no-qc-plots` | FALSE | Suppress QC plot generation. |

@@ -11,7 +11,8 @@
 
 \item{detection_pval}{Optional matrix of detection p-values. If NULL, uses x@detection_pval.}
 
-\item{pcutoff}{Numeric, maximum mean detection p-value cutoff (default: 0.05).}
+\item{pcutoff}{Detection p-value threshold (default 0.05): a sample passes when at least 95\% of its
+probes are detected at p < \code{pcutoff}. The per-probe recall rate uses the same threshold.}
 
 \item{...}{Additional arguments (reserved for future use).}
 }

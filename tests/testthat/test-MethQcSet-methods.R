@@ -225,3 +225,26 @@ test_that("find_intersection finds common probes", {
   expect_length(common_probes, 51)  # probes 50-100
   expect_true(all(grepl("cg0000005[0-9]|cg000000[0-9]{2}|cg00000100", common_probes)))
 })
+
+test_that("computeQC uses pcutoff for Final.QC and the recall rate", {
+  obj <- .create_test_methqcset(n_samples = 2, n_probes = 100)
+  dp <- obj@detection_pval
+  dp[, 1] <- 0.001                       # S1: every probe detected at p < 0.01
+  dp[, 2] <- 0.001
+  dp[1:8, 2] <- 0.03                     # S2: 92% at p < 0.01, 100% at p < 0.05
+  obj@detection_pval <- dp
+
+  qm <- function(x) qc_tables(x)[["QC_matrix"]]
+  default <- computeQC(obj)              # pcutoff = 0.05
+  strict  <- computeQC(obj, pcutoff = 0.01)
+  expect_equal(qm(default)$Final.QC, c("PASS", "PASS"))
+  expect_equal(qm(strict)$Final.QC, c("PASS", "FAIL"))
+  expect_equal(qc_tables(strict)[["cutoffs"]]$criteria[3], "pctDetectedCpG_dP0.01")
+  expect_equal(qc_tables(strict)[["recall_rate"]]$pct_detected_all[1], 50)   # probe 1: 1 of 2 samples at p < 0.01
+
+  other <- computeQC(obj, pcutoff = 0.002)
+  expect_true("pctDetectedCpG_dP0.002" %in% colnames(qm(other)))
+  expect_equal(qm(other)$Final.QC, c("PASS", "FAIL"))
+
+  expect_error(computeQC(obj, pcutoff = 1.5), "between 0 and 1")
+})
