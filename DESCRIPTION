@@ -1,7 +1,7 @@
 Package: imprintomeR
 Type: Package
 Title: Quantitative Analysis and Visualization of Genomic Imprinting from DNA Methylation Arrays
-Version: 1.5.0
+Version: 1.5.2
 Authors@R: c(
     person(
         given = "Hongjian",

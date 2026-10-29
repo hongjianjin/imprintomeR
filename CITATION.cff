@@ -11,8 +11,8 @@ authors:
     given-names: Gang
     email: gang.wu@stjude.org
     orcid: "https://orcid.org/0000-0002-1678-5864"
-version: 1.5.1
-date-released: 2026-10-28
+version: 1.5.2
+date-released: 2026-10-29
 doi: 10.5281/zenodo.23741652
 identifiers:
   - type: doi
