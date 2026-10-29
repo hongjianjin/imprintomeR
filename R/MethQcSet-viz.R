@@ -955,7 +955,7 @@ if (!methods::isGeneric("plot")) {
 methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
     type     = "qc_bar",
     icutoff  = 11,
-    pcutoff  = 0.03,
+    pcutoff  = 0.05,
     outFile  = NULL,
     ...) {
 

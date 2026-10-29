@@ -2,10 +2,54 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23741652.svg)](https://doi.org/10.5281/zenodo.23741652)
 
-imprintomeR delivers comprehensive analysis and visualization of genomic imprinting from methylation array data. It enforces a robust S4 preprocessing-first workflow that integrates technical quality control (QC), computation of Imprinting Deviation Scores (IDS), and publication-quality visualizations. The package provides two formal S4 containers:
+imprintomeR measures and visualizes genomic imprinting disturbance from Illumina 450K, EPIC and EPICv2 methylation arrays. Starting from IDAT files, it runs quality control (QC) and preprocessing, then scores each sample at imprinting control regions (ICRs):
 
-- **MethQcSet**: Single-platform QC and preprocessing
-- **ImprintomeSet**: Analysis-ready container for imprinting studies
+- **Scores:**
+  - The Imprinting Deviation Index (IDI), (β − 0.5) × 2, places each probe on a −1 to 1 scale, where 0 is the half-methylated state expected at an ICR.
+  - From the paternal and maternal deviations, the Imprinting Deviation Score (IDS) gives each sample's overall deviation, and the Angle gives its direction. Bootstrap confidence intervals are optional.
+- **Per-ICR calls:** each ICR is scored on its own, with a multi-locus summary per sample.
+- **Reference centring:** scores can be centred on control samples from the same study.
+- **Plots:** polar plots (IDS and Angle), radar plots (median IDI per ICR), rainfall plots (IDI per probe), beeswarm plots and per-ICR heatmaps.
+
+The workflow is built on two S4 classes:
+
+- **MethQcSet:** QC results and preprocessed data for one array platform.
+- **ImprintomeSet:** scores and annotations, ready for analysis and plotting.
+
+Every step can be run from R or with the command-line scripts in `inst/scripts/` (see the [command-line guide](vignettes/imprintomeR_cli_README.md)).
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Architecture: Preprocessing-First Workflow](#architecture-preprocessing-first-workflow)
+- [Core Formulas](#core-formulas)
+  - [Angle Direction Mapping](#angle-direction-mapping)
+- [Bundled probesets](#bundled-probesets)
+- [Recommended Workflow](#recommended-workflow)
+  - [Step 1: QC Preprocessing (MethQcSet)](#step-1-qc-preprocessing-methqcset--optional-if-data-already-cleaned)
+  - [Step 2: Create Analysis Container (ImprintomeSet)](#step-2-create-analysis-container-imprintomeset)
+  - [Step 3: Run Imprinting Analysis](#step-3-run-imprinting-analysis)
+    - [Reference centring and Infinium design types](#reference-centring-and-infinium-design-types)
+    - [Per-ICR scores and ICR-balanced IDS](#per-icr-scores-and-icr-balanced-ids)
+    - [Uncertainty and calibration](#uncertainty-and-calibration)
+  - [Step 4: Summarize, Visualize, Export](#step-4-summarize-visualize-export)
+- [Detailed Examples](#detailed-examples)
+  - [MethQcSet: Platform-Specific Preprocessing](#methqcset-platform-specific-preprocessing)
+  - [Inspecting the objects](#inspecting-the-objects)
+- [Visualization](#visualization)
+  - [Available Plot Types](#available-plot-types)
+  - [Standard Workflow Plots](#standard-workflow-plots)
+  - [Example Plots](#example-plots)
+- [Export QC Results](#export-qc-results)
+- [MCP Server](#mcp-server)
+  - [Local Setup](#local-setup)
+- [Agent Skill](#agent-skill)
+- [Test Suite](#test-suite)
+- [Vignettes](#vignettes)
+- [Maintainers](#maintainers)
+- [Contact](#contact)
+- [SessionInfo](#sessioninfo)
 
 ## Installation
 
@@ -22,22 +66,93 @@ devtools::install("path/to/imprintomeR")
 The QC dependency [ewastools](https://github.com/hhhh5/ewastools) is not on CRAN; both commands install it
 from GitHub automatically (DESCRIPTION `Remotes: hhhh5/ewastools`).
 
-After installation, download required data files:
+The annotation files (about 52 MB) are installed with the package, under `inst/extdata/`:
+- `anno.uniq_harmonized.liftover.rds`: CpG probe coordinates and annotations (hg19 and hg38);
+- `probesets_hg19.rds` and `probesets_hg38.rds`: probe panels for imprinting control regions (ICRs).
+
+If any of them is missing, imprintomeR prints a note when it loads; download them from the `main` branch of this repository with:
 
 ```r
 library(imprintomeR)
-setup_imprintome_data()  # Downloads annotation files on first use
+setup_imprintome_data()
 ```
-
-This downloads any missing annotation files (total ~52 MB) from the `main` branch of this repository:
-- CpG probe coordinates and annotations (hg19 and hg38): `anno.uniq_harmonized.liftover.rds`
-- ICR (Imprinted Gene Region) probeset panels: `probesets_hg19.rds` and `probesets_hg38.rds`
 
 hg38 (GRCh38) is the default reference genome throughout: `as.ImprintomeSet()`, `AnalyzeImprintStatus()`, `SubsetBeta_By_Probeset()`, `AggregateByLocus()`, and the CLI `--genome` option all default to `"hg38"` and load `probesets_hg38.rds`. `runImprintome()` uses the genome stored in the `ImprintomeSet`. Pass `genome = "hg19"` (or `--genome hg19`) for GRCh37 coordinates. Probe IDs, parental-origin labels, and `DMR_type` are the same in both builds for every probe-level panel except `Jima` (two extra probes in hg38), so scores do not depend on the build.
 
-Package data files are shipped under `inst/extdata/`.
+## Quick start
 
-### Bundled probesets
+```r
+library(imprintomeR)
+
+# 1. QC, one array platform at a time
+meta  <- LoadMeta("meta.tsv")         # Sample_Name, Sample_Group and Basename (IDAT path prefix)
+meta  <- check_platform(meta)         # adds the Platform column
+qcset <- runMethQC(meta[meta$Platform == "EPIC", ], outdir = "qc_output", prefix = "epic")
+# EPICv2 only: qcset <- aggregate_probes(qcset)
+export(qcset, outdir = "qc_output", prefix = "epic", format = c("xlsx", "rds"))
+
+# 2. Imprinting analysis (later sessions: qcset <- readRDS("qc_output/data/epic_qcset.rds"))
+x <- as.ImprintomeSet(qcset)          # bundled hg38 panels
+x <- runImprintome(x, probeset = "selected")
+
+# 3. Plot and export
+plot(x, plot_type = "polar", outFile = "polar.pdf")
+export(x, outdir = "imprintome_results", prefix = "study", save_plots = TRUE)
+```
+
+Each step is described in the [Recommended workflow](#recommended-workflow).
+
+## Architecture: Preprocessing-First Workflow
+
+Raw methylation arrays often come from mixed platforms (450K, EPIC v1, EPICv2). The **MethQcSet** container isolates QC processing for a single platform, preventing silent data corruption from cross-platform merging.
+
+<p align="center">
+  <img src="images/workflow.jpg" alt="imprintomeR workflow" width="720" />
+</p>
+
+```
+Metadata + IDAT Files (mixed platforms)
+    ↓
+[check_platform(meta)] → detect array platform per sample
+    ↓
+Subset meta by platform
+    ↓
+[runMethQC(meta_platform)] → load IDAT → extract beta + p-values → QC metrics → MethQcSet
+    ↓
+Per-platform QC-clean MethQcSet
+    ↓
+[as.ImprintomeSet()]
+    ↓
+[runImprintome()] → Analysis results (IDS, Angle, etc.)
+    ↓
+Visualize & Export
+```
+
+## Core Formulas
+- Imprinting Deviation Index (**IDI**): (beta - 0.5) × 2
+- Imprinting Deviation Score (**IDS**): √((paternal_median - 0.5)² + (maternal_median - 0.5)²)
+- **Deviation Angle**: atan2(maternal_median - 0.5, paternal_median - 0.5)
+- With a control reference, 0.5 is replaced by each probe's median beta across the controls: paternal/maternal deviations are medians of (beta − reference), and IDS and Angle are computed from these deviations (see [Reference centring and Infinium design types](#reference-centring-and-infinium-design-types)).
+
+Subtracting 0.5 moves the hemimethylated state of an imprinting control region to the origin (0, 0) of a plane whose axes are the paternal and maternal median deviations. Each sample is then a deviation vector: IDS is its length, the Euclidean distance from balanced imprinting, and Angle its direction. Without the shift, distance and direction would be measured from a fully unmethylated locus. IDI applies the same shift probe by probe and rescales it to [−1, 1].
+
+The paternal and maternal classes come from the probeset's `ORIGIN` annotation, and array beta values are bulk, not allele-specific, measurements. IDS and Angle are therefore descriptive summaries along the annotated parental axes, not parent-of-origin calls. The default IDS cutoff (0.2) and confidence tiers (0.1/0.2/0.4) are exploratory screening conventions; calibrate them on tissue-matched controls where possible (see [Uncertainty and calibration](#uncertainty-and-calibration)).
+
+### Angle Direction Mapping
+Each 45-degree sector of the polar plot is labelled with the direction of shift along the annotated paternal and maternal axes, such as paternal gain or maternal loss of methylation, or global hypo- or hypermethylation. Each label covers the 45° sector centred on the angle in the table (for example, Pat-Gain covers 337.5° to 22.5°). Samples with IDS < 0.2 are labelled ROI (retention of imprinting). The labels are exploratory directional summaries of bulk beta values, not parent-of-origin molecular calls; with `n_boot`, `Mechanism_support` reports how stable a sample's label is under resampling.
+
+| Angle (°) | Sector (°) | `Mechanism` label |
+|---:|---|---|
+| 0 | 337.5 – 22.5 | `Pat-Gain` |
+| 45 | 22.5 – 67.5 | `Global-Hyper` |
+| 90 | 67.5 – 112.5 | `Mat-Gain` |
+| 135 | 112.5 – 157.5 | `Mat-Gain+Pat-Loss` |
+| 180 | 157.5 – 202.5 | `Pat-Loss` |
+| 225 | 202.5 – 247.5 | `Global-Hypo` |
+| 270 | 247.5 – 292.5 | `Mat-Loss` |
+| 315 | 292.5 – 337.5 | `Pat-Gain+Mat-Loss` |
+
+## Bundled probesets
 
 `probesets_hg19.rds` and `probesets_hg38.rds` contain the same eleven panels in the same order: the probe-level `Jima`, `Joshi`, `Court`, `Rosenski`, `selected` (782 probes, selected on 450K and EPIC v1 and/or EPICv2: all 782 on 450K, 742 on EPIC v1, 683 on EPICv2), `NanoImprint`, `chr11p15` and `chr20q13` (GNAS) panels, and the region-level `Rosenski_region`, `chr11p15_region` and `chr20q13_region` panels. Every probe-level panel carries parental-origin (`ORIGIN`) labels, an `ICR_name` and a `DMR_type` (gametic, secondary, ambiguous or uncurated) following Monk et al. (2018), and the Infinium design type of each probe. Probe coordinates come from `anno.uniq_harmonized.liftover.rds`, which merges the Illumina 450K, EPIC v1.0 B5 and EPICv2 manifests; its chromosome labels were checked against the UCSC hg19ToHg38 and hg38ToHg19 chains.
 
@@ -64,94 +179,6 @@ Platform coverage of the 782 `selected` probes (`ASSAY` column of `anno.uniq_har
 | **On 450K** | **782** |
 | **On EPIC v1** | **742** |
 | **On EPICv2** | **683** |
-
-## Table of Contents
-
-- [Installation](#installation)
-  - [Bundled probesets](#bundled-probesets)
-- [Architecture: Preprocessing-First Workflow](#architecture-preprocessing-first-workflow)
-- [Core Formulas](#core-formulas)
-  - [Angle Direction Mapping](#angle-direction-mapping)
-- [Recommended Workflow](#recommended-workflow)
-  - [Step 1: QC Preprocessing (MethQcSet)](#step-1-qc-preprocessing-methqcset--optional-if-data-already-cleaned)
-  - [Step 2: Create Analysis Container (ImprintomeSet)](#step-2-create-analysis-container-imprintomeset)
-  - [Step 3: Run Imprinting Analysis](#step-3-run-imprinting-analysis)
-    - [Reference centring and Infinium design types](#reference-centring-and-infinium-design-types)
-    - [Per-ICR scores and ICR-balanced IDS](#per-icr-scores-and-icr-balanced-ids)
-    - [Uncertainty and calibration](#uncertainty-and-calibration)
-  - [Step 4: Summarize, Visualize, Export](#step-4-7-summarize-visualize-export)
-- [Detailed Examples](#detailed-examples)
-  - [MethQcSet: Platform-Specific Preprocessing](#methqcset-platform-specific-preprocessing)
-  - [ImprintomeSet: Analysis Container](#imprintomeset-analysis-container)
-  - [Run Imprinting Analysis](#run-imprinting-analysis)
-  - [Summarize & Inspect](#summarize--inspect)
-- [Visualization](#visualization)
-  - [Available Plot Types](#available-plot-types)
-  - [Standard Workflow Plots](#standard-workflow-plots)
-  - [Example Plots](#example-plots)
-- [Export QC Results](#export-qc-results)
-- [MCP Server](#mcp-server)
-  - [Local Setup](#local-setup)
-- [Agent Skill](#agent-skill)
-- [Test Suite](#test-suite)
-  - [Running Tests Locally (Development)](#running-tests-locally-development)
-- [Vignettes](#vignettes)
-- [Maintainers](#maintainers)
-- [Contact](#contact)
-- [SessionInfo](#sessioninfo)
-
-## Architecture: Preprocessing-First Workflow
-
-Raw methylation arrays often come from mixed platforms (450K, EPICv1, EPICv2). The **MethQcSet** container isolates QC processing for a single platform, preventing silent data corruption from cross-platform merging.
-
-<p align="center">
-  <img src="images/workflow.jpg" alt="imprintomeR workflow" width="720" />
-</p>
-
-```
-Metadata + IDAT Files (mixed platforms)
-    ↓
-[check_platform(meta)] → detect array platform per sample
-    ↓
-Subset meta by platform
-    ↓
-[runMethQC(meta_platform)] → load IDAT → extract beta + p-values → QC metrics → MethQcSet
-    ↓
-Per-platform QC-clean MethQcSet
-    ↓
-[as.ImprintomeSet()]
-    ↓
-[runImprintome()] → Analysis results (IDS, Angle, etc.)
-    ↓
-Visualize & Export
-```
-
-## Core Formulas
-- Imprint Deviation Index(**IDI**): (beta - 0.5) × 2
-- Imprint Deviation Score(**IDS**): √((paternal_median - 0.5)² + (maternal_median - 0.5)²)
-- **Deviation Angle**: atan2(maternal_median - 0.5, paternal_median - 0.5)
-- With a control reference, 0.5 is replaced by each probe's median beta across the controls: paternal/maternal deviations are medians of (beta − reference), and IDS and Angle are computed from these deviations (see [Reference centring and Infinium design types](#reference-centring-and-infinium-design-types)).
-
-Subtracting 0.5 moves the hemimethylated state of an imprinting control region to the origin (0, 0) of a plane whose axes are the paternal and maternal median deviations. Each sample is then a deviation vector: IDS is its length, the Euclidean distance from balanced imprinting, and Angle its direction. Without the shift, distance and direction would be measured from a fully unmethylated locus. IDI applies the same shift probe by probe and rescales it to [−1, 1].
-
-The paternal and maternal classes come from the probeset's `ORIGIN` annotation, and array beta values are bulk, not allele-specific, measurements. IDS and Angle are therefore descriptive summaries along the annotated parental axes, not parent-of-origin calls. The default IDS cutoff (0.2) and confidence tiers (0.1/0.2/0.4) are exploratory screening conventions; calibrate them on tissue-matched controls where possible (see [Uncertainty and calibration](#uncertainty-and-calibration)).
-
-
-### Angle Direction Mapping
-Each 45-degree sector of the polar plot is labelled with the direction of shift along the annotated paternal and maternal axes, such as paternal gain or maternal loss of methylation, or global hypo- or hypermethylation. Samples with IDS < 0.2 are labelled ROI (retention of imprinting). The labels are exploratory directional summaries of bulk beta values, not parent-of-origin molecular calls; with `n_boot`, `Mechanism_support` reports how stable a sample's label is under resampling.
-
-| Angle (°) | Mechanism Label                  |
-|-----------|--------------------------------|
-| 0°        | Pat-Gain                       |
-| 45°       | Global-Hyper                   |
-| 90°       | Mat-Gain                      |
-| 135°      | Mat-Gain + Pat-Loss            |
-| 180°      | Pat-Loss                      |
-| 225°      | Global-Hypo                   |
-| 270°      | Mat-Loss                      |
-| 315°      | Pat-Gain + Mat-Loss            |
-
-
 
 ## Recommended workflow
 
@@ -232,10 +259,10 @@ p_sex  <- plot(qcset, type = "predicted_sex",    outFile = "qc_predicted_sex.pdf
 p_ctrl <- plot(qcset, type = "ctrl_metrics",         outFile = "qc_ctrl_matrix_summary.pdf")   # ewastools scores
 plot(qcset, type = "ctrl_metrics_detail",            outFile = "qc_ctrl_matrix_detail")         # per-metric PDFs (Bisulfite/Specificity)
 
-# Export cleaned data
-# xlsx: single workbook — meta (+ Platform, Final.QC), QC_matrix,
-#   recall_rate, cutoffs, ctrl_metrics, contamination, predUniqDonor_ID
-export(qcset, outdir = "qc_output", format = c("xlsx", "rds"))
+# Export cleaned data: two workbooks ({prefix}_qc_table_main.xlsx and
+#   QC_tables/{prefix}_qc_table_extra.xlsx) and data/{prefix}_qcset.rds
+#   (see Export QC Results)
+export(qcset, outdir = "qc_output", prefix = "epic", format = c("xlsx", "rds"))
 ```
 
 **QC pass criteria.** A sample is `Final.QC = "PASS"` when both hold:
@@ -249,15 +276,22 @@ All other values are reported for review and do not affect `Final.QC`: the other
 
 Key MethQcSet features:
 
-- **Platform validation**: Prevents mixing 450K, EPICv1, EPICv2
+- **Platform validation**: Prevents mixing 450K, EPIC v1 and EPICv2
 - **QC metrics**: Detection p-values, intensity summaries (mMed/uMed/aveMed merged into `QC_matrix`), probe coverage
-- **Default QC plot/report PDFs**: `runMethQC(..., outdir = "qc_output", prefix = "epic")` writes root-level review PDFs (`{prefix}_QC_detection_pval.pdf`, `{prefix}_QC_probe_coverage.pdf`, `{prefix}_QC_minfiDensity_all.pdf`) plus secondary report PDFs in `plots/` (`{prefix}_QC_intensity.pdf`, `{prefix}_QC_betaDensity_all/pass/fail.pdf`, `{prefix}_QC_minfiDensity_pass/fail.pdf`); use `save_qc_report = FALSE` to suppress them
-- **Beta normalization**: `runMethQC(..., normalization = "noob")` (default) applies minfi noob background and dye-bias correction; `"noob_swan"` adds SWAN type I/II adjustment (fixed seed, reproducible); `"raw"` keeps unnormalized beta. All three normalize each sample on its own and work on 450K, EPIC and EPICv2. Detection p-values, intensities and predicted sex always use unnormalized data. The method is stored in `qc_params(qcset)$normalization` and carried into `BuildReferenceProfile()` profiles; use the same method for cohorts and the reference profiles they are centred on. EPICv2 needs the `IlluminaHumanMethylationEPICv2manifest` and `IlluminaHumanMethylationEPICv2anno.20a1.hg38` packages (Bioconductor >= 3.19); `runMethQC()` sets the EPICv2 minfi annotation automatically, because earlier minfi releases do not recognize the array. From the command line: `run_meth_QC.R --normalization noob_swan`.
+- **Default QC plot/report PDFs**: `runMethQC(..., outdir = "qc_output", prefix = "epic")` writes, unless `save_qc_report = FALSE`:
+  - review PDFs in `outdir`: `{prefix}_QC_detection_pval.pdf`, `{prefix}_QC_probe_coverage.pdf`, `{prefix}_QC_minfiDensity_all.pdf`;
+  - report PDFs in `outdir/plots/`: `{prefix}_QC_intensity.pdf`, `{prefix}_QC_betaDensity_all/pass/fail.pdf`, `{prefix}_QC_minfiDensity_pass/fail.pdf`.
+- **Beta normalization** (`runMethQC(..., normalization = )`; CLI `run_meth_QC.R --normalization`):
+  - `"noob"` (default): minfi noob background and dye-bias correction;
+  - `"noob_swan"`: adds SWAN type I/II adjustment (fixed seed, reproducible);
+  - `"raw"`: unnormalized beta.
+
+  All three normalize each sample on its own and work on 450K, EPIC and EPICv2. Detection p-values, intensities and predicted sex always use unnormalized data. The method is stored in `qc_params(qcset)$normalization` and carried into `BuildReferenceProfile()` profiles; use the same method for cohorts and the reference profiles they are centred on. EPICv2 needs the `IlluminaHumanMethylationEPICv2manifest` and `IlluminaHumanMethylationEPICv2anno.20a1.hg38` packages (Bioconductor >= 3.19); `runMethQC()` sets the EPICv2 minfi annotation automatically, because earlier minfi releases do not recognize the array.
 - **Canonical `qc_tables` keys** (populated by `runMethQC()`):
   - `QC_matrix` — per-sample detection stats, intensity, predictedSex, `Final.QC`. `Final.QC` is PASS when at least 95% of probes are detected at p < `pcutoff` (default 0.05) and, when the ewastools control metrics are available, `CtrlMetrics.QC` is PASS. `CtrlMetrics.QC` fails only on Bisulfite Conversion I Green or Red below 1; the other control metrics are reported, not used.
   - `recall_rate` — per-probe % detected across all / PASS / FAIL samples
-  - `cutoffs` — QC threshold criteria with Pass/Fail expressions (detection/probe-coverage required; intensity reported only; control metrics when available)
-    - **Core metrics (3 rows):** log2MedianIntensity (reported only), aveDetectionPval (<0.05), pctDetectedCpG_dP0.05 (>95)
+  - `cutoffs` — QC threshold criteria with Pass/Fail expressions (probe detection required; intensity and mean detection p-value reported only; control metrics when available)
+    - **Core metrics (3 rows):** log2MedianIntensity (reported only), aveDetectionPval (reported only), `pctDetectedCpG_dP<pcutoff>` (>= 95; required)
     - **SNP metrics (1 row):** snps_outliers_aveLogOdds (>-4)
     - **Control metrics (18 rows, from ewastools):** Restoration, Staining, Extension, Hybridization, Target_Removal, Bisulfite_Conversion, Specificity, Non-polymorphic
     - **Columns:** criteria, cutoff, Pass, Fail, Final.QC, CtrlMetrics.QC
@@ -301,7 +335,7 @@ x <- ImprintomeSet(
   meta    = meta,
   probeset = probesets[["selected"]],
   genome  = "hg38",
-  assay   = "EPIC"                     # "450K" | "EPIC" | "EPICv2"
+  assay   = "EPIC"                     # "450K" | "EPIC" (or "EPICv1") | "EPICv2"
 )
 
 # Either way, x is ready for analysis
@@ -426,16 +460,20 @@ cal <- CalibrateIDS(res, controls = "control", method = "quantile", probs = 0.99
 attr(cal, "calibration")   # cutoff, number of controls, control median and maximum IDS
 ```
 
-### Step 4-7: Summarize, Visualize, Export
+### Step 4: Summarize, Visualize, Export
 
 ```r
-s <- summarize(x)
+s <- summarize(x)        # imprintomeR::summarize(x) if dplyr is attached after imprintomeR
+s$results                # one row per stored result table
 
 p <- plot(x, plot_type = "polar", result_name = "AnalyzeImprintStatus.selected",
           colorColumn = "Sample_Group", outFile = "polar.pdf")
 
-manifest <- export(x, outdir = "imprintome_export", prefix = "imprintome", save_plots = TRUE)
+manifest <- export(x, outdir = "imprintome_export", prefix = "imprintome",
+                   save_plots = TRUE, plot_device = "pdf")
 ```
+
+`export()` writes every result table and, with `save_plots = TRUE`, every stored plot; it returns a manifest of the files written. Plot types and options are listed under [Visualization](#visualization).
 
 ## Detailed Examples
 
@@ -461,99 +499,11 @@ qcset_450k <- runMethQC(meta_450k)
 # Platform known: pass directly
 # qcset <- runMethQC(meta, platform = "EPIC")
 
-# Export QC results
-exported_files <- export(
-  qcset_epic,
-  outdir = "qc_results",
-  format = c("xlsx", "rds")
-)
-# Creates three files:
-# 1. qc_table_main.xlsx — Primary QC results (metadata, QC_matrix, Ctrl_matrix, statistics)
-# 2. qc_table_extra.xlsx — Supplementary technical data (QC_metrics, contamination, recall_rate, predUniqDonor_ID)
-# 3. qcset_epic.rds — Complete MethQcSet object for programmatic access
-```
-
-**File 1: qc_table_main.xlsx** (Primary QC Results)
-
-<table style="width:100%; border-collapse:collapse;">
-<thead>
-<tr>
-  <th style="width:20%; text-align:left; border-bottom:2px solid #ccc;">Sheet</th>
-  <th style="width:60%; text-align:left; border-bottom:2px solid #ccc;">Content</th>
-  <th style="width:20%; text-align:left; border-bottom:2px solid #ccc;">Always Present?</th>
-</tr>
-</thead>
-<tbody>
-<tr><td><code>metadata</code></td><td>Sample metadata + Platform + Final.QC columns</td><td>Yes</td></tr>
-<tr><td><code>QC_matrix</code></td><td>Per-sample detection stats, intensity (mMed/uMed/aveMed), predictedSex, Final.QC</td><td>Yes</td></tr>
-<tr><td><code>Ctrl_matrix</code></td><td>Control probe metrics + CtrlMetrics.QC</td><td>From ewastools</td></tr>
-<tr><td><code>statistics</code></td><td>Per-Sample_Group summary: GROUP, Total, PASS, FAIL, PASS.RATIO, FAIL.RATIO</td><td>If Sample_Group in metadata</td></tr>
-</tbody>
-</table>
-
-&nbsp;
-
-**File 2: qc_table_extra.xlsx** (Supplementary/Technical Results)
-
-<table style="width:100%; border-collapse:collapse;">
-<thead>
-<tr>
-  <th style="width:20%; text-align:left; border-bottom:2px solid #ccc;">Sheet</th>
-  <th style="width:60%; text-align:left; border-bottom:2px solid #ccc;">Content</th>
-  <th style="width:20%; text-align:left; border-bottom:2px solid #ccc;">Always Present?</th>
-</tr>
-</thead>
-<tbody>
-<tr><td><code>QC_metrics</code></td><td>QC threshold criteria (criteria, cutoff, Final.QC) — filtered cutoffs table</td><td>Yes</td></tr>
-<tr><td><code>contamination</code></td><td>SNP agreement matrix for sample swap detection</td><td>From ewastools</td></tr>
-<tr><td><code>recall_rate</code></td><td>Per-probe % detected across all / PASS / FAIL samples</td><td>Yes</td></tr>
-<tr><td><code>predUniqDonor_ID</code></td><td>Predicted unique donor IDs per sample group</td><td>From ewastools</td></tr>
-</tbody>
-</table>
-
-&nbsp;
-
-Beta values are excluded from xlsx (too large) and saved as `.rds` only.
-
-```r
-# Inspect MethQcSet structure (now includes @statistics slot)
-str(qcset_epic)
-# Formal class 'MethQcSet' [package "imprintomeR"] with 8 slots
-#   @ beta              : num [1:866895, 1:4] 0.152 0.892 0.654 0.723 ...
-#   @ meta              :'data.frame': 4 obs. of 4 variables:
-#   @ detection_pval    : num [1:866895, 1:4] 0.001 0.001 0.001 0.001 ...
-#   @ qc_tables         :List of 5
-#     $ QC_matrix      : 'data.frame': 4 obs. of 13 variables (detection stats, intensity, predictedSex, Final.QC)
-#     $ recall_rate    : 'data.frame': 866895 obs. of 4 variables (per-probe % detected)
-#     $ cutoffs        : 'data.frame': 5 obs. of 2 variables (QC threshold criteria)
-#     $ ctrl_metrics   : 'data.frame' (from ewastools)
-#     $ contamination  : 'data.frame' (from ewastools)
-#   @ statistics        : 'data.frame' or NULL — Per-Sample_Group QC summary (populated on export)
-#     $ GROUP          : character (Sample_Group or "All")
-#     $ Total          : integer (number of samples)
-#     $ PASS           : integer (number passing)
-#     $ FAIL           : integer (number failing)
-#     $ PASS.RATIO     : numeric
-#     $ FAIL.RATIO     : numeric
-#   @ platform          : chr "EPIC"
-#   @ aggregation_status: chr "none"
-#   @ qc_params         : list()
-
-# Inspect QC_matrix: includes intensity, predictedSex, Final.QC
-qc_matrix <- qc_tables(qcset_epic)[["QC_matrix"]]
-head(qc_matrix[, c("Sample_Name", "mMed.Intensity", "aveMed.Intensity",
-                    "pctDetectedCpG_dP0.05", "predictedSex", "Final.QC")])
-
-# Access computed statistics (after export or manual computation)
-stats_tbl <- statistics(qcset_epic)
-# Returns data.frame: GROUP, Total, PASS, FAIL, PASS.RATIO, FAIL.RATIO
-
-# Per-probe recall
-recall <- qc_tables(qcset_epic)[["recall_rate"]]
-head(recall[order(recall$pct_detected_all), ])
-
-# QC cutoffs (filtered version exported as QC_metrics sheet)
-cutoffs_all <- qc_tables(qcset_epic)[["cutoffs"]]
+# Export QC results (files listed under Export QC Results)
+exported_files <- export(qcset_epic, outdir = "qc_results", prefix = "epic",
+                         format = c("xlsx", "rds"))
+# qc_results/epic_qc_table_main.xlsx, qc_results/QC_tables/epic_qc_table_extra.xlsx,
+# qc_results/data/epic_qcset.rds, qc_results/epic_summary.txt
 ```
 
 Merge multiple QC-clean single-platform datasets:
@@ -571,64 +521,37 @@ common_samples <- find_intersection(qcset1, qcset2, by = "samples")
 common_probes <- find_intersection(qcset1, qcset2, by = "probes")
 ```
 
-### ImprintomeSet: Analysis Container
-
-Convert QC-clean data to analysis container:
+### Inspecting the objects
 
 ```r
-# Load probeset annotations (hg38; probesets_hg19.rds for GRCh37)
-probesets <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))
+# MethQcSet slots: beta and detection_pval (probes x samples), meta, qc_tables,
+# statistics (per-Sample_Group PASS/FAIL counts, filled on export), platform,
+# aggregation_status ("none" or "epicv2_aggregated") and qc_params (QC settings)
+names(qc_tables(qcset_epic))     # QC_matrix, recall_rate, cutoffs and, from ewastools,
+                                 # ctrl_metrics, contamination, predUniqDonor_ID
 
-# Convert from MethQcSet
-x <- as.ImprintomeSet(
-  qcset,
-  probeset = probesets[["selected"]],
-  genome = "hg38"
-)
+# QC_matrix: intensity, detection, predicted sex and Final.QC per sample
+qc_matrix <- qc_tables(qcset_epic)[["QC_matrix"]]
+head(qc_matrix[, c("Sample_Name", "mMed.Intensity", "aveMed.Intensity",
+                   "pctDetectedCpG_dP0.05", "predictedSex", "Final.QC")])
 
-# Or construct directly
-x <- ImprintomeSet(
-  beta = beta,
-  meta = meta,
-  probeset = probesets[["selected"]],
-  genome = "hg38",
-  assay = "EPICv1"
-)
-```
+statistics(qcset_epic)           # GROUP, Total, PASS, FAIL, PASS.RATIO, FAIL.RATIO
 
-### Run Imprinting Analysis
+# Per-probe recall (% of samples detecting each probe)
+recall <- qc_tables(qcset_epic)[["recall_rate"]]
+head(recall[order(recall$pct_detected_all), ])
 
-```r
-x <- runImprintome(
-  x,
-  probeset = "selected",
-  ids_cutoff = 0.2
-)
+# QC cutoffs (exported, filtered, as the QC_metrics sheet)
+cutoffs_all <- qc_tables(qcset_epic)[["cutoffs"]]
 
-res <- results(x)[["AnalyzeImprintStatus.selected"]]
-head(res)
-```
+# ImprintomeSet slots: beta (probes x samples), meta, probeset, genome, assay,
+# results (named list of result tables) and plots (named list of stored plots)
+names(results(x))
+res <- results(x)[["AnalyzeImprintStatus.selected"]]   # one row per sample
+head(res[, c("Sample_Name", "IDS", "Angle", "Mechanism")])
 
-### Summarize & Inspect
-
-```r
-# Inspect ImprintomeSet structure
-str(x)
-# Formal class 'ImprintomeSet' [package "imprintomeR"] with 7 slots
-#   @ beta      : num [1:865, 1:4] 0.152 0.892 0.654 0.723 ...
-#   @ meta      :'data.frame': 4 obs. of 4 variables (Sample_Name, Basename, Sample_Group, SEX)
-#   @ probeset  :'data.frame': 120 obs. of 8 variables (probeset annotations: Name, UCSC_RefGene_Name, Chromosome, etc.)
-#   @ genome    : chr "hg38"
-#   @ assay     : chr "EPIC"
-#   @ results   :List of 1
-#     $ AnalyzeImprintStatus.selected: 'data.frame': 120 obs. of 8 variables (IDS, Angle, IDI, etc.)
-#   @ plots     :List of 0 (empty until populated by plot() calls)
-
-# Summarize results
 s <- summarize(x)
-s$object
-s$results
-s$plots
+s$object; s$results; s$plots
 ```
 
 ## Visualization
@@ -648,6 +571,9 @@ s$plots
 - `cor_heatmap` - sample-to-sample correlation heatmap
 - `rainfall` - chromosomal rainfall plot of probe-level IDI (single sample)
 - `radar` - radar plot of ICR-level deviation (single sample): one spoke per curated ICR (median IDI of its probes), in genomic order clockwise from the top, labelled chromosome_annotated parental origin_ICR
+- `icr_heatmap` - per-ICR heatmap (samples × ICRs) from the per-ICR calls; needs `runImprintome(icr = TRUE)` (see [Per-ICR scores](#per-icr-scores-and-icr-balanced-ids))
+
+ImprintomeSet plots take `plot_type =`; MethQcSet QC plots (Step 1) take `type =`.
 
 Plots coloured by parental origin use the probeset's `ORIGIN` annotation, which states which parental allele is methylated at the ICR; their legend is titled "Annotated parental origin". The colours are annotations, not allele-specific measurements.
 
@@ -826,48 +752,11 @@ export(
 - `QC_tables/{prefix}_qc_*.txt` — Individual QC tables, tab-delimited (supplementary files)
 - `{prefix}_summary.txt` — Summary report with optional Notes section
 
-**Statistics Sheet (automatic computation on export):**
+**Statistics sheet:** PASS/FAIL counts and ratios per `Sample_Group`, computed from `QC_matrix` on export and also stored in `statistics(qcset)`. Beta values are not written to xlsx (too large); use the `.rds` or `txt` output.
 
-The statistics sheet computes per-Sample_Group summaries from the QC_matrix:
-- Groups samples by `Sample_Group` column in metadata
-- Counts PASS/FAIL outcomes
-- Calculates pass/fail ratios
-- Automatically stored in `qcset@statistics` slot for later retrieval
+The "Notes" section of `{prefix}_summary.txt` lists the optional sheets that were not written because their data were missing (for example `Ctrl_matrix`, `contamination` and `predUniqDonor_ID` when ewastools did not run), or states that all documented sheets were created.
 
-**Notes Section in summary.txt:**
-
-The `summary.txt` file always includes a "Notes" section that documents any optional sheets that were mentioned in the export format documentation but were NOT actually created (due to missing underlying data). For example:
-
-```
-Notes
-=====
-
-The following sheets were not included in the exported workbook(s):
-- Ctrl_matrix
-- contamination
-- predUniqDonor_ID
-```
-
-If all documented optional sheets exist in the data, the Notes section will instead state:
-
-```
-Notes
-=====
-
-All documented sheets were successfully created.
-```
-
-This provides transparency about what data was available during export.
-
-```r
-manifest <- export(
-  x,
-  outdir = "imprintome_results",
-  prefix = "imprintome",
-  save_plots = TRUE,
-  plot_device = "pdf"
-)
-```
+ImprintomeSet results are exported with `export(x, ...)` (see [Step 4](#step-4-summarize-visualize-export)).
 
 ## MCP Server
 
@@ -907,43 +796,11 @@ The skill provides guidance only; the MCP server performs the analysis.
 
 ## Test Suite
 
-imprintomeR includes a testthat suite (139 tests), and `R CMD check` reports no errors.
-
-### Running Tests Locally (Development)
-
-If you're contributing to the package, run the test suite:
+imprintomeR includes a testthat suite (`tests/testthat/`) covering the S4 classes, QC, normalization, probeset annotation, genome routing, scoring, reference centring, per-ICR calls, uncertainty, plotting and export. To run it from a clone of the repository:
 
 ```r
 devtools::test("path/to/imprintomeR")
 ```
-
-To test your own analysis workflows:
-
-```r
-library(imprintomeR)
-
-# Phase 1: QC Preprocessing
-meta <- LoadMeta("your_meta.tsv")
-meta <- check_platform(meta)
-qcset <- runMethQC(meta[meta$Platform == "EPIC", ])
-
-# Optional: EPICv2 aggregation
-if (qcset@platform == "EPICv2") {
-  qcset <- aggregate_probes(qcset)
-}
-
-export(qcset, outdir = "your_qc_output", format = c("xlsx", "rds"))
-
-# Phase 2: Analysis
-qcset <- readRDS("your_qc_output/*/data/*_qcset.rds")
-x <- as.ImprintomeSet(qcset)   # loads all bundled hg38 panels
-x <- runImprintome(x, probeset = "selected", ids_cutoff = 0.2)
-
-# Visualize and export
-plot(x, plot_type = "polar", outFile = "polar.pdf")
-export(x, outdir = "your_analysis_output", prefix = "your_analysis", save_plots = TRUE)
-```
-
 
 ## Vignettes
 
@@ -972,4 +829,4 @@ Center for Applied Bioinformatics, St. Jude Children's Research Hospital, Memphi
 
 ## SessionInfo
 
-The R session used to build and test this version (R 4.3.3, imprintomeR 1.5.0), with the versions of the declared dependencies, is recorded in [vignettes/sessionInfo.md](vignettes/sessionInfo.md).
+The R session used to build and test imprintomeR 1.5.0 (R 4.3.3), with the versions of the declared dependencies, is recorded in [vignettes/sessionInfo.md](vignettes/sessionInfo.md); 1.5.2 changes no dependencies.
