@@ -88,10 +88,11 @@ library(imprintomeR)
 meta  <- LoadMeta("meta.tsv")         # Sample_Name, Sample_Group and Basename (IDAT path prefix)
 meta  <- check_platform(meta)         # adds the Platform column
 qcset <- runMethQC(meta[meta$Platform == "EPIC", ], outdir = "qc_output", prefix = "epic")
-# EPICv2 only: qcset <- aggregate_probes(qcset)
-export(qcset, outdir = "qc_output", prefix = "epic", format = c("xlsx", "rds"))
+export(qcset, outdir = "qc_output", prefix = "epic", format = c("xlsx", "rds"))   # QC report, all samples
 
-# 2. Imprinting analysis (later sessions: qcset <- readRDS("qc_output/data/epic_qcset.rds"))
+# 2. Imprinting analysis (in a later session: qcset <- readRDS("qc_output/data/epic_qcset.rds"))
+qcset <- subsetMethQC(qcset, final_qc = "PASS")   # keep samples that passed QC
+# EPICv2 only: qcset <- aggregate_probes(qcset)
 x <- as.ImprintomeSet(qcset)          # bundled hg38 panels
 x <- runImprintome(x, probeset = "selected")
 
@@ -111,21 +112,28 @@ Raw methylation arrays often come from mixed platforms (450K, EPIC v1, EPICv2). 
 </p>
 
 ```
-Metadata + IDAT Files (mixed platforms)
+Metadata + IDAT files (one or more platforms)
     ↓
-[check_platform(meta)] → detect array platform per sample
+[check_platform(meta)] → detect the array platform of each sample
     ↓
 Subset meta by platform
     ↓
-[runMethQC(meta_platform)] → load IDAT → extract beta + p-values → QC metrics → MethQcSet
+[runMethQC(meta_platform)] → read IDATs → normalize beta (noob by default) + detection p-values
+                           → QC metrics, Final.QC PASS/FAIL per sample → MethQcSet
     ↓
-Per-platform QC-clean MethQcSet
+[subsetMethQC(qcset, final_qc = "PASS")] → keep passing samples
     ↓
-[as.ImprintomeSet()]
+[aggregate_probes(qcset)] → EPICv2 only: collapse replicate probes (required)
     ↓
-[runImprintome()] → Analysis results (IDS, Angle, etc.)
+[as.ImprintomeSet(qcset)] → ImprintomeSet with the bundled panels (hg38 by default)
+    ↑
+    └── or ImprintomeSet(beta, meta, ...) for data already QC-cleaned elsewhere
     ↓
-Visualize & Export
+[runImprintome()] → IDS, Angle and Mechanism per sample
+                  (+ per-ICR calls and multi-locus summary with icr = TRUE;
+                     bootstrap intervals with n_boot)
+    ↓
+[plot() / export()] → plots and result tables
 ```
 
 ## Core Formulas
