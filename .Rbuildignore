@@ -15,3 +15,5 @@
 ^tmp_jupyter$
 ^tmp_cli$
 ^CITATION\.cff$
+^mcp_server$
+^skills$

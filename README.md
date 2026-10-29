@@ -882,7 +882,7 @@ git clone https://github.com/hongjianjin/imprintomeR.git
 cd imprintomeR
 python -m venv .venv-mcp
 . .venv-mcp/bin/activate       # Windows: .venv-mcp\\Scripts\\Activate.ps1
-python -m pip install -r requirements-mcp.txt
+python -m pip install -r mcp_server/requirements.txt
 python mcp_server/server.py --transport streamable-http --host 127.0.0.1 --port 8000
 ```
 

@@ -11,7 +11,7 @@ The server runs the repository CLI and therefore needs a local clone, R, and `Rs
 ```bash
 git clone https://github.com/hongjianjin/imprintomeR.git
 cd imprintomeR
-python -m pip install -r requirements-mcp.txt
+python -m pip install -r mcp_server/requirements.txt
 ```
 
 ### No local clone
@@ -23,7 +23,7 @@ Deploy the repository and its R dependencies on an HPC node, VM, or cloud server
 ```bash
 python -m venv .venv-mcp
 . .venv-mcp/bin/activate       # Windows: .venv-mcp\Scripts\Activate.ps1
-python -m pip install -r requirements-mcp.txt
+python -m pip install -r mcp_server/requirements.txt
 python mcp_server/server.py --transport streamable-http --host 127.0.0.1 --port 8000
 ```
 
