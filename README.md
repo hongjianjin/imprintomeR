@@ -200,7 +200,6 @@ The testthat suite (`tests/testthat/`) covers the S4 classes, QC, normalization,
 ## Maintainers
 
 - **Hongjian Jin** (maintainer), hongjian.jin@stjude.org, ORCID [0000-0003-3833-7170](https://orcid.org/0000-0003-3833-7170)
-- **Gang Wu**, gang.wu@stjude.org, ORCID [0000-0002-1678-5864](https://orcid.org/0000-0002-1678-5864)
 
 Center for Applied Bioinformatics, St. Jude Children's Research Hospital, Memphis, TN 38105, USA.
 
