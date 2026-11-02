@@ -54,8 +54,8 @@ test_that("AnalyzeICRStatus scores each ICR with enough probes", {
     expect_equal(r$ORIGIN, "maternal")
     expect_true(all(is.na(res$z)))                                  # no controls given
     expect_equal(sort(unique(res$Sample_Name[res$altered])), c("X1", "X2", "X3"))
-    expect_equal(attr(res, "icr_settings")$delta_cutoff, 0.075)
-    expect_equal(attr(res, "icr_settings")$z_cutoff, 3)
+    expect_equal(attr(res, "icr_settings")$delta_cutoff, 0.175)
+    expect_equal(attr(res, "icr_settings")$z_cutoff, 2)
     expect_equal(nrow(.quiet(AnalyzeICRStatus(d$beta, d$meta, probeset = "selected", min_probes = 2))) / 8, 4)
   })
 })
@@ -69,7 +69,7 @@ test_that("control z-scores gate altered calls", {
     expect_false(anyNA(res$z))
     expect_true(all(!res$altered[res$Sample_Group == "control"]))
     x1b <- res[res$Sample_Name == "X1" & res$ICR_name == "matB", ]
-    expect_true(x1b$abs_deviation >= 0.075 && abs(x1b$z) >= 3 && x1b$altered)
+    expect_true(x1b$abs_deviation >= 0.175 && abs(x1b$z) >= 2 && x1b$altered)
     no_z <- .quiet(suppressWarnings(AnalyzeICRStatus(d$beta, d$meta, probeset = "selected", reference_group = "control",
                                                     z_cutoff = NULL)))
     expect_true(all(no_z$altered[res$altered]))

@@ -101,14 +101,15 @@
 #' whenever at least 3 controls are available; with fewer than 10 a warning notes that the control
 #' median and SD are unstable.
 #'
-#' The defaults (`delta_cutoff = 0.075`, `z_cutoff = 3`) were selected under the prespecified
-#' threshold-selection protocol in the package repository (`benchmark/`), by leave-one-cohort-out
-#' cross-validation on six development cohorts, and validated on three held-out cohorts. Earlier
-#' versions used `delta_cutoff = 0.15`. They were selected and validated with control samples
-#' (in-cohort, or external controls of the same tissue and platform), so that the z criterion
-#' applies. Without controls `z` is `NA` and only `delta_cutoff` is applied; that setting was not
-#' validated and calls are exploratory (a larger `delta_cutoff`, such as 0.15, is more
-#' conservative).
+#' The defaults (`delta_cutoff = 0.175`, `z_cutoff = 2`) were selected under the prespecified
+#' threshold-selection protocol in the package repository (`benchmark/`, amendment 5), by
+#' leave-one-cohort-out cross-validation on six development cohorts with leave-one-out control
+#' z-scores, and evaluated in three additional cohorts. Earlier versions used
+#' `delta_cutoff = 0.075` with `z_cutoff = 3` (control z-scores computed in-sample), and before
+#' that `delta_cutoff = 0.15`. The thresholds were selected with control samples (in-cohort, or
+#' external controls of the same tissue and platform), so that the z criterion applies. Without
+#' controls `z` is `NA` and only `delta_cutoff` is applied; that setting was not evaluated and
+#' calls are exploratory.
 #'
 #' @inheritParams AnalyzeImprintStatus
 #' @param dmr_type `DMR_type` values to score. `NULL` (default) scores every annotated ICR,
@@ -117,9 +118,9 @@
 #'   (`z`). Default to `reference_group` and `reference_samples`. Without controls, `z` is
 #'   `NA` and calls use `delta_cutoff` only.
 #' @param min_probes Minimum number of probes for an ICR to be scored (default 3).
-#' @param delta_cutoff Minimum absolute deviation for an altered call (default 0.075).
+#' @param delta_cutoff Minimum absolute deviation for an altered call (default 0.175).
 #' @param z_cutoff Minimum absolute z-score for an altered call when controls are available
-#'   (default 3), or `NULL` for no z criterion.
+#'   (default 2), or `NULL` for no z criterion.
 #'
 #' @return Data frame with one row per sample and ICR: sample metadata, `probeset`,
 #'   `ICR_name`, `ORIGIN`, `DMR_type`, `CHR`, `start`, `n_probes`, `median_beta`, `reference`
@@ -139,8 +140,8 @@ AnalyzeICRStatus <- function(betaFile, metaFile = NULL,
                              control_group = reference_group,
                              control_samples = reference_samples,
                              min_probes = 3L,
-                             delta_cutoff = 0.075,
-                             z_cutoff = 3) {
+                             delta_cutoff = 0.175,
+                             z_cutoff = 2) {
   reference <- match.arg(reference)
   for (arg in c("delta_cutoff", "z_cutoff", "min_probes")) {
     value <- get(arg)

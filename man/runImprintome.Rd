@@ -19,8 +19,8 @@
   balance = c("probe", "icr"),
   min_probes = 3L,
   icr = FALSE,
-  delta_cutoff = 0.075,
-  z_cutoff = 3,
+  delta_cutoff = 0.175,
+  z_cutoff = 2,
   n_boot = 0L,
   n_perm = 0L,
   conf_level = 0.95,
@@ -70,7 +70,7 @@ store the per-ICR table as \verb{ICRStatus.<probeset>} and its per-sample
 multi-locus summary (\code{\link[=SummarizeICRStatus]{SummarizeICRStatus()}}) as \verb{ICRSummary.<probeset>}.}
 
 \item{delta_cutoff, z_cutoff}{Thresholds for altered-ICR calls, passed to
-\code{\link[=AnalyzeICRStatus]{AnalyzeICRStatus()}} when \code{icr = TRUE} (defaults 0.075 and 3).}
+\code{\link[=AnalyzeICRStatus]{AnalyzeICRStatus()}} when \code{icr = TRUE} (defaults 0.175 and 2).}
 
 \item{n_boot, n_perm, conf_level, resample, permute, resample_reference, seed}{Bootstrap uncertainty
 intervals and permutation null for IDS and Angle, passed to

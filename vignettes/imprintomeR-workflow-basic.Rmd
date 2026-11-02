@@ -76,7 +76,7 @@ With a control reference, `n_perm` adds a permutation test of the dependence on 
 
 ## 4. Per-ICR calls
 
-`AnalyzeICRStatus()` scores each imprinting control region on its own; `SummarizeICRStatus()` counts the altered ICRs per sample and flags multi-locus disturbance (MLID). The call thresholds (|deviation| ≥ 0.075 and |z| ≥ 3) assume control samples; without controls only the deviation criterion applies and the calls are exploratory.
+`AnalyzeICRStatus()` scores each imprinting control region on its own; `SummarizeICRStatus()` counts the altered ICRs per sample and flags multi-locus disturbance (MLID). The call thresholds (|deviation| ≥ 0.175 and |z| ≥ 2) assume control samples; without controls only the deviation criterion applies and the calls are exploratory.
 
 ```{r, eval=FALSE}
 icr <- AnalyzeICRStatus(beta, meta, probeset = "selected")

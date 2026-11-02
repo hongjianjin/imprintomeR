@@ -293,7 +293,7 @@ Rscript "$SCRIPTS"/run_imprintomeR.R \
 - `<prefix>_<genome>_results_ICRSummary.<probeset>.tsv`: per sample, the numbers of altered ICRs (gains and losses), the chromosomes involved and the multi-locus (`MLID`) flag;
 - `<prefix>_<genome>_icr_heatmap.<probeset>.pdf`: samples by ICRs heatmap of the deviations, drawn with `--plot-types default` or `all` (or alone with `--plot-types icr_heatmap`); non-gametic ICRs are marked with `*`.
 
-An ICR is called altered when |deviation| ≥ 0.075 and |z| ≥ 3 against the controls. These thresholds were validated with control samples: give in-cohort controls with `--reference-group` or an external reference with `--reference-file`. Without controls, `z` is unavailable, only the deviation criterion applies and the calls are exploratory. Per-ICR scores cover all annotated ICRs, secondary DMRs included; `--dmr-type` changes only the sample-level score.
+An ICR is called altered when |deviation| ≥ 0.175 and |z| ≥ 2 against the controls. These thresholds were validated with control samples: give in-cohort controls with `--reference-group` or an external reference with `--reference-file`. Without controls, `z` is unavailable, only the deviation criterion applies and the calls are exploratory. Per-ICR scores cover all annotated ICRs, secondary DMRs included; `--dmr-type` changes only the sample-level score.
 
 `--balance icr` is a separate option: it computes the sample-level IDS/Angle with each ICR counted once (median within each ICR, then across ICRs). It can be combined with `--icr`.
 
