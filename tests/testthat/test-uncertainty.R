@@ -70,6 +70,25 @@ test_that("a seed makes intervals reproducible and restores the random stream", 
   })
 })
 
+test_that("resample_reference widens intervals with few controls", {
+  d <- .make_uncertainty_fixture()
+  .with_uncertainty_panel(d$probeset, {
+    ctrl <- paste0("C", 1:3)
+    fixed <- suppressWarnings(.score_unc(d, reference_samples = ctrl, n_boot = 400, seed = 5))
+    resampled <- suppressWarnings(.score_unc(d, reference_samples = ctrl, n_boot = 400, seed = 5,
+                                             resample_reference = TRUE))
+    expect_false(any(fixed$resample_reference))
+    expect_true(all(resampled$resample_reference))
+    expect_identical(resampled$IDS, fixed$IDS)
+    width <- function(r) r$IDS_upper - r$IDS_lower
+    expect_gt(mean(width(resampled)), mean(width(fixed)))
+    expect_message(no_ctrl <- .score_unc(d, reference = "fixed", n_boot = 20, seed = 1, resample_reference = TRUE),
+                   "held fixed")
+    expect_false(any(no_ctrl$resample_reference))
+    expect_error(.score_unc(d, resample_reference = NA), "TRUE or FALSE")
+  })
+})
+
 test_that("bootstrap intervals bracket IDS and support a clear mechanism", {
   d <- .make_uncertainty_fixture()
   .with_uncertainty_panel(d$probeset, {
@@ -125,8 +144,10 @@ test_that("the permutation null separates origin-specific from global shifts", {
     expect_equal(res["PAT", "origin_perm_p"], 1 / 200)
     expect_equal(res["GLOBAL", "Mechanism"], "Global-Hyper")
     expect_gt(res["GLOBAL", "origin_perm_p"], 0.2)
-    icr <- .score_unc(d, n_perm = 199, seed = 2, permute = "icr")
+    # 3 paternal and 4 maternal ICRs: choose(7, 3) = 35 assignments, so p cannot fall below ~0.029.
+    expect_warning(icr <- .score_unc(d, n_perm = 199, seed = 2, permute = "icr"), "35 distinct assignments")
     expect_equal(unique(icr$permute), "icr")
+    expect_gte(min(icr$origin_perm_p), 1 / 35 - 0.02)
     expect_lt(icr["PAT", "origin_perm_p"], 0.1)
     expect_gt(icr["GLOBAL", "origin_perm_p"], 0.2)
   })
@@ -139,7 +160,7 @@ test_that("uncertainty works with control centring, Infinium balancing and ICR b
     expect_true(all(c("IDS_lower", "origin_perm_p") %in% colnames(ctrl)))
     bal <- .score_unc(d, infinium_type = "balanced", n_boot = 100, n_perm = 50, seed = 4)
     expect_true(all(bal$IDS_lower <= bal$IDS + 1e-3))
-    icr <- .score_unc(d, balance = "icr", n_boot = 100, n_perm = 50, seed = 4)
+    icr <- suppressWarnings(.score_unc(d, balance = "icr", n_boot = 100, n_perm = 50, seed = 4))
     expect_equal(unique(icr$permute), "icr")
     expect_true(all(icr$IDS_lower <= icr$IDS + 1e-3 & icr$IDS <= icr$IDS_upper + 1e-3))
   })

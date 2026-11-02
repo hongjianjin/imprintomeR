@@ -283,7 +283,7 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
     n[sid] <- length(controls) - 1L
   }
   list(matrix = ref, label = paste0("in-cohort controls, n=", length(controls)),
-       n = unname(n), probes = rownames(used))
+       n = unname(n), probes = rownames(used), controls = controls)
 }
 
 # Per-sample deviation of one parental class from its reference: the median over
@@ -404,7 +404,16 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
 #'     the numbers of paternal and maternal probes (per design type for
 #'     `infinium_type = "balanced"`);
 #'   - `"icr"`: whole ICRs are reassigned; requires at least two annotated ICRs
-#'     in each parental class. Always used with `balance = "icr"`.
+#'     in each parental class. Always used with `balance = "icr"`. With `a`
+#'     paternal and `b` maternal ICRs there are only `choose(a + b, a)` distinct
+#'     assignments, which bounds the smallest attainable p-value; a warning is
+#'     given below 100.
+#' @param resample_reference With `n_boot > 0` and in-cohort controls
+#'   (`reference_group` or `reference_samples`), also resample the controls in
+#'   each replicate and recompute the reference from them (each control again
+#'   leave-one-out), so the intervals include the uncertainty of the reference
+#'   itself. Default `FALSE` holds the reference fixed. Ignored, with a message,
+#'   for the fixed 0.5 or an external reference.
 #' @param seed Optional random seed for `n_boot`/`n_perm`, for reproducible
 #'   results; the caller's random number stream is restored afterwards.
 #'
@@ -415,8 +424,10 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
 #' `Angle_upper`, a circular interval around the observed angle, read clockwise
 #' from lower to upper). `Mechanism_support` is the fraction of replicates in
 #' the reported `Mechanism` sector (including `"ROI"`), a measure of label
-#' stability. The intervals are conditional on the reference: the controls are
-#' not resampled. Because IDS is a distance, its interval never includes 0 and is
+#' stability. These are bootstrap uncertainty intervals, not tests. By default
+#' they are conditional on the reference: the controls are not resampled, so
+#' with few controls they understate the total uncertainty; set
+#' `resample_reference = TRUE` to resample in-cohort controls as well. Because IDS is a distance, its interval never includes 0 and is
 #' biased upward for samples near balanced imprinting, so it describes stability
 #' and ranking rather than testing against 0; the Angle interval is
 #' uninformative when the IDS interval reaches the ROI zone.
@@ -450,7 +461,7 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
 #'   the reference used. `balance` records the pooling; with `balance = "icr"`, the columns
 #'   `n_paternal_icrs` / `n_maternal_icrs` give the numbers of ICRs used. With
 #'   `n_boot > 0`, the columns `IDS_lower`, `IDS_upper`, `Angle_lower`,
-#'   `Angle_upper`, `Mechanism_support`, `n_boot` and `resample` are added; with
+#'   `Angle_upper`, `Mechanism_support`, `n_boot`, `resample` and `resample_reference` are added; with
 #'   `n_perm > 0`, `origin_perm_p`, `n_perm` and `permute` (see Uncertainty).
 #'   Calibrate the IDS cutoff on controls with [CalibrateIDS()].
 
@@ -472,6 +483,7 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
                                  conf_level = 0.95,
                                  resample = c("icr", "probe"),
                                  permute = c("probe", "icr"),
+                                 resample_reference = FALSE,
                                  seed = NULL) {
   if (missing(metaFile)) metaFile <- NULL
   if (!is.character(probeset) || length(probeset) != 1 || is.na(probeset) || !nzchar(probeset)) {
@@ -507,6 +519,9 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   }
   resample <- match.arg(resample)
   permute <- match.arg(permute)
+  if (!is.logical(resample_reference) || length(resample_reference) != 1L || is.na(resample_reference)) {
+    stop("resample_reference must be TRUE or FALSE.")
+  }
   for (arg in c("reference_group", "reference_samples")) {
     value <- get(arg)
     if (!is.null(value) && (!is.character(value) || !length(value) || anyNA(value))) {
@@ -658,8 +673,19 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
       resample <- "probe"
     }
     if (balance == "icr") permute <- "icr"
+    # Resampling the reference needs the control samples' beta values, i.e. in-cohort controls.
+    ref_controls <- NULL
+    if (n_boot > 0 && resample_reference) {
+      if (is.null(ref$controls)) {
+        message("[AnalyzeImprintStatus] resample_reference needs in-cohort controls (reference_group or ",
+                "reference_samples); the reference is held fixed.")
+      } else {
+        ref_controls <- ref$controls
+      }
+    }
     class_spec <- function(beta, ref, probes) {
-      D <- as.matrix(beta) - (if (is.null(ref)) 0.5 else ref)
+      B <- as.matrix(beta)
+      D <- B - (if (is.null(ref)) 0.5 else ref)
       icr <- icr_or_na(probes)
       design <- design_of(probes)
       if (balance == "icr") {
@@ -667,9 +693,10 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
         sizes <- table(icr[!is.na(icr) & nzchar(icr)])
         keep <- !is.na(icr) & icr %in% names(sizes)[sizes >= min_probes]
         D <- D[keep, , drop = FALSE]
+        B <- B[keep, , drop = FALSE]
         icr <- icr[keep]
       }
-      list(D = D, icr = icr, design = design)
+      list(D = D, icr = icr, design = design, B = if (is.null(ref_controls)) NULL else B)
     }
     pat_spec <- class_spec(paternal_beta, paternal_ref, paternal_probes)
     mat_spec <- class_spec(maternal_beta, maternal_ref, maternal_probes)
@@ -678,13 +705,19 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
       if (n_icrs(pat_spec$icr) < 2L || n_icrs(mat_spec$icr) < 2L) {
         stop("permute = \"icr\" needs at least two annotated ICRs in each parental class; use permute = \"probe\".")
       }
+      # With few ICRs there are few distinct label assignments, which bounds the smallest attainable p.
+      n_assign <- choose(n_icrs(pat_spec$icr) + n_icrs(mat_spec$icr), n_icrs(pat_spec$icr))
+      if (n_assign < 100) {
+        warning("permute = \"icr\": only ", n_assign, " distinct assignments of ICRs to parental classes; ",
+                "origin_perm_p cannot fall below about ", signif(1 / n_assign, 2), ".")
+      }
     }
     unc <- .imprint_uncertainty(
       pat_spec, mat_spec,
       obs = list(pat = unname(pat_dev), mat = unname(mat_dev), ids = unname(ids), angle = unname(degrees),
                  mechanism = final_mechanism),
       by_icr = balance == "icr", n_boot = n_boot, n_perm = n_perm, conf_level = conf_level,
-      resample = resample, permute = permute, seed = seed
+      resample = resample, permute = permute, seed = seed, controls = ref_controls
     )
     res <- cbind(res, unc)
   }

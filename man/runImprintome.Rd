@@ -26,6 +26,7 @@
   conf_level = 0.95,
   resample = c("icr", "probe"),
   permute = c("probe", "icr"),
+  resample_reference = FALSE,
   seed = NULL,
   ...
 )
@@ -71,7 +72,7 @@ multi-locus summary (\code{\link[=SummarizeICRStatus]{SummarizeICRStatus()}}) as
 \item{delta_cutoff, z_cutoff}{Thresholds for altered-ICR calls, passed to
 \code{\link[=AnalyzeICRStatus]{AnalyzeICRStatus()}} when \code{icr = TRUE} (defaults 0.075 and 3).}
 
-\item{n_boot, n_perm, conf_level, resample, permute, seed}{Bootstrap confidence
+\item{n_boot, n_perm, conf_level, resample, permute, resample_reference, seed}{Bootstrap uncertainty
 intervals and permutation null for IDS and Angle, passed to
 \code{AnalyzeImprintStatus()} (off by default; see its Uncertainty section).
 The added columns record the settings; result names are unchanged. The

@@ -5,6 +5,8 @@
 # IDS/Angle is AnalyzeImprintStatus(..., balance = "icr"), which uses the same per-ICR deviations.
 
 .icr_sd_floor <- 0.02
+# Below this number of controls, per-ICR z-scores are computed but flagged as unstable.
+.icr_advised_controls <- 10L
 
 # Load beta and metadata for scoring: resolves an ImprintomeSet, subsets the beta matrix to the
 # probeset (dropping probes with any missing value), aligns samples, and validates the probeset.
@@ -87,10 +89,17 @@
 #' scoring a locus panel such as `chr11p15` or `chr20q13` with [AnalyzeImprintStatus()].
 #'
 #' An ICR is called altered when `abs(deviation) >= delta_cutoff` and, if `z_cutoff` is set and
-#' control samples are available, also `abs(z) >= z_cutoff`. `z` is the deviation standardized by
-#' the controls' median and standard deviation for that ICR (the standard deviation is floored at
-#' 0.02 so that very homogeneous controls do not inflate `z`); it is reported whenever controls are
-#' available. Controls are scored leave-one-out when they also form the reference.
+#' control samples are available, also `abs(z) >= z_cutoff`. Both criteria are symmetric, so gains
+#' and losses are called alike. For sample `i` and ICR `k`, with deviation `d[i, k]`,
+#'
+#' `z[i, k] = (d[i, k] - median(d[C, k])) / max(SD(d[C, k]), 0.02)`,
+#'
+#' where `C` is the set of controls, excluding `i` when `i` is itself a control. The standard
+#' deviation is floored at 0.02 so that very homogeneous controls do not inflate `z`. When the
+#' controls also form the reference, each control's deviation is computed leave-one-out as well,
+#' so control z-scores are out-of-sample in the same way as those of cases. `z` is reported
+#' whenever at least 3 controls are available; with fewer than 10 a warning notes that the control
+#' median and SD are unstable.
 #'
 #' The defaults (`delta_cutoff = 0.075`, `z_cutoff = 3`) were selected under the prespecified
 #' threshold-selection protocol in the package repository (`benchmark/`), by leave-one-cohort-out
@@ -171,9 +180,20 @@ AnalyzeICRStatus <- function(betaFile, metaFile = NULL,
     controls <- intersect(inp$meta$Sample_Name[inp$meta$Sample_Group %in% control_group], inp$sample_ids)
   }
   if (length(controls) >= .min_reference_samples) {
-    centre <- apply(dev[, controls, drop = FALSE], 1, median)
-    spread <- pmax(apply(dev[, controls, drop = FALSE], 1, stats::sd), .icr_sd_floor)
-    z <- (dev - centre) / spread
+    if (length(controls) < .icr_advised_controls) {
+      warning("Per-ICR z-scores rest on ", length(controls), " controls; with fewer than ", .icr_advised_controls,
+              " the control median and SD are unstable and calls may be unreliable.")
+    }
+    z_of <- function(cols, ctrl) {
+      centre <- apply(dev[, ctrl, drop = FALSE], 1, median)
+      spread <- pmax(apply(dev[, ctrl, drop = FALSE], 1, stats::sd), .icr_sd_floor)
+      (dev[, cols, drop = FALSE] - centre) / spread
+    }
+    z <- dev
+    others <- setdiff(colnames(dev), controls)
+    if (length(others)) z[, others] <- z_of(others, controls)
+    # Each control is standardized by the other controls, so its z is out-of-sample like a case's.
+    for (s in controls) z[, s] <- z_of(s, setdiff(controls, s))
   } else {
     if (length(controls)) warning("Fewer than ", .min_reference_samples, " controls; per-ICR z-scores are not computed.")
     z <- dev * NA

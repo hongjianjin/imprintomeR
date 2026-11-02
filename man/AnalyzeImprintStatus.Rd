@@ -23,6 +23,7 @@ AnalyzeImprintStatus(
   conf_level = 0.95,
   resample = c("icr", "probe"),
   permute = c("probe", "icr"),
+  resample_reference = FALSE,
   seed = NULL
 )
 }
@@ -143,8 +144,18 @@ This ignores within-ICR correlation and gives narrower intervals.
 the numbers of paternal and maternal probes (per design type for
 \code{infinium_type = "balanced"});
 \item \code{"icr"}: whole ICRs are reassigned; requires at least two annotated ICRs
-in each parental class. Always used with \code{balance = "icr"}.
+in each parental class. Always used with \code{balance = "icr"}. With \code{a}
+paternal and \code{b} maternal ICRs there are only \code{choose(a + b, a)} distinct
+assignments, which bounds the smallest attainable p-value; a warning is
+given below 100.
 }}
+
+\item{resample_reference}{With \code{n_boot > 0} and in-cohort controls
+(\code{reference_group} or \code{reference_samples}), also resample the controls in
+each replicate and recompute the reference from them (each control again
+leave-one-out), so the intervals include the uncertainty of the reference
+itself. Default \code{FALSE} holds the reference fixed. Ignored, with a message,
+for the fixed 0.5 or an external reference.}
 
 \item{seed}{Optional random seed for \code{n_boot}/\code{n_perm}, for reproducible
 results; the caller's random number stream is restored afterwards.}
@@ -156,7 +167,7 @@ and Angle are computed from. \code{reference} and \code{n_reference_samples} des
 the reference used. \code{balance} records the pooling; with \code{balance = "icr"}, the columns
 \code{n_paternal_icrs} / \code{n_maternal_icrs} give the numbers of ICRs used. With
 \code{n_boot > 0}, the columns \code{IDS_lower}, \code{IDS_upper}, \code{Angle_lower},
-\code{Angle_upper}, \code{Mechanism_support}, \code{n_boot} and \code{resample} are added; with
+\code{Angle_upper}, \code{Mechanism_support}, \code{n_boot}, \code{resample} and \code{resample_reference} are added; with
 \code{n_perm > 0}, \code{origin_perm_p}, \code{n_perm} and \code{permute} (see Uncertainty).
 Calibrate the IDS cutoff on controls with \code{\link[=CalibrateIDS]{CalibrateIDS()}}.
 }
@@ -173,8 +184,10 @@ reported for IDS (\code{IDS_lower}, \code{IDS_upper}) and Angle (\code{Angle_low
 \code{Angle_upper}, a circular interval around the observed angle, read clockwise
 from lower to upper). \code{Mechanism_support} is the fraction of replicates in
 the reported \code{Mechanism} sector (including \code{"ROI"}), a measure of label
-stability. The intervals are conditional on the reference: the controls are
-not resampled. Because IDS is a distance, its interval never includes 0 and is
+stability. These are bootstrap uncertainty intervals, not tests. By default
+they are conditional on the reference: the controls are not resampled, so
+with few controls they understate the total uncertainty; set
+\code{resample_reference = TRUE} to resample in-cohort controls as well. Because IDS is a distance, its interval never includes 0 and is
 biased upward for samples near balanced imprinting, so it describes stability
 and ranking rather than testing against 0; the Angle interval is
 uninformative when the IDS interval reaches the ROI zone.

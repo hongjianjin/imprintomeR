@@ -98,10 +98,17 @@ scoring a locus panel such as \code{chr11p15} or \code{chr20q13} with \code{\lin
 }
 \details{
 An ICR is called altered when \code{abs(deviation) >= delta_cutoff} and, if \code{z_cutoff} is set and
-control samples are available, also \code{abs(z) >= z_cutoff}. \code{z} is the deviation standardized by
-the controls' median and standard deviation for that ICR (the standard deviation is floored at
-0.02 so that very homogeneous controls do not inflate \code{z}); it is reported whenever controls are
-available. Controls are scored leave-one-out when they also form the reference.
+control samples are available, also \code{abs(z) >= z_cutoff}. Both criteria are symmetric, so gains
+and losses are called alike. For sample \code{i} and ICR \code{k}, with deviation \code{d[i, k]},
+
+\code{z[i, k] = (d[i, k] - median(d[C, k])) / max(SD(d[C, k]), 0.02)},
+
+where \code{C} is the set of controls, excluding \code{i} when \code{i} is itself a control. The standard
+deviation is floored at 0.02 so that very homogeneous controls do not inflate \code{z}. When the
+controls also form the reference, each control's deviation is computed leave-one-out as well,
+so control z-scores are out-of-sample in the same way as those of cases. \code{z} is reported
+whenever at least 3 controls are available; with fewer than 10 a warning notes that the control
+median and SD are unstable.
 
 The defaults (\code{delta_cutoff = 0.075}, \code{z_cutoff = 3}) were selected under the prespecified
 threshold-selection protocol in the package repository (\verb{benchmark/}), by leave-one-cohort-out

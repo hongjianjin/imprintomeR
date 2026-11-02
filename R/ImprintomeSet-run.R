@@ -32,7 +32,7 @@
 #'   multi-locus summary ([SummarizeICRStatus()]) as `ICRSummary.<probeset>`.
 #' @param delta_cutoff,z_cutoff Thresholds for altered-ICR calls, passed to
 #'   [AnalyzeICRStatus()] when `icr = TRUE` (defaults 0.075 and 3).
-#' @param n_boot,n_perm,conf_level,resample,permute,seed Bootstrap confidence
+#' @param n_boot,n_perm,conf_level,resample,permute,resample_reference,seed Bootstrap uncertainty
 #'   intervals and permutation null for IDS and Angle, passed to
 #'   `AnalyzeImprintStatus()` (off by default; see its Uncertainty section).
 #'   The added columns record the settings; result names are unchanged. The
@@ -92,7 +92,7 @@ methods::setMethod(
            infinium_type = c("all", "I", "II", "balanced"), balance = c("probe", "icr"),
            min_probes = 3L, icr = FALSE, delta_cutoff = 0.075, z_cutoff = 3,
            n_boot = 0L, n_perm = 0L, conf_level = 0.95, resample = c("icr", "probe"),
-           permute = c("probe", "icr"), seed = NULL, ...) {
+           permute = c("probe", "icr"), resample_reference = FALSE, seed = NULL, ...) {
     methods::validObject(x)
 
     # Convert beta matrix to data frame with TargetID column (required by LoadBeta)
@@ -118,6 +118,7 @@ methods::setMethod(
       conf_level = conf_level,
       resample = resample,
       permute = permute,
+      resample_reference = resample_reference,
       seed = seed
     )
 

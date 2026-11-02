@@ -3,8 +3,9 @@
 #
 # Bootstrap confidence intervals for the sample-level scores of AnalyzeImprintStatus() and a
 # permutation null for their dependence on parental origin (arguments n_boot / n_perm), and
-# CalibrateIDS() for cohort-specific cutoffs from control samples. The reference (0.5 or control medians) is held fixed: the
-# intervals describe probe- and ICR-level sampling variability given that reference.
+# CalibrateIDS() for cohort-specific cutoffs from control samples. By default the reference (0.5 or
+# control medians) is held fixed, so the intervals describe probe- and ICR-level sampling variability
+# given that reference; with resample_reference = TRUE in-cohort controls are resampled as well.
 
 # Evaluate `expr` with a fixed seed and restore the caller's random number stream afterwards.
 .with_seed <- function(seed, expr) {
@@ -60,6 +61,21 @@
   list(units = units, two_stage = FALSE)
 }
 
+# One bootstrap draw of the in-cohort control reference: the controls are resampled with
+# replacement for the shared reference, and each control's leave-one-out reference is drawn
+# from the other controls.
+.draw_reference <- function(controls) {
+  pick <- function(x) x[sample.int(length(x), length(x), replace = TRUE)]
+  list(base = pick(controls), loo = stats::setNames(lapply(controls, function(s) pick(setdiff(controls, s))), controls))
+}
+
+# Probe-by-sample deviations of beta matrix B from a drawn reference.
+.reference_deviation <- function(B, draw) {
+  D <- B - matrixStats::rowMedians(B[, draw$base, drop = FALSE], na.rm = TRUE)
+  for (s in names(draw$loo)) D[, s] <- B[, s] - matrixStats::rowMedians(B[, draw$loo[[s]], drop = FALSE], na.rm = TRUE)
+  D
+}
+
 # Percentile interval of angles on the circle, centred on the observed angle.
 .angle_interval <- function(angles, observed, probs) {
   d <- ((angles - observed + 180) %% 360) - 180
@@ -74,7 +90,10 @@
 #     by_icr, rows are limited to ICRs with at least min_probes probes.
 #   obs: list with the observed paternal and maternal deviations (pat, mat), ids, angle and
 #     mechanism per sample.
-.imprint_uncertainty <- function(pat, mat, obs, by_icr, n_boot, n_perm, conf_level, resample, permute, seed) {
+#   controls: in-cohort control samples to resample in each bootstrap replicate (pat$B and mat$B
+#     then hold the beta values), or NULL to hold the reference fixed.
+.imprint_uncertainty <- function(pat, mat, obs, by_icr, n_boot, n_perm, conf_level, resample, permute, seed,
+                                 controls = NULL) {
   samples <- colnames(pat$D)
   out <- data.frame(row.names = samples)
   probs <- c((1 - conf_level) / 2, 1 - (1 - conf_level) / 2)
@@ -87,8 +106,16 @@
       plan_m <- .boot_plan(mat$icr, mat$design, resample, by_icr)
       ids_b <- angle_b <- matrix(NA_real_, nrow = n_boot, ncol = length(samples))
       for (b in seq_len(n_boot)) {
-        p <- .draw_deviation(pat$D, .resample_units(plan_p$units, plan_p$two_stage), pat$design, by_icr)
-        m <- .draw_deviation(mat$D, .resample_units(plan_m$units, plan_m$two_stage), mat$design, by_icr)
+        Dp <- pat$D
+        Dm <- mat$D
+        if (!is.null(controls)) {
+          # The same control draw for both classes, as in the observed score.
+          draw <- .draw_reference(controls)
+          Dp <- .reference_deviation(pat$B, draw)
+          Dm <- .reference_deviation(mat$B, draw)
+        }
+        p <- .draw_deviation(Dp, .resample_units(plan_p$units, plan_p$two_stage), pat$design, by_icr)
+        m <- .draw_deviation(Dm, .resample_units(plan_m$units, plan_m$two_stage), mat$design, by_icr)
         ids_b[b, ] <- ids_of(p, m)
         angle_b[b, ] <- angle_of(p, m)
       }
@@ -106,6 +133,7 @@
       out$Mechanism_support <- round(support, 3)
       out$n_boot <- as.integer(n_boot)
       out$resample <- resample
+      out$resample_reference <- !is.null(controls)
     }
 
     if (n_perm > 0) {

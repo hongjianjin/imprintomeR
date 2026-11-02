@@ -81,6 +81,23 @@ test_that("control z-scores gate altered calls", {
   })
 })
 
+test_that("control z-scores are leave-one-out and few controls warn", {
+  d <- .make_icr_fixture()
+  .with_icr_panel(d$probeset, {
+    expect_warning(res <- .quiet(AnalyzeICRStatus(d$beta, d$meta, probeset = "selected", reference = "fixed",
+                                                  control_group = "control")), "unstable")
+    dev <- with(res[res$ICR_name == "matA", ], setNames(deviation, Sample_Name))
+    ctrl <- paste0("C", 1:5)
+    # C1 is standardized by C2..C5 only; a case by all five controls.
+    others <- dev[setdiff(ctrl, "C1")]
+    # Deviations in the table are rounded to 3 decimals, so z is checked to within 0.05.
+    z_c1 <- res$z[res$ICR_name == "matA" & res$Sample_Name == "C1"]
+    z_x1 <- res$z[res$ICR_name == "matA" & res$Sample_Name == "X1"]
+    expect_lt(abs(z_c1 - (dev[["C1"]] - median(others)) / max(sd(others), 0.02)), 0.05)
+    expect_lt(abs(z_x1 - (dev[["X1"]] - median(dev[ctrl])) / max(sd(dev[ctrl]), 0.02)), 0.05)
+  })
+})
+
 test_that("SummarizeICRStatus counts altered ICRs and flags multi-locus disturbance", {
   d <- .make_icr_fixture()
   .with_icr_panel(d$probeset, {
