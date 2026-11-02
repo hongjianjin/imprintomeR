@@ -400,14 +400,17 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
 #'     types for `infinium_type = "balanced"`, within ICRs for `balance = "icr"`).
 #'     This ignores within-ICR correlation and gives narrower intervals.
 #' @param permute Permutation unit for the null:
-#'   - `"probe"` (default): the parental labels of probes are shuffled, keeping
-#'     the numbers of paternal and maternal probes (per design type for
-#'     `infinium_type = "balanced"`);
-#'   - `"icr"`: whole ICRs are reassigned; requires at least two annotated ICRs
-#'     in each parental class. Always used with `balance = "icr"`. With `a`
-#'     paternal and `b` maternal ICRs there are only `choose(a + b, a)` distinct
-#'     assignments, which bounds the smallest attainable p-value; a warning is
-#'     given below 100.
+#'   - `"icr"` (default): whole ICRs are reassigned; requires at least two
+#'     annotated ICRs in each parental class. Always used with `balance = "icr"`.
+#'     With `a` paternal and `b` maternal ICRs there are only `choose(a + b, a)`
+#'     distinct assignments, which bounds the smallest attainable p-value; a
+#'     warning is given below 100. When the default cannot be used (a panel with
+#'     one ICR per class, such as `chr11p15`), the test falls back to `"probe"`
+#'     with a warning;
+#'   - `"probe"`: the parental labels of probes are shuffled, keeping the numbers
+#'     of paternal and maternal probes (per design type for
+#'     `infinium_type = "balanced"`). Correlated probes are exchanged
+#'     individually, so p-values are anti-conservative.
 #' @param resample_reference With `n_boot > 0` and in-cohort controls
 #'   (`reference_group` or `reference_samples`), also resample the controls in
 #'   each replicate and recompute the reference from them (each control again
@@ -482,7 +485,7 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
                                  n_perm = 0L,
                                  conf_level = 0.95,
                                  resample = c("icr", "probe"),
-                                 permute = c("probe", "icr"),
+                                 permute = c("icr", "probe"),
                                  resample_reference = FALSE,
                                  seed = NULL) {
   if (missing(metaFile)) metaFile <- NULL
@@ -518,6 +521,7 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
     stop("conf_level must be a single number between 0 and 1.")
   }
   resample <- match.arg(resample)
+  permute_default <- missing(permute)
   permute <- match.arg(permute)
   if (!is.logical(resample_reference) || length(resample_reference) != 1L || is.na(resample_reference)) {
     stop("resample_reference must be TRUE or FALSE.")
@@ -700,11 +704,16 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
     }
     pat_spec <- class_spec(paternal_beta, paternal_ref, paternal_probes)
     mat_spec <- class_spec(maternal_beta, maternal_ref, maternal_probes)
-    if (n_perm > 0 && permute == "icr") {
-      n_icrs <- function(icr) length(unique(icr[!is.na(icr) & nzchar(icr)]))
-      if (n_icrs(pat_spec$icr) < 2L || n_icrs(mat_spec$icr) < 2L) {
+    n_icrs <- function(icr) length(unique(icr[!is.na(icr) & nzchar(icr)]))
+    if (n_perm > 0 && permute == "icr" && (n_icrs(pat_spec$icr) < 2L || n_icrs(mat_spec$icr) < 2L)) {
+      if (!permute_default || balance == "icr") {
         stop("permute = \"icr\" needs at least two annotated ICRs in each parental class; use permute = \"probe\".")
       }
+      warning("Probeset '", probeset, "' has fewer than two ICRs in a parental class; origin permutation falls back ",
+              "to permute = \"probe\", whose p-values are anti-conservative.")
+      permute <- "probe"
+    }
+    if (n_perm > 0 && permute == "icr") {
       # With few ICRs there are few distinct label assignments, which bounds the smallest attainable p.
       n_assign <- choose(n_icrs(pat_spec$icr) + n_icrs(mat_spec$icr), n_icrs(pat_spec$icr))
       if (n_assign < 100) {

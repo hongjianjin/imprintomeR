@@ -41,9 +41,14 @@ testthat::local_edition(1)
   list(beta = data.frame(TargetID = probes, beta, check.names = FALSE), meta = meta, probeset = probeset)
 }
 
-.score_unc <- function(d, ...) {
+# The fixture has only 3 + 4 ICRs, so ICR-level permutation warns about few distinct assignments;
+# that warning is muffled here unless a test asks for it (keep_warning = TRUE).
+.score_unc <- function(d, ..., keep_warning = FALSE) {
   out <- NULL
-  invisible(utils::capture.output(out <- AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ...)))
+  run <- function() AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ...)
+  invisible(utils::capture.output(out <- if (keep_warning) run() else withCallingHandlers(run(), warning = function(w) {
+    if (grepl("distinct assignments", conditionMessage(w))) invokeRestart("muffleWarning")
+  })))
   rownames(out) <- out$Sample_Name
   out
 }
@@ -133,19 +138,22 @@ test_that("without ICR annotation the bootstrap resamples probes", {
       "no ICR_name column")
     expect_equal(unique(res$resample), "probe")
     expect_error(.score_unc(d, n_perm = 20, permute = "icr"), "at least two annotated ICRs")
+    # The default ICR-level permutation falls back to probes, with a warning.
+    expect_warning(fb <- .score_unc(d, n_perm = 20, seed = 1), "falls back")
+    expect_equal(unique(fb$permute), "probe")
   })
 })
 
 test_that("the permutation null separates origin-specific from global shifts", {
   d <- .make_uncertainty_fixture()
   .with_uncertainty_panel(d$probeset, {
-    res <- .score_unc(d, n_perm = 199, seed = 2)
+    res <- .score_unc(d, n_perm = 199, seed = 2, permute = "probe")
     expect_equal(unique(res$permute), "probe")
     expect_equal(res["PAT", "origin_perm_p"], 1 / 200)
     expect_equal(res["GLOBAL", "Mechanism"], "Global-Hyper")
     expect_gt(res["GLOBAL", "origin_perm_p"], 0.2)
     # 3 paternal and 4 maternal ICRs: choose(7, 3) = 35 assignments, so p cannot fall below ~0.029.
-    expect_warning(icr <- .score_unc(d, n_perm = 199, seed = 2, permute = "icr"), "35 distinct assignments")
+    expect_warning(icr <- .score_unc(d, n_perm = 199, seed = 2, keep_warning = TRUE), "35 distinct assignments")   # default unit
     expect_equal(unique(icr$permute), "icr")
     expect_gte(min(icr$origin_perm_p), 1 / 35 - 0.02)
     expect_lt(icr["PAT", "origin_perm_p"], 0.1)
@@ -181,7 +189,7 @@ test_that("runImprintome passes uncertainty options through", {
     beta <- as.matrix(d$beta[, -1])
     rownames(beta) <- d$beta$TargetID
     x <- ImprintomeSet(beta = beta, meta = d$meta, probeset = d$probeset, genome = "hg38", assay = "EPICv1")
-    x <- runImprintome(x, probeset = "selected", n_boot = 50, n_perm = 50, seed = 1)
+    x <- suppressWarnings(runImprintome(x, probeset = "selected", n_boot = 50, n_perm = 50, seed = 1))  # few-ICR warning
     res <- results(x)[["AnalyzeImprintStatus.selected"]]
     expect_true(all(c("IDS_lower", "IDS_upper", "origin_perm_p") %in% colnames(res)))
   })

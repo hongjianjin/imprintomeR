@@ -25,7 +25,7 @@
   n_perm = 0L,
   conf_level = 0.95,
   resample = c("icr", "probe"),
-  permute = c("probe", "icr"),
+  permute = c("icr", "probe"),
   resample_reference = FALSE,
   seed = NULL,
   ...

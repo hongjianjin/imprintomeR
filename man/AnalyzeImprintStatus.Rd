@@ -22,7 +22,7 @@ AnalyzeImprintStatus(
   n_perm = 0L,
   conf_level = 0.95,
   resample = c("icr", "probe"),
-  permute = c("probe", "icr"),
+  permute = c("icr", "probe"),
   resample_reference = FALSE,
   seed = NULL
 )
@@ -140,14 +140,17 @@ This ignores within-ICR correlation and gives narrower intervals.
 
 \item{permute}{Permutation unit for the null:
 \itemize{
-\item \code{"probe"} (default): the parental labels of probes are shuffled, keeping
-the numbers of paternal and maternal probes (per design type for
-\code{infinium_type = "balanced"});
-\item \code{"icr"}: whole ICRs are reassigned; requires at least two annotated ICRs
-in each parental class. Always used with \code{balance = "icr"}. With \code{a}
-paternal and \code{b} maternal ICRs there are only \code{choose(a + b, a)} distinct
-assignments, which bounds the smallest attainable p-value; a warning is
-given below 100.
+\item \code{"icr"} (default): whole ICRs are reassigned; requires at least two
+annotated ICRs in each parental class. Always used with \code{balance = "icr"}.
+With \code{a} paternal and \code{b} maternal ICRs there are only \code{choose(a + b, a)}
+distinct assignments, which bounds the smallest attainable p-value; a
+warning is given below 100. When the default cannot be used (a panel with
+one ICR per class, such as \code{chr11p15}), the test falls back to \code{"probe"}
+with a warning;
+\item \code{"probe"}: the parental labels of probes are shuffled, keeping the numbers
+of paternal and maternal probes (per design type for
+\code{infinium_type = "balanced"}). Correlated probes are exchanged
+individually, so p-values are anti-conservative.
 }}
 
 \item{resample_reference}{With \code{n_boot > 0} and in-cohort controls

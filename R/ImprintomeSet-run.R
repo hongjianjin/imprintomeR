@@ -92,7 +92,7 @@ methods::setMethod(
            infinium_type = c("all", "I", "II", "balanced"), balance = c("probe", "icr"),
            min_probes = 3L, icr = FALSE, delta_cutoff = 0.175, z_cutoff = 2,
            n_boot = 0L, n_perm = 0L, conf_level = 0.95, resample = c("icr", "probe"),
-           permute = c("probe", "icr"), resample_reference = FALSE, seed = NULL, ...) {
+           permute = c("icr", "probe"), resample_reference = FALSE, seed = NULL, ...) {
     methods::validObject(x)
 
     # Convert beta matrix to data frame with TargetID column (required by LoadBeta)
