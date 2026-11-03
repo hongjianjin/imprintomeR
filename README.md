@@ -1,6 +1,6 @@
 <h1><img src="images/logo_small.png" alt="imprintomeR Logo" width="200" style="vertical-align: middle; margin-right: 10px;" />imprintomeR</h1>
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23741652.svg)](https://doi.org/10.5281/zenodo.23741652)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23932081.svg)](https://doi.org/10.5281/zenodo.23932081)
 
 imprintomeR measures and visualizes genomic imprinting disturbance from Illumina 450K, EPICv1 and EPICv2 methylation arrays. Starting from IDAT files, it runs quality control (QC) and preprocessing, then scores each sample at imprinting control regions (ICRs):
 
