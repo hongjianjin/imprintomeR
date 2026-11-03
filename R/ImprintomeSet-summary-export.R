@@ -141,7 +141,7 @@ methods::setMethod(
 #'   `NULL` means all stored plots.
 #' @param plot_device Graphics device for ggplot export (`"pdf"` or `"png"`).
 #' @param width Plot width in inches. `NULL` uses the figure size recorded by the
-#'   plot (radar plots from [PlotRadar()] record a square size that leaves room for
+#'   plot (radar plots from `PlotRadar()` record a square size that leaves room for
 #'   their labels, about 17 in for the `selected` panel), otherwise plot-specific
 #'   defaults (`12` for radar plots, otherwise `8`).
 #' @param height Plot height in inches. `NULL` uses the recorded figure size as for

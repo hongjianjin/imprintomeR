@@ -34,7 +34,7 @@
 \item{plot_device}{Graphics device for ggplot export (\code{"pdf"} or \code{"png"}).}
 
 \item{width}{Plot width in inches. \code{NULL} uses the figure size recorded by the
-plot (radar plots from \code{\link[=PlotRadar]{PlotRadar()}} record a square size that leaves room for
+plot (radar plots from \code{PlotRadar()} record a square size that leaves room for
 their labels, about 17 in for the \code{selected} panel), otherwise plot-specific
 defaults (\code{12} for radar plots, otherwise \code{8}).}
 

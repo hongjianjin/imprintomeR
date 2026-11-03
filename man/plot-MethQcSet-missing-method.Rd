@@ -4,7 +4,7 @@
 \alias{plot,MethQcSet,missing-method}
 \title{Plot QC Metrics from MethQcSet}
 \usage{
-\S4method{plot}{MethQcSet,missing}(x, y, type = "qc_bar", icutoff = 11, pcutoff = 0.03, outFile = NULL, ...)
+\S4method{plot}{MethQcSet,missing}(x, y, type = "qc_bar", icutoff = 11, pcutoff = 0.05, outFile = NULL, ...)
 }
 \arguments{
 \item{x}{A \code{MethQcSet} object.}
