@@ -208,7 +208,7 @@ Center for Applied Bioinformatics, St. Jude Children's Research Hospital, Memphi
 
 - **Bug reports, questions and feature requests:** open an issue at https://github.com/hongjianjin/imprintomeR/issues, with the imprintomeR version (`packageVersion("imprintomeR")`), the command or code you ran and the error message.
 - **Other enquiries:** email the maintainer, Hongjian Jin (hongjian.jin@stjude.org).
-- **Citing imprintomeR:** use the "Cite this repository" button on GitHub (from `CITATION.cff`) or the Zenodo DOI [10.5281/zenodo.23741652](https://doi.org/10.5281/zenodo.23741652).
+- **Citing imprintomeR:** use the "Cite this repository" button on GitHub (from `CITATION.cff`) or the Zenodo DOIs: [10.5281/zenodo.23741652](https://doi.org/10.5281/zenodo.23741652) for all versions (resolves to the latest release), or [10.5281/zenodo.23932081](https://doi.org/10.5281/zenodo.23932081) for version 1.5.3.
 
 ## SessionInfo
 
