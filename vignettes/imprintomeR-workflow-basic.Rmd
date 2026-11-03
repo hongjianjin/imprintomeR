@@ -65,7 +65,7 @@ res_boot <- AnalyzeImprintStatus(beta, meta, probeset = "selected", n_boot = 200
 res_boot[, c("Sample_Name", "IDS", "IDS_lower", "IDS_upper", "Mechanism", "Mechanism_support")]
 ```
 
-With a control reference, `n_perm` adds a permutation test of the dependence on the annotated parental origin (`origin_perm_p`), and `CalibrateIDS()` derives an IDS cutoff from the controls:
+With a control reference, `n_perm` adds an exploratory permutation test of the dependence on the annotated parental origin (`origin_perm_p`; whole ICRs are permuted by default), `resample_reference = TRUE` lets the bootstrap intervals include the uncertainty of the control reference, and `CalibrateIDS()` derives an IDS cutoff from the controls:
 
 ```{r, eval=FALSE}
 # res_ctrl <- AnalyzeImprintStatus(beta, meta, probeset = "selected", reference_group = "control",

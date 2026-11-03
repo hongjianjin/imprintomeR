@@ -6,7 +6,7 @@ imprintomeR measures and visualizes genomic imprinting disturbance from Illumina
 
 - **Scores:**
   - The Imprinting Deviation Index (IDI), (β − 0.5) × 2, places each probe on a −1 to 1 scale, where 0 is the half-methylated state expected at an ICR.
-  - From the paternal and maternal deviations, the Imprinting Deviation Score (IDS) gives each sample's overall deviation, and the Angle gives its direction. Bootstrap confidence intervals are optional.
+  - From the paternal and maternal deviations, the Imprinting Deviation Score (IDS) gives each sample's overall deviation, and the Angle gives its direction. Bootstrap uncertainty intervals are optional.
 - **Per-ICR calls:** each ICR is scored on its own, with a multi-locus summary per sample.
 - **Reference centring:** scores can be centred on control samples from the same study.
 - **Plots:** polar plots (IDS and Angle), radar plots (median IDI per ICR), rainfall plots (IDI per probe), beeswarm plots and per-ICR heatmaps.
@@ -134,8 +134,9 @@ Each 45-degree sector of the polar plot is labelled with the direction of shift 
 | `reference_group` / `reference_beta` [`--reference-group` / `--reference-file`] | fixed 0.5 | Centre scores on in-cohort or external tissue-matched controls ([Reference centring](docs/analysis.md#reference-centring-and-infinium-design-types)) |
 | `infinium_type` [`--infinium-type`] | all probes | `"balanced"` averages type I and type II deviations |
 | `icr` [`--icr`] | `FALSE` | Adds per-ICR calls, the multi-locus summary and the `icr_heatmap` plot ([Per-ICR scores](docs/analysis.md#per-icr-scores-and-icr-balanced-ids)) |
+| `delta_cutoff`, `z_cutoff` | 0.175, 2 | Per-ICR call thresholds used with `icr = TRUE` (z needs controls) |
 | `balance` [`--balance icr`] | probe-pooled | `"icr"` weights each ICR equally in IDS/Angle |
-| `n_boot`, `n_perm` | 0 | Bootstrap intervals and `Mechanism_support`; origin permutation test (control reference only) ([Uncertainty](docs/analysis.md#uncertainty-and-calibration)) |
+| `n_boot`, `n_perm` | 0 | Bootstrap intervals and `Mechanism_support` (`resample_reference = TRUE` also resamples in-cohort controls); exploratory origin permutation test, ICR-level by default (control reference only) ([Uncertainty](docs/analysis.md#uncertainty-and-calibration)) |
 | `ids_cutoff` | 0.2 | IDS below which a sample is labelled ROI; `CalibrateIDS()` derives a cohort cutoff from controls |
 
 ## Quality control
@@ -211,4 +212,4 @@ Center for Applied Bioinformatics, St. Jude Children's Research Hospital, Memphi
 
 ## SessionInfo
 
-The R session used to build and test imprintomeR 1.5.0 (R 4.3.3), with the versions of the declared dependencies, is recorded in [vignettes/sessionInfo.md](vignettes/sessionInfo.md); 1.5.2 changes no dependencies.
+The R session used to build and test imprintomeR 1.5.0 (R 4.3.3), with the versions of the declared dependencies, is recorded in [vignettes/sessionInfo.md](vignettes/sessionInfo.md); 1.5.3 changes no dependencies.
