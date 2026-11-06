@@ -2,7 +2,7 @@
 % Please edit documentation in R/module_scoring.R
 \name{compute_ids}
 \alias{compute_ids}
-\title{Compute Imprint Deviation Score (IDS)}
+\title{Compute Imprinting Deviation Score (IDS)}
 \usage{
 compute_ids(paternal_median, maternal_median)
 }

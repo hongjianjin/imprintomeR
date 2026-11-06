@@ -46,7 +46,7 @@ DetectMosaicism <- function(res_table, roi_ref_mean = 0.06, roi_ref_sd = 0.03) {
 }
 
 
-#' Compute Imprint Deviation Score (IDS)
+#' Compute Imprinting Deviation Score (IDS)
 #'
 #' Computes the Euclidean distance from the balanced imprinting state
 #' \eqn{(0.5, 0.5)} using paternal and maternal median methylation.
