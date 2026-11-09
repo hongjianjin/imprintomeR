@@ -183,6 +183,7 @@ Colours by parental origin follow the `ORIGIN` annotation (legend "Annotated par
 - [docs/analysis.md](docs/analysis.md): `ImprintomeSet`, scoring options, reference centring, per-ICR calls, uncertainty and calibration, export
 - [docs/plots.md](docs/plots.md): all plot types with examples
 - [docs/probesets.md](docs/probesets.md): bundled panels, how `selected` was built, platform coverage
+- [FAQ.md](FAQ.md): choosing an IDS cutoff and interpreting results (control references, bootstrap intervals, `Mechanism_support`, per-ICR calls, the multi-locus flag)
 - [vignettes/imprintomeR_cli_README.md](vignettes/imprintomeR_cli_README.md): command-line QC and analysis
 - R vignettes: `vignette("imprintomeset-quickstart")`, `vignette("imprintomeset-results-export")`, `vignette("imprintomeR-workflow-basic")` (core functions without S4 objects)
 - Worked GEO examples (GitHub-renderable notebooks, with Markdown versions):
