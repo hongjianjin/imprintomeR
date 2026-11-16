@@ -16,7 +16,7 @@ The workflow is built on two S4 classes:
 - **MethQcSet:** QC results and preprocessed data for one array platform.
 - **ImprintomeSet:** scores and annotations, ready for analysis and plotting.
 
-Every step can be run from R or with the command-line scripts in `inst/scripts/` (see the [command-line guide](vignettes/imprintomeR_cli_README.md)).
+Every step can be run from R or with the command-line scripts in `inst/scripts/` (see the [command-line guide](vignettes/imprintomeR_cli_README.md)). For whole cohorts on a cluster or in containers, the [imprintome-nf](https://github.com/hongjianjin/imprintome-nf) Nextflow pipeline runs the same scripts (see [Nextflow pipeline](#nextflow-pipeline)).
 
 ## Table of Contents
 
@@ -29,6 +29,7 @@ Every step can be run from R or with the command-line scripts in `inst/scripts/`
 - [Bundled probesets](#bundled-probesets)
 - [Plots](#plots)
 - [Documentation](#documentation)
+- [Nextflow pipeline](#nextflow-pipeline)
 - [MCP server and agent skill](#mcp-server-and-agent-skill)
 - [Test Suite](#test-suite)
 - [Maintainers](#maintainers) · [Contact](#contact) · [SessionInfo](#sessioninfo)
@@ -190,6 +191,17 @@ Colours by parental origin follow the `ORIGIN` annotation (legend "Annotated par
   - [GSE52567.ipynb](vignettes/GSE52567.ipynb) ([Markdown](vignettes/GSE52576.md)): GSE52576, androgenetic and parthenogenetic samples
   - [GSE240091.ipynb](vignettes/GSE240091.ipynb) ([Markdown](vignettes/GSE240091.md)): QC and analysis of an EPIC cohort
   - [GSE74738.ipynb](vignettes/GSE74738.ipynb) ([Markdown](vignettes/GSE74738.md)): 450K placentas scored against their own controls, with per-ICR calls, bootstrap intervals, the origin permutation test and a control-calibrated cutoff
+
+## Nextflow pipeline
+
+[imprintome-nf](https://github.com/hongjianjin/imprintome-nf) is a Nextflow pipeline, laid out following nf-core conventions, that runs imprintomeR from a samplesheet of IDAT files: QC of the whole cohort (`run_meth_QC.R`; mixed-platform cohorts are split into one `MethQcSet` per platform), then imprinting analysis for each platform and each requested probeset (`run_imprintomeR.R`). It needs Nextflow 24.10 or newer and runs with Docker, Singularity or Apptainer:
+
+```bash
+nextflow run hongjianjin/imprintome-nf -profile docker \
+    --input samplesheet.csv --outdir results --probesets selected --reference_group control
+```
+
+The samplesheet format, profiles (including the St. Jude HPC profile) and all options are described in the [imprintome-nf README](https://github.com/hongjianjin/imprintome-nf).
 
 ## MCP server and agent skill
 
