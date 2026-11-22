@@ -136,7 +136,7 @@ Important options:
 - `--plot-types <list-or-all>`: `intensity`, `detection_pval`, `probe_coverage`, `qc_bar`, `beta_density`, or `all`
 - `--no-qc-plots`: suppress QC plots
 - `--no-qc-report`: suppress default QC report PDFs
-- `--skip-ewastools`: skip the ewastools controls (ewastools is installed with the package)
+- `--skip-ewastools`: deprecated and ignored (the control-probe and SNP checks are built in)
 - `--verbose`: enable detailed logging
 
 The script validates metadata, detects or uses the selected platform, processes QC, and exports QC tables, reports, plots, and a `*_qcset.rds` file.

@@ -243,7 +243,7 @@ qc_summarize <- function(x, ...) {
 #' **{prefix}_qc_table_main.xlsx** (primary QC results):
 #'   - `metadata` sheet: Sample metadata augmented with Platform and Final.QC columns.
 #'   - `QC_matrix` sheet: Per-sample QC metrics (intensity, detection p-val, coverage, sex, etc.).
-#'   - `Ctrl_matrix` sheet: ewastools control metric scores (if available).
+#'   - `Ctrl_matrix` sheet: control-probe metric scores (if available).
 #'   - `statistics` sheet: Per-Sample_Group summary (Total, PASS, FAIL, and ratios).
 #'
 #' **QC_tables/{prefix}_qc_table_extra.xlsx** (supplementary/technical results):
@@ -942,9 +942,9 @@ if (!methods::isGeneric("plot")) {
 #'     restricted to all, PASS, or FAIL samples via `sample_set`. This plot is
 #'     generated from the cached `MethQcSet` beta matrix and is complementary to
 #'     raw `minfi::qcReport()` density output.}
-#'   \item{`ctrl_metrics`}{Per-sample dot chart of ewastools `CtrlMetrics.QC` from `ctrl_metrics`.
+#'   \item{`ctrl_metrics`}{Per-sample dot chart of `CtrlMetrics.QC` from `ctrl_metrics`.
 #'     Returns `NULL` silently if `ctrl_metrics` is absent.}
-#'   \item{`ctrl_metrics_detail`}{One jitter-dot plot per ewastools control metric
+#'   \item{`ctrl_metrics_detail`}{One jitter-dot plot per control-probe metric
 #'     (Bisulfite Conversion, Specificity, Non-polymorphic). `outFile` is used as a
 #'     path prefix; individual files are saved as `{prefix}_ctrl_matrix_detail_{Metric}.pdf`.
 #'     Returns a named list of ggplot objects.}
@@ -1164,12 +1164,12 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
                      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold"))
 
   # =========================================================================
-  # ctrl_metrics: per-sample ewastools control metric QC
+  # ctrl_metrics: per-sample control-probe metric QC
   # =========================================================================
   } else if (type == "ctrl_metrics") {
     ctrl <- .canonicalize_methqc_sample_col(x@qc_tables[["ctrl_metrics"]])
     if (is.null(ctrl)) {
-      message("ctrl_metrics not found. Skipping (ewastools data absent).")
+      message("ctrl_metrics not found. Skipping (control-probe metrics absent).")
       return(NULL)
     }
     if (!all(c("Sample_Name", "CtrlMetrics.QC") %in% colnames(ctrl))) {
@@ -1187,7 +1187,7 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
       ggplot2::geom_text(ggplot2::aes(label = Freq), vjust = -0.4, size = 3.5) +
       ggplot2::theme_classic(base_size = 12) +
       ggplot2::labs(title = paste0("Control Probe Metrics: ", x@platform),
-                    subtitle = "ewastools CtrlMetrics.QC score",
+                    subtitle = "CtrlMetrics.QC score",
                     x = "CtrlMetrics.QC", y = "Number of Samples") +
       ggplot2::theme(legend.position = "none",
                      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold"))
@@ -1198,7 +1198,7 @@ methods::setMethod("plot", c("MethQcSet", "missing"), function(x, y,
   } else if (type == "ctrl_metrics_detail") {
     ctrl <- .canonicalize_methqc_sample_col(x@qc_tables[["ctrl_metrics"]])
     if (is.null(ctrl)) {
-      message("ctrl_metrics not found. Skipping (ewastools data absent).")
+      message("ctrl_metrics not found. Skipping (control-probe metrics absent).")
       return(invisible(NULL))
     }
     if (!"Sample_Name" %in% colnames(ctrl)) {

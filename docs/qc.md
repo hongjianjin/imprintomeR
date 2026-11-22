@@ -90,7 +90,9 @@ export(qcset, outdir = "qc_output", prefix = "epic", format = c("xlsx", "rds"))
 **QC pass criteria.** A sample is `Final.QC = "PASS"` when both hold:
 
 1. at least 95% of probes are detected at p < `pcutoff` (default 0.05, i.e. `pctDetectedCpG_dP0.05 >= 95`; set it with `runMethQC(..., pcutoff = 0.01)` or `run_meth_QC.R --pcutoff 0.01`; detection p-values from `minfi::detectionP()`);
-2. `CtrlMetrics.QC` is PASS, which means that the ewastools Bisulfite Conversion I Green and Red control metrics are both at least 1. If the ewastools step cannot run (or `run_meth_QC.R --skip-ewastools` is used), only criterion 1 applies.
+2. `CtrlMetrics.QC` is PASS, which means that the Bisulfite Conversion I Green and Red control-probe metrics are both at least 1. If the control probes cannot be read, only criterion 1 applies.
+
+The control-probe metrics (Illumina BeadArray Controls Reporter), SNP genotype calls, sample-swap check and predicted donor IDs follow the ewastools methods (Heiss and Just, 2018, *Clin Epigenetics* 10:73) and are implemented in imprintomeR; on 450K, EPICv1 and EPICv2 IDATs they give the same values as ewastools 1.8.2, which is not needed.
 
 All other values are reported for review and do not affect `Final.QC`: the other control metrics (staining, extension, hybridization, specificity and so on), median intensities, predicted sex, SNP contamination and predicted donor IDs. `subsetMethQC(qcset, final_qc = "PASS")` keeps the passing samples.
 
@@ -110,17 +112,17 @@ Key MethQcSet features:
 
   All three normalize each sample on its own and work on 450K, EPICv1 and EPICv2. Detection p-values, intensities and predicted sex always use unnormalized data. The method is stored in `qc_params(qcset)$normalization` and carried into `BuildReferenceProfile()` profiles; use the same method for cohorts and the reference profiles they are centred on. EPICv2 needs the `IlluminaHumanMethylationEPICv2manifest` and `IlluminaHumanMethylationEPICv2anno.20a1.hg38` packages (Bioconductor >= 3.19); `runMethQC()` sets the EPICv2 minfi annotation automatically, because earlier minfi releases do not recognize the array.
 - **Canonical `qc_tables` keys** (populated by `runMethQC()`):
-  - `QC_matrix` — per-sample detection stats, intensity, predictedSex, `Final.QC`. `Final.QC` is PASS when at least 95% of probes are detected at p < `pcutoff` (default 0.05) and, when the ewastools control metrics are available, `CtrlMetrics.QC` is PASS. `CtrlMetrics.QC` fails only on Bisulfite Conversion I Green or Red below 1; the other control metrics are reported, not used.
+  - `QC_matrix` — per-sample detection stats, intensity, predictedSex, `Final.QC`. `Final.QC` is PASS when at least 95% of probes are detected at p < `pcutoff` (default 0.05) and, when the control-probe metrics are available, `CtrlMetrics.QC` is PASS. `CtrlMetrics.QC` fails only on Bisulfite Conversion I Green or Red below 1; the other control metrics are reported, not used.
   - `recall_rate` — per-probe % detected across all / PASS / FAIL samples
   - `cutoffs` — QC threshold criteria with Pass/Fail expressions (probe detection required; intensity and mean detection p-value reported only; control metrics when available)
     - **Core metrics (3 rows):** log2MedianIntensity (reported only), aveDetectionPval (reported only), `pctDetectedCpG_dP<pcutoff>` (>= 95; required)
     - **SNP metrics (1 row):** snps_outliers_aveLogOdds (>-4)
-    - **Control metrics (18 rows, from ewastools):** Restoration, Staining, Extension, Hybridization, Target_Removal, Bisulfite_Conversion, Specificity, Non-polymorphic
+    - **Control metrics (18 rows):** Restoration, Staining, Extension, Hybridization, Target_Removal, Bisulfite_Conversion, Specificity, Non-polymorphic
     - **Columns:** criteria, cutoff, Pass, Fail, Final.QC, CtrlMetrics.QC
     - **Conditional formatting:** Use `SaveTableStyle()` (from `openxlsx`) with `condFmt` parameter to highlight Pass/Fail expressions in Excel exports
-  - `ctrl_metrics` — control probe metrics (from ewastools)
-  - `contamination` — SNP agreement / sample-swap check (from ewastools)
-  - `predUniqDonor_ID` — predicted unique donors per sample group (from ewastools)
+  - `ctrl_metrics` — control probe metrics (Illumina BeadArray Controls Reporter metrics, as in ewastools)
+  - `contamination` — SNP sample-swap check: one row per sample pair whose genotype agreement contradicts `Donor_ID` (or `Sample_Name`), with `agreement` and a `group` number for connected sets of samples
+  - `predUniqDonor_ID` — predicted unique donors (samples with genotype agreement > 0.9 share a donor)
 - **EPICv2 aggregation required**: Replicate probes (e.g. `cg..._TC11`, `cg..._TC12`) must be collapsed to base probe IDs before conversion — `aggregate_probes()` is a required step for EPICv2 (`as.ImprintomeSet()` will error if skipped)
 - **Merge operations**: Synchronized metadata/beta alignment (`merge()`)
 - **Export workflow**: Write QC tables, beta values, metadata to disk (`export()`)
@@ -186,7 +188,7 @@ export(
 **{prefix}_qc_table_main.xlsx** (primary QC results for review):
 - `metadata` — Sample information with Platform and Final.QC columns
 - `QC_matrix` — Per-sample QC metrics (intensity, detection p-values, probe coverage, predicted sex)
-- `Ctrl_matrix` — Control probe metrics (from ewastools)
+- `Ctrl_matrix` — Control probe metrics
 - `statistics` — Per-Sample_Group summary table (Total, PASS, FAIL, pass/fail ratios)
 
 **QC_tables/{prefix}_qc_table_extra.xlsx** (supplementary technical results):

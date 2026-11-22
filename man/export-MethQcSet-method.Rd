@@ -34,7 +34,7 @@ under \verb{QC_tables/}, and large data objects go under \verb{data/}:
 \itemize{
 \item \code{metadata} sheet: Sample metadata augmented with Platform and Final.QC columns.
 \item \code{QC_matrix} sheet: Per-sample QC metrics (intensity, detection p-val, coverage, sex, etc.).
-\item \code{Ctrl_matrix} sheet: ewastools control metric scores (if available).
+\item \code{Ctrl_matrix} sheet: control-probe metric scores (if available).
 \item \code{statistics} sheet: Per-Sample_Group summary (Total, PASS, FAIL, and ratios).
 }
 

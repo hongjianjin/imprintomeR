@@ -142,13 +142,10 @@ test_that("CtrlMetrics.QC fails only on bisulfite conversion I", {
   )
   # Sample 4 fails bisulfite conversion II and staining, which are reported but not used.
   expect_equal(.ctrl_metrics_qc(ctrls), c("PASS", "FAIL", "FAIL", "PASS", "PASS"))
-  if (requireNamespace("ewastools", quietly = TRUE)) {
-    expect_true(all(ewastools::sample_failure(ctrls)[2:4]))   # ewastools would fail sample 4 too
-  }
   expect_error(.ctrl_metrics_qc(ctrls[-1]), "Bisulfite Conversion I Green")
 })
 
-test_that("SaveTableStyle formats ctrl_metrics with ewastools (Bkg) columns", {
+test_that("SaveTableStyle formats ctrl_metrics with (Bkg) columns", {
   ctrl <- data.frame(
     Sample_Name = c("S1", "S2"),
     `Bisulfite Conversion I Green` = c(5, 0.5),
@@ -167,16 +164,4 @@ test_that("SaveTableStyle formats ctrl_metrics with ewastools (Bkg) columns", {
   cf <- openxlsx::loadWorkbook(f)$worksheets[[1]]$conditionalFormatting
   expect_true(any(grepl("^B2:B3$", names(cf))))   # "Bisulfite Conversion I Green" itself, not its (Bkg) column
   expect_false(any(grepl("^C2:C3$", names(cf))))
-})
-
-test_that(".quiet_ewastools hides printing and the type.convert as.is warning only", {
-  noisy <- function() {
-    print(1051943)
-    warning("'as.is' should be specified by the caller; using TRUE")
-    42
-  }
-  expect_silent(res <- .quiet_ewastools(noisy()))
-  expect_equal(res, 42)
-  expect_warning(.quiet_ewastools({ warning("other problem"); 1 }), "other problem")
-  expect_error(.quiet_ewastools(stop("boom")), "boom")
 })

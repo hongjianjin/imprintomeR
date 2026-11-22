@@ -46,9 +46,9 @@ Generate QC-stage visualizations from stored QC tables.
 restricted to all, PASS, or FAIL samples via \code{sample_set}. This plot is
 generated from the cached \code{MethQcSet} beta matrix and is complementary to
 raw \code{minfi::qcReport()} density output.}
-\item{\code{ctrl_metrics}}{Per-sample dot chart of ewastools \code{CtrlMetrics.QC} from \code{ctrl_metrics}.
+\item{\code{ctrl_metrics}}{Per-sample dot chart of \code{CtrlMetrics.QC} from \code{ctrl_metrics}.
 Returns \code{NULL} silently if \code{ctrl_metrics} is absent.}
-\item{\code{ctrl_metrics_detail}}{One jitter-dot plot per ewastools control metric
+\item{\code{ctrl_metrics_detail}}{One jitter-dot plot per control-probe metric
 (Bisulfite Conversion, Specificity, Non-polymorphic). \code{outFile} is used as a
 path prefix; individual files are saved as \verb{\{prefix\}_ctrl_matrix_detail_\{Metric\}.pdf}.
 Returns a named list of ggplot objects.}

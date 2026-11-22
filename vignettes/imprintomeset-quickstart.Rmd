@@ -105,7 +105,7 @@ p_cov <- plot(qcset, type = "probe_coverage")
 # Predicted sex distribution
 p_sex <- plot(qcset, type = "predicted_sex")
 
-# ewastools control probe metrics — summary (NULL if these metrics could not be computed)
+# control probe metrics — summary (NULL if these metrics could not be computed)
 p_ctrl <- plot(qcset, type = "ctrl_metrics")
 
 # Per-metric detail plots (Bisulfite Conversion, Specificity, Non-polymorphic)
@@ -125,9 +125,9 @@ exported_files <- export(
   format = c("xlsx", "rds")
 )
 # Creates two Excel workbooks:
-#   qc_table_main.xlsx: metadata, QC_matrix, Ctrl_matrix (ewastools), statistics
+#   qc_table_main.xlsx: metadata, QC_matrix, Ctrl_matrix (control probes), statistics
 #   qc_table_extra.xlsx: QC_metrics (thresholds), recall_rate (if available),
-#                         contamination and predUniqDonor_ID (ewastools)
+#                         contamination and predUniqDonor_ID (SNP probes)
 # Plus: qcset.rds (full MethQcSet object)
 # Plus: qcset_summary.txt (summary report with Notes section documenting missing sheets)
 ```

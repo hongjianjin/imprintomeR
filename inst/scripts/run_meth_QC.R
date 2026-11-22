@@ -52,7 +52,7 @@ option_list <- list(
         help = "Suppress default QC report PDFs from runMethQC(): intensity, detection p-value, probe coverage, beta-density, and minfi density"),
 
     make_option(c("--skip-ewastools"), action = "store_true", default = FALSE,
-        help = "Skip the ewastools control metrics, contamination and donor checks [default: %default]"),
+        help = "Deprecated and ignored: the control-probe, contamination and donor checks no longer use ewastools [default: %default]"),
 
     make_option(c("-v", "--verbose"), action = "store_true", default = FALSE,
         help = "Enable verbose logging (timestamps, platform summaries) [default: %default]")
@@ -131,10 +131,10 @@ tryCatch({
     quit("no", status = 1)
 })
 
-# Try to load optional packages (suppress startup messages)
-suppressPackageStartupMessages({
-    has_ewastools <- .try_load_package("ewastools", verbose = args$verbose)
-})
+if (isTRUE(args$`skip-ewastools`)) {
+    .log_message("WARNING: --skip-ewastools is deprecated and ignored; the control-probe and SNP checks are built in.",
+                level = "WARN")
+}
 
 # ============================================================================
 # PHASE 2: PRE-FLIGHT VALIDATION

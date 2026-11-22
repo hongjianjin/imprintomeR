@@ -187,8 +187,8 @@ manifest <- export(x, outdir = "imprintome_export", prefix = "imprintome",
 # MethQcSet slots: beta and detection_pval (probes x samples), meta, qc_tables,
 # statistics (per-Sample_Group PASS/FAIL counts, filled on export), platform,
 # aggregation_status ("none" or "epicv2_aggregated") and qc_params (QC settings)
-names(qc_tables(qcset_epic))     # QC_matrix, recall_rate, cutoffs and, from ewastools,
-                                 # ctrl_metrics, contamination, predUniqDonor_ID
+names(qc_tables(qcset_epic))     # QC_matrix, recall_rate, cutoffs, ctrl_metrics,
+                                 # contamination, predUniqDonor_ID
 
 # QC_matrix: intensity, detection, predicted sex and Final.QC per sample
 qc_matrix <- qc_tables(qcset_epic)[["QC_matrix"]]

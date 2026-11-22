@@ -82,7 +82,7 @@ Rscript "$SCRIPTS"/run_meth_QC.R \
 | `--no-qc-plots` | FALSE | Suppress QC plot generation. |
 | `--no-qc-report` | FALSE | Suppress default QC report PDFs: root review PDFs plus secondary reports in `plots/`. |
 | `--normalization` | noob | Beta normalization: `noob`, `noob_swan`, or `raw` (unnormalized, as in earlier versions). Recorded in `qc_params(qcset)$normalization`. |
-| `--skip-ewastools` | FALSE | Skip the ewastools control-probe metrics, contamination and donor checks (ewastools is installed with the package). |
+| `--skip-ewastools` | FALSE | Deprecated and ignored: the control-probe, contamination and donor checks are built in and no longer use ewastools. |
 | `--verbose` / `-v` | FALSE | Print detailed progress messages. |
 
 ### QC Outputs

@@ -304,11 +304,16 @@ check_platform <- function(meta, max_retries = 5) {
 #'
 #' @details
 #' `Final.QC` in `qc_tables(x)$QC_matrix` is `"PASS"` when at least 95% of
-#' probes are detected at p < `pcutoff` (default 0.05) and, when the ewastools control metrics
+#' probes are detected at p < `pcutoff` (default 0.05) and, when the control-probe metrics
 #' could be computed, `CtrlMetrics.QC` is `"PASS"`. `CtrlMetrics.QC` is `"FAIL"`
-#' only when Bisulfite Conversion I Green or Red falls below its ewastools
-#' threshold (1). The other control metrics are reported in
-#' `qc_tables(x)$ctrl_metrics` but do not fail a sample.
+#' only when Bisulfite Conversion I Green or Red falls below its threshold (1). The other
+#' control metrics are reported in `qc_tables(x)$ctrl_metrics` but do not fail a sample.
+#'
+#' The control-probe metrics (Illumina BeadArray Controls Reporter), SNP genotype calls,
+#' sample-swap check (`contamination`: sample pairs whose genotype agreement contradicts
+#' `Donor_ID`, or `Sample_Name` when absent) and predicted donors follow the ewastools methods
+#' (Heiss and Just, 2018) and give the same results as ewastools 1.8.2; ewastools itself is not
+#' needed.
 #'
 #' @return A `MethQcSet` object with:
 #'   \itemize{
@@ -465,19 +470,20 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
   })
 
   # ------------------------------------------------------------------
-  # Step 8: ewastools-based metrics (ctrl_metrics, contamination,
-  #         predUniqDonor_ID); skipped with a message if they fail
+  # Step 8: control-probe metrics, SNP genotypes, sample-swap check and
+  #         predicted donors (ctrl_metrics, contamination, predUniqDonor_ID;
+  #         the ewastools methods, see module_qc_controls.R); skipped with a
+  #         message if they fail
   # ------------------------------------------------------------------
-  if (!requireNamespace("ewastools", quietly = TRUE)) {
-    warning("Package 'ewastools' is not installed: ctrl_metrics, contamination and predUniqDonor_ID ",
-            "are not computed and Final.QC does not include the control-probe check. Install it with ",
-            "remotes::install_github(\"hhhh5/ewastools\") for the full QC.", call. = FALSE)
-  } else tryCatch({
-    message("Running ewastools-based QC (ctrl_metrics, contamination, predUniqDonor_ID)...")
-    meth_et <- .quiet_ewastools(ewastools::read_idats(meta$Basename, quiet = TRUE))
+  tryCatch({
+    message("Running control-probe and SNP QC (ctrl_metrics, contamination, predUniqDonor_ID)...")
+    pinfo  <- .qc_minfi_pinfo(rgSet)
+    probes <- list(ctl = pinfo("Control"), s1 = pinfo("SnpI"), s2 = pinfo("SnpII"))
+    nbeads <- .qc_nbeads(meta$Basename, c(probes$ctl$Address, probes$s1$AddressA, probes$s1$AddressB,
+                                          probes$s2$AddressA))
 
     # Control probe metrics
-    ctrls   <- .quiet_ewastools(ewastools::control_metrics(meth_et))
+    ctrls   <- .qc_control_metrics(.qc_control_intensities(rgSet, nbeads, pinfo))
     ctrl_df <- as.data.frame(do.call(cbind, lapply(ctrls, as.numeric)))
     colnames(ctrl_df) <- names(ctrls)
     ctrl_df <- cbind(
@@ -494,22 +500,21 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
     qm$Final.QC[!is.na(ctrl_qc) & ctrl_qc == "FAIL"] <- "FAIL"
     qcset@qc_tables[["QC_matrix"]] <- qm
 
-    # Genotyping for contamination and donor deduplication
-    # Unnormalized beta values, M / (U + M) with intensities floored at 1, as ewastools::beta_values()
-    # (dont_normalize() before 1.8) computes them; beta_values() also needs the optional ff package.
-    beta_ew   <- pmax(meth_et$M, 1) / (pmax(meth_et$U, 1) + pmax(meth_et$M, 1))
-    snp_rows  <- meth_et$manifest[meth_et$manifest$probe_type == "rs", ]
-    snps      <- beta_ew[snp_rows$index, , drop = FALSE]
-    genotypes <- .quiet_ewastools(ewastools::call_genotypes(snps, learn = FALSE))
+    # Genotyping for contamination and donor deduplication, from unnormalized SNP-probe beta values
+    genotypes <- .qc_call_genotypes(.qc_snp_beta(rgSet, nbeads, pinfo))
 
     # Contamination: SNP agreement check
     donor_ids <- if ("Donor_ID" %in% colnames(meta)) meta$Donor_ID else meta$Sample_Name
     sample_ids <- if ("Sample_Name" %in% colnames(meta)) meta$Sample_Name else colnames(beta)
-    cont_res <- .quiet_ewastools(ewastools::check_snp_agreement(genotypes, donor_ids, sample_ids))
-    qcset@qc_tables[["contamination"]] <- as.data.frame(cont_res)
+    cont_res <- .qc_snp_conflicts(genotypes, donor_ids, sample_ids)
+    if (is.null(cont_res)) {
+      cont_res <- data.frame(donor1 = character(), sample1 = character(), donor2 = character(),
+                             sample2 = character(), agreement = numeric(), group = integer())
+    }
+    qcset@qc_tables[["contamination"]] <- cont_res
 
     # Predicted unique donor IDs
-    pred_donor <- .quiet_ewastools(ewastools::enumerate_sample_donors(genotypes))
+    pred_donor <- .qc_enumerate_donors(genotypes)
     qm <- qcset@qc_tables[["QC_matrix"]]
     qm$predictedDonorID <- pred_donor
     qcset@qc_tables[["QC_matrix"]] <- qm
@@ -529,7 +534,7 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
     qcset@qc_tables[["predUniqDonor_ID"]] <- uniq_dnr
 
   }, error = function(e) {
-    message("ewastools QC skipped: ", conditionMessage(e))
+    message("Control-probe and SNP QC skipped: ", conditionMessage(e))
   })
 
   # ------------------------------------------------------------------
@@ -769,13 +774,13 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
 }
 
 
-# CtrlMetrics.QC from ewastools::control_metrics(): "FAIL" only when bisulfite conversion I
-# (Green or Red) falls below its ewastools threshold; the other control metrics are reported but
+# CtrlMetrics.QC from the control metrics: "FAIL" only when bisulfite conversion I
+# (Green or Red) falls below its threshold; the other control metrics are reported but
 # do not fail a sample. A missing value does not fail a sample.
 .ctrl_metrics_qc <- function(ctrls, required = c("Bisulfite Conversion I Green", "Bisulfite Conversion I Red")) {
   absent <- setdiff(required, names(ctrls))
   if (length(absent) > 0L) {
-    stop("ewastools control metrics lack: ", paste(absent, collapse = ", "))
+    stop("control metrics lack: ", paste(absent, collapse = ", "))
   }
   failed <- lapply(required, function(m) {
     threshold <- attr(ctrls[[m]], "threshold")
@@ -784,17 +789,4 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
     !is.na(value) & value < threshold
   })
   ifelse(Reduce(`|`, failed), "FAIL", "PASS")
-}
-
-# Run an ewastools call without its console noise: read_idats() prints the number of SNP probes
-# even with quiet = TRUE, and some ewastools/dependency versions call type.convert() without
-# as.is. Only that warning is muffled; other warnings and errors propagate.
-.quiet_ewastools <- function(expr) {
-  out <- NULL
-  utils::capture.output(out <- withCallingHandlers(expr, warning = function(w) {
-    if (grepl("'as.is' should be specified by the caller", conditionMessage(w), fixed = TRUE)) {
-      invokeRestart("muffleWarning")
-    }
-  }))
-  out
 }

@@ -45,11 +45,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocMana
 BiocManager::install(c("remotes", "hongjianjin/imprintomeR"))
 ```
 
-`pak::pak("hongjianjin/imprintomeR")` also works. Optional packages (`Suggests`) are needed only for some functions, which say so when one is missing. The most useful is [ewastools](https://github.com/hhhh5/ewastools) (not on CRAN), which adds the control-probe, contamination and donor checks to `runMethQC()`:
-
-```r
-remotes::install_github("hhhh5/ewastools")
-```
+`pak::pak("hongjianjin/imprintomeR")` also works. Optional packages (`Suggests`) are needed only for some functions, which say so when one is missing.
 
 The annotation files (about 52 MB: probe annotation and the ICR probe panels, hg19 and hg38) are installed with the package under `inst/extdata/`; if one is missing, imprintomeR prints a note when it loads and `setup_imprintome_data()` downloads it.
 
@@ -156,7 +152,9 @@ Each 45-degree sector of the polar plot is labelled with the direction of shift 
 `runMethQC()` marks each sample `Final.QC = "PASS"` when both hold:
 
 1. at least 95% of probes are detected at p < `pcutoff` (default 0.05; `runMethQC(..., pcutoff = )` or `run_meth_QC.R --pcutoff`);
-2. the ewastools Bisulfite Conversion I Green and Red control metrics are both at least 1 (`CtrlMetrics.QC`); if ewastools cannot run, only criterion 1 applies.
+2. the Bisulfite Conversion I Green and Red control-probe metrics are both at least 1 (`CtrlMetrics.QC`); if the control probes cannot be read, only criterion 1 applies.
+
+The control-probe metrics, SNP sample-swap check and predicted donor IDs follow the [ewastools](https://github.com/hhhh5/ewastools) methods (Heiss and Just, 2018) and give the same results as ewastools 1.8.2, without needing it installed.
 
 All other metrics (other control metrics, intensities, predicted sex, SNP contamination, donor IDs) are reported, not used. Beta values are noob-normalized by default (`"noob_swan"` and `"raw"` are alternatives). Normalization, QC tables, plots and export files: [docs/qc.md](docs/qc.md).
 

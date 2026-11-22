@@ -104,11 +104,16 @@ probes) the minfi annotation is set to \code{IlluminaHumanMethylationEPICv2} /
 \code{IlluminaHumanMethylationEPICv2anno.20a1.hg38} packages.
 
 \code{Final.QC} in \code{qc_tables(x)$QC_matrix} is \code{"PASS"} when at least 95\% of
-probes are detected at p < \code{pcutoff} (default 0.05) and, when the ewastools control metrics
+probes are detected at p < \code{pcutoff} (default 0.05) and, when the control-probe metrics
 could be computed, \code{CtrlMetrics.QC} is \code{"PASS"}. \code{CtrlMetrics.QC} is \code{"FAIL"}
-only when Bisulfite Conversion I Green or Red falls below its ewastools
-threshold (1). The other control metrics are reported in
-\code{qc_tables(x)$ctrl_metrics} but do not fail a sample.
+only when Bisulfite Conversion I Green or Red falls below its threshold (1). The other
+control metrics are reported in \code{qc_tables(x)$ctrl_metrics} but do not fail a sample.
+
+The control-probe metrics (Illumina BeadArray Controls Reporter), SNP genotype calls,
+sample-swap check (\code{contamination}: sample pairs whose genotype agreement contradicts
+\code{Donor_ID}, or \code{Sample_Name} when absent) and predicted donors follow the ewastools methods
+(Heiss and Just, 2018) and give the same results as ewastools 1.8.2; ewastools itself is not
+needed.
 }
 \examples{
 \dontrun{
