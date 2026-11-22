@@ -66,6 +66,30 @@ option_list <- list(
     make_option(c("--infinium-type"), type = "character", default = "all",
         help = "Infinium probe design types to score: all, I, II, balanced [default: %default]"),
 
+    make_option(c("--n-boot"), type = "integer", default = 0L,
+        help = "Bootstrap replicates for IDS/Angle intervals and Mechanism_support (0 = off; 1000-2000 for reporting) [default: %default]"),
+
+    make_option(c("--resample"), type = "character", default = "icr",
+        help = "Bootstrap scheme: icr (ICRs, then probes within ICRs) or probe [default: %default]"),
+
+    make_option(c("--resample-reference"), action = "store_true", default = FALSE,
+        help = "Also resample the control samples in each bootstrap replicate (needs --reference-group)"),
+
+    make_option(c("--n-perm"), type = "integer", default = 0L,
+        help = "Permutations for the origin test origin_perm_p (0 = off; needs a control reference) [default: %default]"),
+
+    make_option(c("--permute"), type = "character", default = "icr",
+        help = "Permutation unit for the origin test: icr or probe [default: %default]"),
+
+    make_option(c("--conf-level"), type = "double", default = 0.95,
+        help = "Confidence level of the bootstrap intervals [default: %default]"),
+
+    make_option(c("--seed"), type = "integer", default = NA,
+        help = "Random seed for the bootstrap and permutations (written to the log) [default: random]"),
+
+    make_option(c("--all-probes"), action = "store_true", default = FALSE,
+        help = "Load every probe of --beta-file. By default only probes of the bundled ICR panels are read, which needs far less memory for genome-wide beta files"),
+
     make_option(c("--radar-all"), type = "logical", default = NULL,
         help = "Generate one multipage radar PDF for all samples when TRUE [default: NULL]"),
 
@@ -245,6 +269,26 @@ tryCatch({
     if (!is.na(args$`reference-group`) && !is.na(args$`reference-file`)) {
         errors <- c(errors, "ERROR: Use either --reference-group or --reference-file, not both")
     }
+    for (opt in c("n-boot", "n-perm")) {
+        v <- args[[opt]]
+        if (is.na(v) || v < 0L) errors <- c(errors, paste0("ERROR: --", opt, " must be a non-negative integer"))
+    }
+    if (!args$resample %in% c("icr", "probe")) {
+        errors <- c(errors, paste0("ERROR: Invalid --resample '", args$resample, "'. Must be one of: icr, probe"))
+    }
+    if (!args$permute %in% c("icr", "probe")) {
+        errors <- c(errors, paste0("ERROR: Invalid --permute '", args$permute, "'. Must be one of: icr, probe"))
+    }
+    if (is.na(args$`conf-level`) || args$`conf-level` <= 0 || args$`conf-level` >= 1) {
+        errors <- c(errors, "ERROR: --conf-level must be between 0 and 1")
+    }
+    if (isTRUE(args$`resample-reference`) && is.na(args$`reference-group`)) {
+        errors <- c(errors, "ERROR: --resample-reference needs --reference-group (in-cohort controls)")
+    }
+    if (!is.na(args$`n-perm`) && args$`n-perm` > 0L && is.na(args$`reference-group`) && is.na(args$`reference-file`)) {
+        warning("--n-perm without --reference-group or --reference-file: the origin test needs a control reference; ",
+                "against the fixed 0.5 reference its p-values are not interpretable.", call. = FALSE, immediate. = TRUE)
+    }
     if (!is.na(args$`reference-file`) && !file.exists(args$`reference-file`)) {
         errors <- c(errors, paste0("ERROR: Reference file not found: ", args$`reference-file`))
     }
@@ -264,11 +308,50 @@ tryCatch({
         infinium_type = args$`infinium-type`,
         dmr_type = if (is.na(args$`dmr-type`)) NULL else trimws(strsplit(args$`dmr-type`, ",")[[1]]),
         balance = args$balance,
-        icr = isTRUE(args$icr)
+        icr = isTRUE(args$icr),
+        n_boot = as.integer(args$`n-boot`),
+        resample = args$resample,
+        resample_reference = isTRUE(args$`resample-reference`),
+        n_perm = as.integer(args$`n-perm`),
+        permute = args$permute,
+        conf_level = as.numeric(args$`conf-level`),
+        seed = if (is.na(args$seed)) NULL else as.integer(args$seed)
     )
 }
 
-.load_input_data <- function(beta_file, meta_file, rds_file, verbose = FALSE) {
+# Stream a delimited beta file and keep the header plus rows whose probe ID (first column, EPICv2
+# replicate suffixes ignored) is in any bundled panel of the genome build. The scores only use
+# panel probes, so a genome-wide file (for example 865,000 probes x 500 samples, several GB)
+# is reduced to a few thousand rows without being loaded into memory.
+.prefilter_beta <- function(beta_file, genome = "hg38", verbose = FALSE, chunk = 50000L) {
+    panels <- readRDS(system.file("extdata", paste0("probesets_", tolower(genome), ".rds"), package = "imprintomeR"))
+    keep_ids <- unique(unlist(lapply(panels, function(d) as.character(d$NAME))))
+    con_in <- if (grepl("\\.gz$", beta_file)) gzfile(beta_file, "r") else file(beta_file, "r")
+    on.exit(close(con_in), add = TRUE)
+    out_file <- tempfile(fileext = ".txt")
+    con_out <- file(out_file, "w")
+    on.exit(close(con_out), add = TRUE)
+    header <- readLines(con_in, n = 1L, warn = FALSE)
+    writeLines(header, con_out)
+    n_in <- 0L
+    n_kept <- 0L
+    repeat {
+        lines <- readLines(con_in, n = chunk, warn = FALSE)
+        if (!length(lines)) break
+        n_in <- n_in + length(lines)
+        ids <- gsub("\"", "", sub("[\t,].*$", "", lines))
+        hit <- ids %in% keep_ids | sub("_.*$", "", ids) %in% keep_ids
+        if (any(hit)) writeLines(lines[hit], con_out)
+        n_kept <- n_kept + sum(hit)
+    }
+    .log_message(paste0("  Read ", n_kept, " of ", n_in, " probes (bundled ", genome,
+                        " panels; use --all-probes to load every probe)"), verbose = verbose)
+    if (n_kept == 0L) stop("No probe of the bundled panels found in the first column of ", beta_file)
+    out_file
+}
+
+.load_input_data <- function(beta_file, meta_file, rds_file, verbose = FALSE,
+                             all_probes = FALSE, genome = "hg38") {
     if (verbose) .log_message("Loading input data...", verbose = verbose)
 
     # Mode 1: Load from RDS
@@ -305,6 +388,8 @@ tryCatch({
             .log_message(paste0("  Loading beta: ", basename(beta_file)), verbose = verbose)
             .log_message(paste0("  Loading meta: ", basename(meta_file)), verbose = verbose)
         }
+
+        if (!isTRUE(all_probes)) beta_file <- .prefilter_beta(beta_file, genome, verbose = verbose)
 
         # Use package's LoadMetaBeta() function (handles normalization, alignment, etc.)
         data_list <- tryCatch({
@@ -610,7 +695,14 @@ tryCatch({
                 dmr_type = scoring$dmr_type,
                 balance = if (is.null(scoring$balance)) "probe" else scoring$balance,
                 icr = isTRUE(scoring$icr),
-                infinium_type = if (is.null(scoring$infinium_type)) "all" else scoring$infinium_type
+                infinium_type = if (is.null(scoring$infinium_type)) "all" else scoring$infinium_type,
+                n_boot = if (is.null(scoring$n_boot)) 0L else scoring$n_boot,
+                resample = if (is.null(scoring$resample)) "icr" else scoring$resample,
+                resample_reference = isTRUE(scoring$resample_reference),
+                n_perm = if (is.null(scoring$n_perm)) 0L else scoring$n_perm,
+                permute = if (is.null(scoring$permute)) "icr" else scoring$permute,
+                conf_level = if (is.null(scoring$conf_level)) 0.95 else scoring$conf_level,
+                seed = scoring$seed
             )
         })
     }, error = function(e) {
@@ -698,7 +790,9 @@ tryCatch({
 # Results cached before the scoring options existed used the defaults.
 .same_scoring <- function(cached, requested) {
     defaults <- list(reference_group = NULL, reference_file = NULL, infinium_type = "all", dmr_type = NULL,
-                     balance = "probe", icr = FALSE)
+                     balance = "probe", icr = FALSE, n_boot = 0L, resample = "icr",
+                     resample_reference = FALSE, n_perm = 0L, permute = "icr", conf_level = 0.95,
+                     seed = NULL)
     fill <- function(x) utils::modifyList(defaults, if (is.null(x)) list() else x)
     identical(fill(cached)[names(defaults)], fill(requested)[names(defaults)])
 }
@@ -1147,7 +1241,7 @@ tryCatch({
 
     # Per-ICR table and multi-locus summary (--icr).
     icr_names <- intersect(paste0(c("ICRStatus.", "ICRSummary."), probeset), names(result_list))
-    icr_files <- file.path(outdir, paste0(artifact_prefix, "_results_", icr_names, ".tsv"))
+    icr_files <- if (length(icr_names)) file.path(outdir, paste0(artifact_prefix, "_results_", icr_names, ".tsv")) else character()
     for (k in seq_along(icr_names)) {
         write.table(result_list[[icr_names[k]]], icr_files[k], sep = "\t", quote = FALSE,
                     row.names = FALSE, col.names = TRUE)
@@ -1283,6 +1377,14 @@ main <- function() {
         sink(log_file, append = TRUE, split = FALSE)
     }
 
+    # Record what produced the results: package version, arguments and the random seed.
+    if ((args$`n-boot` > 0L || args$`n-perm` > 0L) && is.na(args$seed)) {
+        args$seed <- sample.int(.Machine$integer.max, 1L)
+    }
+    .log_message(paste0("imprintomeR ", as.character(utils::packageVersion("imprintomeR")),
+                        "; arguments: ", paste(commandArgs(trailingOnly = TRUE), collapse = " ")))
+    if (!is.na(args$seed)) .log_message(paste0("Random seed: ", args$seed))
+
     tryCatch({
         loaded_existing <- FALSE
         if (file.exists(imprintome_rds)) {
@@ -1364,7 +1466,9 @@ main <- function() {
                 beta_file = args$`beta-file`,
                 meta_file = args$`meta-file`,
                 rds_file = args$rds,
-                verbose = args$verbose
+                verbose = args$verbose,
+                all_probes = isTRUE(args$`all-probes`),
+                genome = args$genome
             )
             input_data <- input_list$data
             input_source <- input_list$source
