@@ -1,4 +1,4 @@
-# Install imprintomeR exactly as the README says, on a clean runner, then score a small cohort.
+# Install imprintomeR exactly as the README says, on a clean runner, then run the README Quick start.
 on:
   push:
     branches: [main]
@@ -27,6 +27,10 @@ jobs:
           r-version: release
           use-public-rspm: true
 
+      - name: System libraries (Linux, as in the README)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+
       - name: Install as in the README
         shell: Rscript {0}
         run: |
@@ -35,19 +39,24 @@ jobs:
           BiocManager::install(c("remotes", paste0("hongjianjin/imprintomeR@", ref)),
                                ask = FALSE, update = FALSE)
 
-      - name: Score a small synthetic cohort
+      - name: Install the Quick start example IDATs
+        shell: Rscript {0}
+        run: BiocManager::install("minfiData", ask = FALSE, update = FALSE)
+
+      - uses: actions/checkout@v4
+        with:
+          path: src
+
+      - name: Run the README Quick start as pasted
         shell: Rscript {0}
         run: |
-          library(imprintomeR)
-          set.seed(1)
-          ps <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))[["selected"]]
-          p <- unique(ps$NAME)
-          b <- matrix(runif(length(p) * 12, 0.4, 0.6), length(p), 12,
-                      dimnames = list(p, sprintf("S%02d", 1:12)))
-          meta <- data.frame(Sample_Name = colnames(b),
-                             Sample_Group = rep(c("control", "case"), each = 6))
-          x <- ImprintomeSet(beta = b, meta = meta, probeset = ps, genome = "hg38", assay = "EPIC")
-          x <- runImprintome(x, probeset = "selected", reference_group = "control")
-          res <- results(x)[[grep("^AnalyzeImprintStatus", names(results(x)))[1]]]
-          stopifnot(nrow(res) == 12, all(c("IDS", "Angle", "Status") %in% names(res)))
-          print(head(res[, c("Sample_Name", "IDS", "Angle", "Status")]))
+          readme <- readLines("src/README.md", encoding = "UTF-8")
+          start <- grep("^## Quick start", readme)
+          open <- grep("^```r", readme); open <- open[open > start][1]
+          close <- grep("^```$", readme); close <- close[close > open][1]
+          code <- readme[(open + 1):(close - 1)]
+          dir.create("quickstart"); setwd("quickstart")
+          writeLines(code, "quickstart.R")
+          withCallingHandlers(source("quickstart.R", echo = TRUE, max.deparse.length = 300),
+                              warning = function(w) stop("Quick start warning: ", conditionMessage(w)))
+          stopifnot(file.exists("polar.pdf"), dir.exists("imprintome_results"), dir.exists("qc_output"))

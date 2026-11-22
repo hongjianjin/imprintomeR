@@ -1,4 +1,3 @@
-testthat::local_edition(1)
 
 # Genome-aware routing in as.ImprintomeSet(), data-file setup, and removal of
 # session-terminating q("no") calls.

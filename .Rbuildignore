@@ -24,3 +24,5 @@
 ^\.venv.*$
 ^.*\.Rcheck$
 ^imprintomeR_.*\.tar\.gz$
+^data-raw$
+^images$

@@ -1,4 +1,3 @@
-testthat::local_edition(1)
 
 # Bootstrap confidence intervals and permutation null for IDS/Angle in AnalyzeImprintStatus(),
 # and CalibrateIDS().

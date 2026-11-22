@@ -1,4 +1,3 @@
-testthat::local_edition(1)
 
 # Allow running this file via testthat::test_file() when package is not preloaded.
 .find_imprintomer_root_plot <- function() {

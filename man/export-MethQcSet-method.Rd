@@ -30,7 +30,7 @@ QC results are written into organized output locations. Root-level files include
 \verb{\{prefix\}_qc_table_main.xlsx} and \verb{\{prefix\}_summary.txt}; supplementary tables go
 under \verb{QC_tables/}, and large data objects go under \verb{data/}:
 
-\strong{{prefix}_qc_table_main.xlsx} (primary QC results):
+\verb{\{prefix\}_qc_table_main.xlsx} (primary QC results):
 \itemize{
 \item \code{metadata} sheet: Sample metadata augmented with Platform and Final.QC columns.
 \item \code{QC_matrix} sheet: Per-sample QC metrics (intensity, detection p-val, coverage, sex, etc.).
@@ -38,7 +38,7 @@ under \verb{QC_tables/}, and large data objects go under \verb{data/}:
 \item \code{statistics} sheet: Per-Sample_Group summary (Total, PASS, FAIL, and ratios).
 }
 
-\strong{QC_tables/{prefix}_qc_table_extra.xlsx} (supplementary/technical results):
+\verb{QC_tables/\{prefix\}_qc_table_extra.xlsx} (supplementary/technical results):
 \itemize{
 \item \code{QC_metrics} sheet: Cutoff thresholds and decision rules (filtered to: criteria, cutoff, Final.QC).
 \item \code{contamination} sheet: SNP agreement matrix for sample swap detection (if available).

@@ -1,4 +1,3 @@
-testthat::local_edition(1)
 
 # HPC compatibility: some testthat/waldo stacks fail while loading waldo due to
 # compare_proxy registration mismatches. Patch testthat comparator to a minimal

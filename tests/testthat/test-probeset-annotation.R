@@ -1,4 +1,3 @@
-testthat::local_edition(1)
 
 # Data checks for the shipped probeset annotation. They read inst/extdata from the
 # package source tree and the Monk et al. 2018 Table 1 TSV kept with the curation

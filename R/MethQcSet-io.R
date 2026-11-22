@@ -463,7 +463,8 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
     gMset  <- minfi::mapToGenome(mSet)
     estSex <- minfi::getSex(gMset)
     qm     <- qcset@qc_tables[["QC_matrix"]]
-    qm$predictedSex <- estSex$predictedSex[match(qm$Sample_Name, rownames(estSex))]
+    # getSex() rows follow the IDAT (meta) order and are named by Sentrix ID, not Sample_Name.
+    qm$predictedSex <- estSex$predictedSex[match(qm$Sample_Name, colnames(beta))]
     qcset@qc_tables[["QC_matrix"]] <- qm
   }, error = function(e) {
     message("predictedSex not computed: ", conditionMessage(e))
@@ -673,12 +674,12 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
     }
 
     tryCatch({
-      minfi::qcReport(
+      .muffle_as_is_warning(minfi::qcReport(
         rgSet[, idx],
         sampNames = sample_names[idx],
         sampGroups = sample_groups[idx],
         pdf = out_file
-      )
+      ))
       data.frame(
         report_type = "minfi_density",
         report = report,
@@ -789,4 +790,14 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
     !is.na(value) & value < threshold
   })
   ifelse(Reduce(`|`, failed), "FAIL", "PASS")
+}
+
+# minfi::qcReport() calls type.convert() without `as.is`, which R >= 4.0 warns about once per
+# column; muffle only that warning so other warnings and errors still propagate.
+.muffle_as_is_warning <- function(expr) {
+  withCallingHandlers(expr, warning = function(w) {
+    if (grepl("'as.is' should be specified by the caller", conditionMessage(w), fixed = TRUE)) {
+      invokeRestart("muffleWarning")
+    }
+  })
 }

@@ -1,4 +1,3 @@
-testthat::local_edition(1)
 
 # Reference-based centring (in-cohort and external controls, 0.5 fallback) and
 # Infinium I/II-aware scoring in AnalyzeImprintStatus() and runImprintome().
@@ -56,7 +55,8 @@ test_that("default scoring uses the fixed 0.5 reference when no controls are giv
     expect_equal(unique(res$n_reference_samples), 0)
     expect_equal(unique(res$infinium_type), "all")
     expect_equal(res$paternal_deviation, round(res$paternal_median - 0.5, 3), tolerance = 1e-3)
-    expect_equal(res$IDS, round(compute_ids(res$paternal_median, res$maternal_median), 3), tolerance = 2e-3)
+    # IDS from the rounded medians can differ from the reported IDS in the third decimal.
+    expect_lte(max(abs(res$IDS - compute_ids(res$paternal_median, res$maternal_median))), 2e-3)
     expect_identical(res, .score(d, reference = "fixed"))
   })
 })

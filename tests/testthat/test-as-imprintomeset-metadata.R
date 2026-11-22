@@ -1,4 +1,3 @@
-testthat::local_edition(1)
 
 # Metadata failures in as.ImprintomeSet() (Reviewer 1, Question 9). MethQcSet() already
 # rejects missing or duplicated Sample_Name, so these tests corrupt the meta slot of a

@@ -1,0 +1,29 @@
+Sample_Name	Sample_Group	title	health_state	gender
+GSM1270013	Adult Brain	Brain 2	Health tissue	female
+GSM1270014	Fetal Brain	Brain 1	Health tissue	female
+GSM1270015	Muscle	Muscle	Health tissue	female
+GSM1270016	Pancreas	Pancreas	Health tissue	male
+GSM1270017	Liver	Liver	Health tissue	male
+GSM1270018	Hydatidiform mole	Androgenetic hydatidiform mole 1	Hydropic molar tissue	female
+GSM1270019	Hydatidiform mole	Androgenetic hydatidiform mole 2	Hydropic molar tissue	female
+GSM1270020	Hydatidiform mole	Androgenetic hydatidiform mole 3	Hydropic molar tissue	female
+GSM1270021	Hydatidiform mole	Androgenetic hydatidiform mole 4	Hydropic molar tissue	female
+GSM1270022	Term placenta- fetal side	Placenta (PL1)	Term Placenta 40.6 weeks	female
+GSM1270023	Term placenta- fetal side	Placenta (PL3)	Term Placenta 39.3 weeks	male
+GSM1270024	Term placenta- fetal side	Placenta (PL5)	Term Placenta 38 weeks	female
+GSM1270025	Term placenta- fetal side	Placenta (PL7)	Term Placenta 40.3 weeks	female
+GSM1270026	Sperm	Sperm 1	Health tissue	male
+GSM1270027	Sperm	Sperm 2	Health tissue	male
+GSM1270028	human embryonic stem cells	SHEF 3	isolated from blastocyst	male
+GSM1270029	human embryonic stem cells	SHEF 5	isolated from blastocyst	NA
+GSM1270030	human embryonic stem cells	SHEF 6	isolated from blastocyst	female
+GSM1270031	human embryonic stem cells	Val 10B	isaloted from cleavage embryo	male
+GSM1270032	parthenogenetic activated oocytes	LLC6P/phESC-3	activated metaphase-2 oocyte	female
+GSM1270033	parthenogenetic activated oocytes	LLC7P/phESC-4	activated metaphase-2 oocyte	female
+GSM1270034	parthenogenetic activated oocytes	LLC8P/phESC-5	activated metaphase-2 oocyte	female
+GSM1270035	parthenogenetic activated oocytes	LLC9P/phESC-6	activated metaphase-2 oocyte	female
+GSM1270036	Leukocytes	Genome-wide pUPD1	Beckwith Wiedemann-like	female
+GSM1270037	Leukocytes	Genome-wide pUPD2	Beckwith Wiedemann-like	female
+GSM1270038	Leukocytes	Genome-wide pUPD3	Beckwith Wiedemann-like	female
+GSM1270039	Leukocytes	Genome-wide pUPD4	Beckwith Wiedemann-like	female
+GSM1270040	Leukocytes	Genome-wide mUPD	Silver Russell-like	female

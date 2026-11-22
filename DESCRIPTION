@@ -33,6 +33,7 @@ Collate:
     'imprintomeR-package.R'
     'module_utilities.R'
     'module_io.R'
+    'imprintome_example.R'
     'module_probeset.R'
     'module_scoring.R'
     'module_icr.R'
@@ -95,6 +96,7 @@ Suggests:
     ggridges,
     gridBase,
     IRanges,
+    minfiData,
     pheatmap,
     ragg,
     rtracklayer,

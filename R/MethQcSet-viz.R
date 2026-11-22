@@ -240,13 +240,13 @@ qc_summarize <- function(x, ...) {
 #' `{prefix}_qc_table_main.xlsx` and `{prefix}_summary.txt`; supplementary tables go
 #' under `QC_tables/`, and large data objects go under `data/`:
 #'
-#' **{prefix}_qc_table_main.xlsx** (primary QC results):
+#' `{prefix}_qc_table_main.xlsx` (primary QC results):
 #'   - `metadata` sheet: Sample metadata augmented with Platform and Final.QC columns.
 #'   - `QC_matrix` sheet: Per-sample QC metrics (intensity, detection p-val, coverage, sex, etc.).
 #'   - `Ctrl_matrix` sheet: control-probe metric scores (if available).
 #'   - `statistics` sheet: Per-Sample_Group summary (Total, PASS, FAIL, and ratios).
 #'
-#' **QC_tables/{prefix}_qc_table_extra.xlsx** (supplementary/technical results):
+#' `QC_tables/{prefix}_qc_table_extra.xlsx` (supplementary/technical results):
 #'   - `QC_metrics` sheet: Cutoff thresholds and decision rules (filtered to: criteria, cutoff, Final.QC).
 #'   - `contamination` sheet: SNP agreement matrix for sample swap detection (if available).
 #'   - `recall_rate` sheet: Per-probe detection statistics across cohort (if available).

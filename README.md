@@ -45,7 +45,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocMana
 BiocManager::install(c("remotes", "hongjianjin/imprintomeR"))
 ```
 
-`pak::pak("hongjianjin/imprintomeR")` also works. Optional packages (`Suggests`) are needed only for some functions, which say so when one is missing.
+On Linux, Bioconductor packages are compiled from source and need the curl, OpenSSL and libxml2 development libraries; on Debian or Ubuntu, install them first with `sudo apt-get install libcurl4-openssl-dev libssl-dev libxml2-dev`. `pak::pak("hongjianjin/imprintomeR")` also works. Optional packages (`Suggests`) are needed only for some functions, which say so when one is missing.
 
 The annotation files (about 52 MB: probe annotation and the ICR probe panels, hg19 and hg38) are installed with the package under `inst/extdata/`; if one is missing, imprintomeR prints a note when it loads and `setup_imprintome_data()` downloads it.
 
@@ -53,27 +53,35 @@ hg38 (GRCh38) is the default genome; pass `genome = "hg19"` (CLI `--genome hg19`
 
 ## Quick start
 
+Both parts run as pasted (about a minute in all); CI runs this block on every change.
+
 ```r
 library(imprintomeR)
 
-# 1. QC, one array platform at a time
-meta  <- LoadMeta("meta.tsv")         # Sample_Name, Sample_Group and Basename (IDAT path prefix)
-meta  <- check_platform(meta)         # adds the Platform column
-qcset <- runMethQC(meta[meta$Platform == "EPIC", ], outdir = "qc_output", prefix = "epic")
-export(qcset, outdir = "qc_output", prefix = "epic", format = c("xlsx", "rds"))   # QC report, all samples
-
-# 2. Imprinting analysis (in a later session: qcset <- readRDS("qc_output/data/epic_qcset.rds"))
-qcset <- subsetMethQC(qcset, final_qc = "PASS")   # keep samples that passed QC
-# EPICv2 only: qcset <- aggregate_probes(qcset)
-x <- as.ImprintomeSet(qcset)          # bundled hg38 panels
-x <- runImprintome(x, probeset = "selected")
-
-# 3. Plot and export
+# A. From beta values (QC done elsewhere): the bundled example, GEO GSE52576 (450K, 28 samples)
+beta   <- imprintome_example("beta")    # probes x samples
+meta   <- imprintome_example("meta")    # Sample_Name, Sample_Group, title, health_state, gender
+panels <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))
+x <- ImprintomeSet(beta = beta, meta = meta, probeset = panels[["selected"]],
+                   genome = "hg38", assay = "450K")
+x <- runImprintome(x, probeset = "selected", icr = TRUE)
+res <- results(x)[["AnalyzeImprintStatus.selected"]]
+table(meta$Sample_Group[match(res$Sample_Name, meta$Sample_Name)], res$Mechanism)
 plot(x, plot_type = "polar", outFile = "polar.pdf")
-export(x, outdir = "imprintome_results", prefix = "study", save_plots = TRUE)
+export(x, outdir = "imprintome_results", prefix = "GSE52576")
+
+# B. From IDAT files, with QC: example 450K IDATs from Bioconductor (BiocManager::install("minfiData"))
+meta  <- minfi::read.metharray.sheet(system.file("extdata", package = "minfiData"))   # adds Basename
+qcset <- runMethQC(meta, platform = "450K", outdir = "qc_output", prefix = "minfiData")
+export(qcset, outdir = "qc_output", prefix = "minfiData", format = c("xlsx", "rds"))
+qcset <- subsetMethQC(qcset, final_qc = "PASS")   # keep samples that passed QC
+x <- runImprintome(as.ImprintomeSet(qcset), probeset = "selected")
+results(x)[["AnalyzeImprintStatus.selected"]][, c("Sample_Name", "IDS", "Angle", "Status")]
 ```
 
-Each step is described in [docs/qc.md](docs/qc.md) and [docs/analysis.md](docs/analysis.md).
+In part A, the moles and the leukocytes with paternal uniparental disomy are called `Pat-Gain+Mat-Loss`, the parthenogenetic cells and the maternal-disomy sample `Mat-Gain+Pat-Loss`, and the somatic tissues, placentas and embryonic stem cells normal (`ROI`); sperm, with a paternal germline pattern, is called `Pat-Gain+Mat-Loss` as expected.
+
+For your own IDATs, the sample sheet needs `Sample_Name`, `Sample_Group` and `Basename` (the IDAT path prefix); with several array types, run `meta <- check_platform(meta)` and QC one platform at a time, and for EPICv2 add `qcset <- aggregate_probes(qcset)` before `as.ImprintomeSet()`. Each step is described in [docs/qc.md](docs/qc.md) and [docs/analysis.md](docs/analysis.md).
 
 ## Workflow
 
