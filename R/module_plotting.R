@@ -1821,13 +1821,13 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
 ##################################################################
 
 VennDiagram <- function(vennList,setNames=NULL, style="venn", prefix=NULL){
-    #style: Vennerable, venn,UpSetR
+    #style: venn or UpSetR
     cat("\nvennList=", length(vennList))
     if(!is.null(setNames)){
       names(vennList) <- setNames
     }
     style <- tolower(style)
-    .require_suggested(switch(style, venn = "venn", upsetr = "UpSetR", vennerable = "Vennerable", "venn"),
+    .require_suggested(switch(style, venn = "venn", upsetr = "UpSetR", "venn"),
                        "VennDiagram()")
     plot <- NULL
     pdfFile<- paste0(prefix,"_venndiagram_",style,".pdf")
@@ -1846,20 +1846,6 @@ VennDiagram <- function(vennList,setNames=NULL, style="venn", prefix=NULL){
                 number.angles = 30,
                 text.scale=2 )
           print(plot, newpage = FALSE) # remove the first blank page
-        }else if(style =="vennerable"){
-          vobj <- Vennerable::Venn(vennList)
-           if (length(vennList) == 4) {
-            vobj <- Vennerable::compute.Venn(vobj, doWeights = F,doEuler=T, type="ellipses")
-          }else if(length(vennList) < 4){
-            vobj <- Vennerable::compute.Venn(vobj, doWeights = T,doEuler=T,type="circles")
-          } else{
-            vobj <- Vennerable::compute.Venn(vobj, doWeights = T,doEuler=T)
-          }
-          venn_gp <- Vennerable::VennThemes(vobj)
-          venn_gp <- Vennerable::VennThemes(vobj)
-          venn_gp$SetText <- lapply(venn_gp$SetText,function(x) {x$fontsize<- 12; return(x)})
-          venn_gp$FaceText <- lapply(venn_gp$FaceText,function(x) {x$cex<- 0.8; return(x)})
-          Vennerable::plot(vobj, gpList = venn_gp, show = list(Universe = FALSE))
         }
     }
     garbage<-dev.off()
