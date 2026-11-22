@@ -518,7 +518,7 @@ BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
     geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
     geom_violin(aes(x = ID, y = value, fill = GROUP), trim = FALSE, alpha = alpha) +
     theme_classic(base_size = 10) +
-    labs(y = "Methylation (\u03b2)", x = "ID") +
+    labs(y = expression("Methylation (" * beta * ")"), x = "ID") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
     scale_fill_manual(
       name = "GROUP",
@@ -563,7 +563,7 @@ BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
 #'   number of samples.
 #'
 #' @return A patchwork/ggplot object.
-BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 1, orderByGroup=FALSE, ylab="Methylation (\u03b2)", xlab="ID", legend=TRUE, title="ImprintomeR: beeswarm", subtitle=NULL, width=NULL, height=NULL) {
+BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = NULL, alpha = 1, orderByGroup=FALSE, ylab=expression("Methylation (" * beta * ")"), xlab="ID", legend=TRUE, title="ImprintomeR: beeswarm", subtitle=NULL, width=NULL, height=NULL) {
   # https://r-charts.com/distribution/ggbeeswarm/
   options(ggplot2.verbose = FALSE)
   resolved <- .resolve_beta_meta_inputs(beta, meta, require_meta = TRUE)
@@ -813,7 +813,7 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
     geom_hline(yintercept = 0.5, linetype = "dashed", color = .imprint_origin_colors()["reference"]) +
     geom_quasirandom(cex = dotSize,alpha = alpha) +
     theme_classic(base_size = 10) +
-    labs(y = "Methylation (\u03b2)", x = "ID", title = "ImprintomeR:beeswarm_chr", subtitle=paste0(probeset,":", chr) ) +
+    labs(y = expression("Methylation (" * beta * ")"), x = "ID", title = "ImprintomeR:beeswarm_chr", subtitle=paste0(probeset,":", chr) ) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
     scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
     scale_x_discrete(limits = orderedIDs) #  specify order on the X axis
@@ -944,7 +944,7 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
           theme_classic(base_size = 10) +
           theme(axis.text.x = element_blank(),axis.ticks.x = element_blank(),
           panel.border = element_rect(color = "grey20", fill = NA, linewidth = 0.5)) +
-          labs(y = "Methylation (\u03b2)", x = "GROUP", title=newIDs) +
+          labs(y = expression("Methylation (" * beta * ")"), x = "GROUP", title=newIDs) +
           scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
           theme(legend.position = "none")
 
@@ -971,7 +971,7 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
         geom_quasirandom(cex = dotSize,alpha = alpha) +
         theme_classic(base_size = 10) +
         facet_wrap(~CATEGORY, scales = "free_x") +
-        labs(y = "Methylation (\u03b2)", x = "ID", title = "ImprintomeR:beeswarm_origin") +
+        labs(y = expression("Methylation (" * beta * ")"), x = "ID", title = "ImprintomeR:beeswarm_origin") +
         scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
               # Optional: hide the legend since the facet labels now show the category
@@ -1915,12 +1915,21 @@ VennDiagram <- function(vennList,setNames=NULL, style="venn", prefix=NULL){
 #' @param legend.page.threshold Number of groups above which `"auto"` uses a
 #'   separate legend page for PDF export.
 #' @param legend.text.size Legend text size.
+#' @param control_groups Groups drawn in a fixed grey and on top of the other points. `"auto"`
+#'   (default) uses groups whose name contains "control" or "normal" (case-insensitive); `NULL`
+#'   for none.
+#' @param label_width Legend labels longer than this many characters are wrapped.
+#'
+#' @details Colours are assigned to the sorted group names, so a group keeps its colour across
+#'   plots of the same cohort. Larger groups are drawn first so that small groups stay visible.
+#'   The radial axis extends beyond 0.8 when a sample's IDS is larger.
 #'
 #' @return A ggplot object.
+#' @export
 PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="ImprintomeR:Polar", subtitle=NULL,
                       palette="default", alpha=0.8, legend.position="auto", legend.nrow=NULL,
                       legend.ncol=NULL, legend.page="auto", legend.page.threshold=16,
-                      legend.text.size=8) {
+                      legend.text.size=8, control_groups = "auto", label_width = 30) {
   options(bitmapType = "cairo")
 
   if (!(colorColumn %in% colnames(data))) {
@@ -1937,21 +1946,33 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
   # 0, 45, 90, 135, 180, 225, 270, 315 degrees
   #degree_breaks <- seq(0, 7*pi/4, by = pi/4)
   degree_breaks = seq(0, 316, by = 45)
-  y_ticks <- c( 0.2, 0.4, 0.6, 0.8)
-  y_labels <- c("0.2", "0.4", "0.6","0.8")
+  # Radial axis to 0.8, or further when a sample's IDS is larger (points beyond the limit would be dropped).
+  y_max <- max(0.8, ceiling(max(data$IDS, na.rm = TRUE) * 5) / 5)
+  y_ticks <- seq(0.2, y_max, by = 0.2)
+  y_labels <- format(y_ticks, nsmall = 1)
 # 2. Define the Sector Boundaries (The Green Lines)
   # Shifting by -22.5 degrees to create the "grid" boundaries
   boundary_lines <- seq(22.5, 360, by = 45)
 
-  groups <- unique(as.character(data[, colorColumn]))
+  groups <- stringr::str_sort(unique(as.character(data[, colorColumn])), numeric = TRUE)
   n_groups <- length(groups)
-  palette_values <- NULL
-  if (exists("GetColors", mode = "function", inherits = TRUE)) {
-    palette_values <- GetColors(palette = palette, n = n_groups)
-  } else {
-    palette_values <- grDevices::hcl.colors(n_groups, palette = "Dark 3")
+  if (identical(control_groups, "auto")) {
+    control_groups <- groups[grepl("control|normal", groups, ignore.case = TRUE)]
   }
-  group_colors <- stats::setNames(palette_values, groups)
+  control_groups <- intersect(as.character(control_groups), groups)
+  other_groups <- setdiff(groups, control_groups)
+  # Colours follow the sorted group names, so a group keeps its colour across plots; controls are grey.
+  palette_values <- if (!length(other_groups)) character() else if (exists("GetColors", mode = "function", inherits = TRUE)) {
+    GetColors(palette = palette, n = length(other_groups))
+  } else {
+    grDevices::hcl.colors(length(other_groups), palette = "Dark 3")
+  }
+  group_colors <- c(stats::setNames(palette_values[seq_along(other_groups)], other_groups),
+                    stats::setNames(rep("grey55", length(control_groups)), control_groups))[groups]
+  # Draw large groups first and controls and small groups last, so they are not hidden.
+  group_n <- table(as.character(data[, colorColumn]))
+  draw_rank <- ifelse(as.character(data[, colorColumn]) %in% control_groups, -1, group_n[as.character(data[, colorColumn])])
+  data <- data[order(-draw_rank), , drop = FALSE]
 
   data$COLOR <- unname(group_colors[as.character(data[, colorColumn])])
   uniqCombs <- data.frame(COLOR = unname(group_colors), GROUP = names(group_colors), stringsAsFactors = FALSE)
@@ -1976,7 +1997,10 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
   }
 
   if (is.null(legend.nrow) && identical(resolved_legend_position, "bottom")) {
-    legend.nrow <- max(1L, ceiling(n_groups / 8L))
+    # Fewer keys per row when the (wrapped) labels are long.
+    label_chars <- min(label_width, max(nchar(groups)))
+    per_row <- max(1L, min(8L, floor(100 / (label_chars + 4))))
+    legend.nrow <- max(1L, ceiling(n_groups / per_row))
   }
   if (is.null(legend.ncol)) {
     legend.ncol <- max(1L, min(4L, ceiling(n_groups / 12L)))
@@ -2001,16 +2025,17 @@ PlotPolar <- function(data, outFile=NULL,colorColumn="Sample_Group", title="Impr
       labels = mechanism_labels,
       expand = c(0, 0)
     ) +
-     annotate("text", x = 45, y = y_ticks, label = y_labels,
+     annotate("text", x = 30, y = y_ticks, label = y_labels,
              size = 3.5, color = "darkred", fontface = "bold", vjust = -0.5) +
     theme_minimal() +
     scale_y_continuous(
-      limits = c(0, 0.8),
+      limits = c(0, y_max),
       breaks = y_ticks,
       expand = c(0, 0),
       labels = NULL # Hide default y-labels to use our annotated ones,
     )+
-    scale_fill_manual(name="Color", values=stats::setNames(uniqCombs$COLOR, uniqCombs$GROUP))+
+    scale_fill_manual(name="Color", values=stats::setNames(uniqCombs$COLOR, uniqCombs$GROUP),
+                      labels = function(x) stringr::str_wrap(x, width = label_width))+
     theme(
     # Positions the radial (y) axis labels
       axis.text.y = element_text(size = 8, color = "grey40", hjust = 1),
@@ -2103,19 +2128,9 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
       cat("\nERROR: beta column does not match meta$Sample_Name. \n")
       return(NULL)
     }
-    n_valid_ids <- length(validIds)
-    max_samples <- as.numeric(max_samples)[1]
-    if (is.na(max_samples) || max_samples <= 0) {
-      max_samples <- Inf
-    }
-    if (is.finite(max_samples) && n_valid_ids > max_samples) {
-      max_samples <- as.integer(max_samples)
-      validIds <- validIds[seq_len(max_samples)]
-      message(
-        "plot_type='mirror_density' uses the first ", max_samples,
-        " of ", n_valid_ids, " matched samples. Set max_samples = Inf to plot all samples."
-      )
-    }
+    groups <- if ("Sample_Group" %in% colnames(meta)) meta$Sample_Group[match(validIds, meta$Sample_Name)] else NULL
+    shown <- .imprint_sample_subset(validIds, groups, max_samples, plot_type = "mirror_density")
+    validIds <- shown$ids
 
     meta <- meta[meta$Sample_Name %in% validIds, , drop = FALSE]
     beta <- beta[, validIds, drop = FALSE]
@@ -2166,7 +2181,8 @@ MirrorDensity <- function(betaFile,  metaFile = NULL, SAMPLEID="Sample_Name",
       labs(
         title = "Methylation Shift",
         subtitle= paste0("probeset:", probeset),
-        x = "Methylation (\u03b2)",
+        caption = shown$note,
+        x = expression("Methylation (" * beta * ")"),
         y = "Density (Paternal < 0 > Maternal)"
       )
 
@@ -2548,7 +2564,7 @@ PlotRidgeline_cohort_chr_origin_<- function(beta, outFile = NULL, scale = 1.5, a
     labs(
       title = "Global Imprinting Beta Distributions",
       subtitle = "Aggregated across all samples",
-      x = "Methylation (\u03b2)",
+      x = expression("Methylation (" * beta * ")"),
       y = "Chromosome"
     )
 
@@ -2627,7 +2643,7 @@ BetaDistribution_FacetByChrom <- function(beta, outFile = NULL, alpha = 0.7, pro
       title = paste("Probeset:",probeset),
       subtitle = "Aggregated Cohort Beta Values",
       x = "Allelic Origin",
-      y = "Methylation (\u03b2)"
+      y = expression("Methylation (" * beta * ")")
     )
 
   # 6. Save
@@ -2930,7 +2946,7 @@ plot_list <- lapply(unique(used$ID), function(current_id) {
                  aes(ymin = after_stat(y), ymax = after_stat(y)),
                  width = 0.5, linewidth = 0.7, color="grey30") +
     # Use the ID as the title for this specific panel
-    labs(title = current_id, y = "Methylation (\u03b2)", x = NULL) +
+    labs(title = current_id, y = expression("Methylation (" * beta * ")"), x = NULL) +
     scale_color_manual(values = .imprint_origin_colors()[c("maternal", "paternal")], drop = FALSE) +
     theme_classic(base_size = 10) +
     theme(

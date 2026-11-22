@@ -5,7 +5,7 @@
 ## Available plot types
 
 - `auto` - smart dispatch
-- `polar` - IDS vs Angle scatter with colored samples
+- `polar` - IDS vs Angle scatter with colored samples; colours follow the sorted group names (the same group keeps its colour across plots), groups named "control" or "normal" are grey and drawn on top, long legend labels wrap, and the radial axis extends beyond 0.8 when needed (`PlotPolar()` is exported for saved result tables)
 - `mirror_density` - maternal/paternal methylation density distributions
 - `beeswarm` - cohort probe methylation by sample
 - `beeswarm_origin` - origin-split beeswarm (maternal/paternal probes)
@@ -17,7 +17,7 @@
 - `cor_heatmap` - sample-to-sample correlation heatmap
 - `rainfall` - chromosomal rainfall plot of probe-level IDI (single sample)
 - `radar` - radar plot of ICR-level deviation (single sample): one spoke per curated ICR (median IDI of its probes), in genomic order clockwise from the top, labelled chromosome_annotated parental origin_ICR
-- `icr_heatmap` - per-ICR heatmap (samples × ICRs) from the per-ICR calls; needs `runImprintome(icr = TRUE)` (see [Per-ICR scores](analysis.md#per-icr-scores-and-icr-balanced-ids))
+- `icr_heatmap` - per-ICR heatmap (samples × ICRs) from the per-ICR calls; its size follows the numbers of samples and ICRs, sample names are hidden above 300 samples (`show_sample_names`), and the file format follows the extension (`.pdf`, `.png`, `.jpg`); needs `runImprintome(icr = TRUE)` (see [Per-ICR scores](analysis.md#per-icr-scores-and-icr-balanced-ids))
 
 ImprintomeSet plots take `plot_type =`; MethQcSet QC plots (Step 1) take `type =`.
 
@@ -171,3 +171,5 @@ p_icr <- plot(
   outFile = "plot_icr_heatmap.pdf"
 )
 ```
+
+`beeswarm_origin` and `mirror_density` draw at most `max_samples` samples (default 100), taken in turn from each `Sample_Group` so every group appears; the plot caption says how many are shown.

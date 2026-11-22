@@ -192,6 +192,26 @@ if (!methods::isGeneric("plot")) {
   probeset_df
 }
 
+# At most `max_samples` samples for plots that draw every sample side by side, taken in turn from
+# each group (first sample of every group, then the second, ...) so that all groups appear.
+# Returns the chosen IDs and a note for the plot caption (NULL when all samples are shown).
+.imprint_sample_subset <- function(ids, groups = NULL, max_samples = 100, plot_type = "plot") {
+  n <- length(ids)
+  max_samples <- suppressWarnings(as.numeric(max_samples)[1])
+  if (is.na(max_samples) || max_samples <= 0 || n <= max_samples) return(list(ids = ids, note = NULL))
+  k <- as.integer(max_samples)
+  if (is.null(groups)) groups <- rep("all", n)
+  groups <- as.character(groups)
+  by_group <- split(seq_len(n), factor(groups, levels = unique(groups)))
+  rank_in_group <- integer(n)
+  for (g in by_group) rank_in_group[g] <- seq_along(g)
+  pick <- sort(order(rank_in_group, seq_len(n))[seq_len(k)])
+  note <- paste0(k, " of ", n, " samples shown, taken in turn from each of ", length(by_group),
+                 " group(s); set max_samples = Inf to plot all.")
+  message("plot_type='", plot_type, "': ", note)
+  list(ids = ids[pick], note = note)
+}
+
 .imprint_beeswarm_origin <- function(beta_x, meta_x, SAMPLEID, probeset_name, alpha = 0.5,
                                      outFile = NULL, width = NULL, height = NULL,
                                      title = "ImprintomeR: Beeswarm Origin", max_samples = 100,
@@ -211,19 +231,9 @@ if (!methods::isGeneric("plot")) {
     stop("plot_type='beeswarm_origin' requires overlapping sample IDs between beta(x) and meta(x)$Sample_Name.")
   }
 
-  n_valid_ids <- length(valid_ids)
-  max_samples <- as.numeric(max_samples)[1]
-  if (is.na(max_samples) || max_samples <= 0) {
-    max_samples <- Inf
-  }
-  if (is.finite(max_samples) && n_valid_ids > max_samples) {
-    max_samples <- as.integer(max_samples)
-    valid_ids <- valid_ids[seq_len(max_samples)]
-    message(
-      "plot_type='beeswarm_origin' uses the first ", max_samples,
-      " of ", n_valid_ids, " matched samples. Set max_samples = Inf to plot all samples."
-    )
-  }
+  groups <- if ("Sample_Group" %in% colnames(meta_x)) meta_x$Sample_Group[match(valid_ids, as.character(meta_x$Sample_Name))] else NULL
+  shown <- .imprint_sample_subset(valid_ids, groups, max_samples, plot_type = "beeswarm_origin")
+  valid_ids <- shown$ids
 
   meta_sub <- meta_x[match(valid_ids, as.character(meta_x$Sample_Name)), , drop = FALSE]
   beta_sub <- beta_x[common_probes, valid_ids, drop = FALSE]
@@ -278,6 +288,7 @@ if (!methods::isGeneric("plot")) {
     ggplot2::labs(
       title = title,
       subtitle = paste0("Probeset: ", probeset_name, " | Cohort origin-split beeswarm"),
+      caption = shown$note,
       y = "Methylation Level",
       x = "ID"
     ) +
@@ -576,8 +587,10 @@ methods::setMethod(
           title = title,
           limit = if (!is.null(args$limit)) as.numeric(args$limit)[1] else 0.4,
           outFile = outFile,
-          width = if (!is.null(args$width)) width else 12,
-          height = if (!is.null(args$height)) height else 8
+          width = if (!is.null(args$width)) width else NULL,
+          height = if (!is.null(args$height)) height else NULL,
+          show_sample_names = if (!is.null(args$show_sample_names)) args$show_sample_names else "auto",
+          dpi = if (!is.null(args$dpi)) as.numeric(args$dpi)[1] else 200
         )
       )
     }

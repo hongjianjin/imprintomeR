@@ -17,7 +17,9 @@ PlotPolar(
   legend.ncol = NULL,
   legend.page = "auto",
   legend.page.threshold = 16,
-  legend.text.size = 8
+  legend.text.size = 8,
+  control_groups = "auto",
+  label_width = 30
 )
 }
 \arguments{
@@ -51,10 +53,21 @@ legends to a second legend-only page.}
 separate legend page for PDF export.}
 
 \item{legend.text.size}{Legend text size.}
+
+\item{control_groups}{Groups drawn in a fixed grey and on top of the other points. \code{"auto"}
+(default) uses groups whose name contains "control" or "normal" (case-insensitive); \code{NULL}
+for none.}
+
+\item{label_width}{Legend labels longer than this many characters are wrapped.}
 }
 \value{
 A ggplot object.
 }
 \description{
 Plot Imprintome Polar Coordinates
+}
+\details{
+Colours are assigned to the sorted group names, so a group keeps its colour across
+plots of the same cohort. Larger groups are drawn first so that small groups stay visible.
+The radial axis extends beyond 0.8 when a sample's IDS is larger.
 }

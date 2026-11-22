@@ -9,8 +9,10 @@ PlotICRHeatmap(
   title = "Per-ICR deviation",
   limit = 0.4,
   outFile = NULL,
-  width = 12,
-  height = 8
+  width = NULL,
+  height = NULL,
+  show_sample_names = "auto",
+  dpi = 200
 )
 }
 \arguments{
@@ -20,12 +22,20 @@ PlotICRHeatmap(
 
 \item{limit}{Colour-scale limit for the deviation (default 0.4).}
 
-\item{outFile}{Optional PDF/PNG path.}
+\item{outFile}{Optional output path; the format follows the extension (\code{.pdf}, \code{.png}, \code{.jpg}, ...).}
 
-\item{width, height}{Size in inches when saving.}
+\item{width, height}{Size in inches. By default (\code{NULL}) the size follows the data: about
+0.3 in per ICR and 0.12 in per sample plus margins (at least 6 x 5 in), so large cohorts
+stay readable; heights beyond 50 in are allowed.}
+
+\item{show_sample_names}{Show sample names on the y axis: \code{"auto"} (default; hidden above
+300 samples, where the group strips still label the groups), \code{TRUE} or \code{FALSE}.}
+
+\item{dpi}{Resolution for raster formats (default 200).}
 }
 \value{
-A ggplot object.
+A ggplot object; its size in inches is stored in the attribute \code{imprintomeR_figure_size}
+(width, height) and used by \code{\link[=export]{export()}}.
 }
 \description{
 Tiles of the per-ICR deviation from \code{\link[=AnalyzeICRStatus]{AnalyzeICRStatus()}}, samples in rows (grouped by

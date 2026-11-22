@@ -11,7 +11,7 @@ BetaBeePlot(
   outFile = NULL,
   alpha = 1,
   orderByGroup = FALSE,
-  ylab = "Methylation (β)",
+  ylab = expression("Methylation (" * beta * ")"),
   xlab = "ID",
   legend = TRUE,
   title = "ImprintomeR: beeswarm",

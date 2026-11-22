@@ -280,12 +280,13 @@ methods::setMethod(
         }
 
         plot_dims <- function(plot_name, pobj) {
-          # A plot that records its own figure size (PlotRadar() sizes the page to fit its labels) keeps it.
+          # A plot that records its own figure size keeps it: one value for a square page
+          # (PlotRadar() sizes the page to fit its labels), or width and height (PlotICRHeatmap()).
           fig_in <- attr(pobj, "imprintomeR_figure_size")
-          fig_in <- if (is.numeric(fig_in) && length(fig_in) == 1L && is.finite(fig_in) && fig_in > 0) fig_in else NULL
+          fig_in <- if (is.numeric(fig_in) && length(fig_in) %in% 1:2 && all(is.finite(fig_in) & fig_in > 0)) rep(fig_in, length.out = 2) else NULL
           is_radar <- grepl("(^|[_.-])radar([_.-]|$)", plot_name, ignore.case = TRUE)
-          default_w <- if (!is.null(fig_in)) fig_in else if (is_radar) 12 else 8
-          default_h <- if (!is.null(fig_in)) fig_in else if (is_radar) 12 else 6
+          default_w <- if (!is.null(fig_in)) fig_in[1] else if (is_radar) 12 else 8
+          default_h <- if (!is.null(fig_in)) fig_in[2] else if (is_radar) 12 else 6
           c(
             width = if (is.null(width)) default_w else as.numeric(width)[1],
             height = if (is.null(height)) default_h else as.numeric(height)[1]
@@ -302,7 +303,7 @@ methods::setMethod(
             if (!overwrite && file.exists(fpath)) {
               status <- "skipped_exists"
             } else {
-              ggplot2::ggsave(filename = fpath, plot = pobj, width = dims[["width"]], height = dims[["height"]], units = "in", limitsize = TRUE)
+              ggplot2::ggsave(filename = fpath, plot = pobj, width = dims[["width"]], height = dims[["height"]], units = "in", limitsize = FALSE)
               status <- "written"
             }
           } else if (inherits(pobj, "imprintome_plot_file") && is.raw(pobj$bytes)) {

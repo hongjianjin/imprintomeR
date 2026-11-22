@@ -586,3 +586,38 @@ test_that("BetaHeatmapByGene accepts LoadBeta() output with a probe-ID column", 
   expect_s4_class(hm_df, "Heatmap")
   expect_equal(hm_df@matrix, hm_mat@matrix)
 })
+
+test_that(".imprint_sample_subset takes samples in turn from each group", {
+  ids <- paste0("S", 1:10)
+  grp <- c(rep("A", 7), rep("B", 2), "C")
+  out <- suppressMessages(imprintomeR:::.imprint_sample_subset(ids, grp, max_samples = 5))
+  expect_identical(out$ids, c("S1", "S2", "S8", "S9", "S10"))
+  expect_match(out$note, "5 of 10 samples")
+  expect_null(imprintomeR:::.imprint_sample_subset(ids, grp, max_samples = Inf)$note)
+})
+
+test_that("PlotICRHeatmap sizes itself from the numbers of samples and ICRs", {
+  icr <- expand.grid(Sample_Name = sprintf("S%03d", 1:350), ICR_name = paste0("ICR", 1:4), stringsAsFactors = FALSE)
+  icr$ORIGIN <- ifelse(icr$ICR_name %in% c("ICR1", "ICR2"), "maternal", "paternal")
+  icr$CHR <- "chr11"
+  icr$start <- match(icr$ICR_name, paste0("ICR", 1:4))
+  icr$DMR_type <- "gametic"
+  icr$deviation <- 0
+  icr$altered <- FALSE
+  p <- PlotICRHeatmap(icr)
+  expect_equal(unname(attr(p, "imprintomeR_figure_size")), c(6, 4 + 0.12 * 350))
+  expect_s3_class(p$theme$axis.text.y, "element_blank")
+})
+
+test_that("PlotPolar keeps IDS above 0.8, greys control groups and colours groups by name", {
+  d <- data.frame(Sample_Name = paste0("S", 1:6), IDS = c(0.1, 0.2, 0.3, 0.9, 0.05, 0.15),
+                  Angle = c(10, 100, 200, 300, 45, 90),
+                  Sample_Group = c("Normal", "Tumor B", "Tumor A", "Tumor B", "Normal", "Tumor A"))
+  p <- PlotPolar(d)
+  pts <- ggplot2::layer_data(p, 4)
+  expect_equal(nrow(pts), 6)
+  expect_true(all(pts$fill[pts$y %in% c(0.1, 0.05)] == "grey55"))
+  p2 <- PlotPolar(d[6:1, ])
+  col_of <- function(pl) { ld <- ggplot2::layer_data(pl, 4); tapply(ld$fill, round(ld$y, 2), unique) }
+  expect_identical(col_of(p), col_of(p2)[names(col_of(p))])
+})

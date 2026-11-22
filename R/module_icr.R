@@ -302,12 +302,19 @@ SummarizeICRStatus <- function(icr_table, min_chromosomes = 2L, dmr_type = NULL,
 #' @param icr_table Output of [AnalyzeICRStatus()].
 #' @param title Plot title.
 #' @param limit Colour-scale limit for the deviation (default 0.4).
-#' @param outFile Optional PDF/PNG path.
-#' @param width,height Size in inches when saving.
+#' @param outFile Optional output path; the format follows the extension (`.pdf`, `.png`, `.jpg`, ...).
+#' @param width,height Size in inches. By default (`NULL`) the size follows the data: about
+#'   0.3 in per ICR and 0.12 in per sample plus margins (at least 6 x 5 in), so large cohorts
+#'   stay readable; heights beyond 50 in are allowed.
+#' @param show_sample_names Show sample names on the y axis: `"auto"` (default; hidden above
+#'   300 samples, where the group strips still label the groups), `TRUE` or `FALSE`.
+#' @param dpi Resolution for raster formats (default 200).
 #'
-#' @return A ggplot object.
+#' @return A ggplot object; its size in inches is stored in the attribute `imprintomeR_figure_size`
+#'   (width, height) and used by [export()].
 #' @export
-PlotICRHeatmap <- function(icr_table, title = "Per-ICR deviation", limit = 0.4, outFile = NULL, width = 12, height = 8) {
+PlotICRHeatmap <- function(icr_table, title = "Per-ICR deviation", limit = 0.4, outFile = NULL, width = NULL,
+                           height = NULL, show_sample_names = "auto", dpi = 200) {
   if (!is.data.frame(icr_table) || !all(c("Sample_Name", "ICR_name", "deviation", "ORIGIN", "altered") %in% colnames(icr_table))) {
     stop("icr_table must be the output of AnalyzeICRStatus().")
   }
@@ -317,7 +324,7 @@ PlotICRHeatmap <- function(icr_table, title = "Per-ICR deviation", limit = 0.4, 
   key <- key[order(key$ORIGIN, chr_num, key$start), ]
   label <- paste0(key$ICR_name, ifelse(!is.na(key$DMR_type) & key$DMR_type != "gametic", " *", ""))
   d$ICR <- factor(label[match(d$ICR_name, key$ICR_name)], levels = label)
-  grp <- if ("Sample_Group" %in% colnames(d)) d$Sample_Group else "all"
+  grp <- if ("Sample_Group" %in% colnames(d)) d$Sample_Group else rep("all", nrow(d))
   sample_order <- unique(d$Sample_Name[order(grp, d$Sample_Name)])
   d$Sample <- factor(d$Sample_Name, levels = rev(sample_order))
   d$value <- pmax(pmin(d$deviation, limit), -limit)
@@ -354,6 +361,13 @@ PlotICRHeatmap <- function(icr_table, title = "Per-ICR deviation", limit = 0.4, 
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 60, hjust = 1, size = 7),
                    axis.text.y = ggplot2::element_text(size = 5), panel.grid = ggplot2::element_blank(),
                    strip.text.y = ggplot2::element_text(angle = 0))
-  if (!is.null(outFile)) ggplot2::ggsave(outFile, p, width = width, height = height)
+  n_samples <- length(unique(d$Sample_Name))
+  n_icrs <- nlevels(d$ICR)
+  show_names <- if (identical(show_sample_names, "auto")) n_samples <= 300 else isTRUE(show_sample_names)
+  if (!show_names) p <- p + ggplot2::theme(axis.text.y = ggplot2::element_blank())
+  if (is.null(width)) width <- max(6, 4 + 0.3 * n_icrs)
+  if (is.null(height)) height <- max(5, 4 + 0.12 * n_samples)
+  attr(p, "imprintomeR_figure_size") <- c(width = width, height = height)
+  if (!is.null(outFile)) ggplot2::ggsave(outFile, p, width = width, height = height, dpi = dpi, limitsize = FALSE)
   p
 }
