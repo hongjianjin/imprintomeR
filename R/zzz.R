@@ -1,6 +1,6 @@
 # Package initialization and data setup
 
-.onLoad <- function(libname, pkgname) {
+.onAttach <- function(libname, pkgname) {
   # Check for required data files
   required_files <- c(
     "anno.uniq_harmonized.liftover.rds",
@@ -30,7 +30,7 @@
 #' Setup imprintomeR Data Files
 #'
 #' Downloads required annotation data files for the imprintomeR package.
-#' This is automatically called during package load if files are missing.
+#' When files are missing, attaching the package prints a note pointing here.
 #'
 #' @param force Logical. If TRUE, re-download files even if they exist.
 #' @param verbose Logical. If TRUE, print download progress.
@@ -49,7 +49,7 @@
 #'
 #' @examples
 #' \dontrun{
-#'   # Automatically called on package load if files are missing
+#'   # Download any missing files
 #'   setup_imprintome_data()
 #'
 #'   # Force re-download

@@ -468,7 +468,11 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
   # Step 8: ewastools-based metrics (ctrl_metrics, contamination,
   #         predUniqDonor_ID); skipped with a message if they fail
   # ------------------------------------------------------------------
-  tryCatch({
+  if (!requireNamespace("ewastools", quietly = TRUE)) {
+    warning("Package 'ewastools' is not installed: ctrl_metrics, contamination and predUniqDonor_ID ",
+            "are not computed and Final.QC does not include the control-probe check. Install it with ",
+            "remotes::install_github(\"hhhh5/ewastools\") for the full QC.", call. = FALSE)
+  } else tryCatch({
     message("Running ewastools-based QC (ctrl_metrics, contamination, predUniqDonor_ID)...")
     meth_et <- .quiet_ewastools(ewastools::read_idats(meta$Basename, quiet = TRUE))
 

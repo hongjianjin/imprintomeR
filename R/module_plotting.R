@@ -46,6 +46,7 @@
 }
 
 PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", prefix=NULL){
+  .require_suggested("pheatmap", "plot_type = 'cor_heatmap'")
   resolved <- .resolve_beta_meta_inputs(betaFile, metaFile, require_meta = TRUE)
   betaFile <- resolved$beta
   metaFile <- resolved$meta
@@ -85,7 +86,7 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
    breaks_list <- seq(-1, 1, length.out = 101)
   # Generate heatmap
   outFile1 <- paste0(prefix, "_detail.pdf")
-  hm <- pheatmap(cor_matrix,
+  hm <- pheatmap::pheatmap(cor_matrix,
           color = color_palette,
           breaks = breaks_list,
           display_numbers = TRUE,     # Optional: show correlation values
@@ -98,7 +99,7 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
   cat(paste0('\nInfo: ',basename(outFile1),'[saved]'))
   #================================================================
   outFile2 <- paste0(prefix, "_simple.pdf")
-  hm <- pheatmap(cor_matrix,
+  hm <- pheatmap::pheatmap(cor_matrix,
           color = color_palette,
           breaks = breaks_list,
           display_numbers = FALSE,     # Optional: show correlation values
@@ -111,7 +112,7 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
   cat(paste0('\nInfo: ',basename(outFile2),'[saved]'))
   #================================================================
   outFile3 <- paste0(prefix, "_auto.simple.pdf")
-  hm <- pheatmap(cor_matrix,
+  hm <- pheatmap::pheatmap(cor_matrix,
           color = color_palette,
           breaks = breaks_list,
           display_numbers = FALSE,     # Optional: show correlation values
@@ -196,6 +197,7 @@ ComputePCA  <- function(df, meta, scale=T, topn = 3000,varMethod="mad",groupColu
 #================================================================
 
 ComputeTSNE  <- function(PCAobj, npcs=50,perplexity=5, max_iter=5000, dims=2, seed=99){
+  .require_suggested("Rtsne", "ComputeTSNE()")
   pca <- PCAobj[["pcs"]]
   meta <-  PCAobj[["meta"]]
   npcs <- ifelse(ncol(pca$x)>npcs,npcs,ncol(pca$x))
@@ -208,7 +210,7 @@ ComputeTSNE  <- function(PCAobj, npcs=50,perplexity=5, max_iter=5000, dims=2, se
   zz <- file(tmpfile, open = "wt")
   sink(zz)
   set.seed(seed)
-  tsne_out <- Rtsne(topPCS, dims = dims,theta=0, pca=F,max_iter = as.integer(max_iter), perplexity=as.integer(perplexity), verbose=TRUE, check_duplicates = FALSE)
+  tsne_out <- Rtsne::Rtsne(topPCS, dims = dims,theta=0, pca=F,max_iter = as.integer(max_iter), perplexity=as.integer(perplexity), verbose=TRUE, check_duplicates = FALSE)
   sink()
   close(zz)
   cat("\nINFO: tSNE [end] \n")
@@ -625,6 +627,7 @@ BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
     scale_x_discrete(limits = orderedIDs) #  specify order on the X axis
   pg1 <- pg + theme(legend.position = "none")
   if(legend){
+    .require_suggested("cowplot", "BetaBeePlot(legend = TRUE)")
     pg2 <- suppressWarnings(cowplot::get_legend(pg + theme(legend.position = "right") + guides(color = guide_legend(ncol = 1))))
     imgHeight <- if (!is.null(height)) height else (5 + max(nchar(meta$SAMPLEID)) / 20)
     #legendWidth <- ifelse(max(nchar(meta$Sample_Group))<30, 1, 2)  # control the width of legend

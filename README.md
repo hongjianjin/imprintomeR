@@ -1,6 +1,8 @@
 <h1><img src="images/logo_small.png" alt="imprintomeR Logo" width="200" style="vertical-align: middle; margin-right: 10px;" />imprintomeR</h1>
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23741652.svg)](https://doi.org/10.5281/zenodo.23741652)
+[![R-CMD-check](https://github.com/hongjianjin/imprintomeR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/hongjianjin/imprintomeR/actions/workflows/R-CMD-check.yaml)
+[![install-check](https://github.com/hongjianjin/imprintomeR/actions/workflows/install-check.yaml/badge.svg)](https://github.com/hongjianjin/imprintomeR/actions/workflows/install-check.yaml)
 
 imprintomeR measures and visualizes genomic imprinting disturbance from Illumina 450K, EPICv1 and EPICv2 methylation arrays. Starting from IDAT files, it runs quality control (QC) and preprocessing, then scores each sample at imprinting control regions (ICRs):
 
@@ -36,11 +38,20 @@ Every step can be run from R or with the command-line scripts in `inst/scripts/`
 
 ## Installation
 
+imprintomeR needs R ≥ 4.1 and imports Bioconductor packages (minfi, ComplexHeatmap), so install it with BiocManager, which finds both CRAN and Bioconductor dependencies:
+
 ```r
-devtools::install_github("hongjianjin/imprintomeR")
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+BiocManager::install(c("remotes", "hongjianjin/imprintomeR"))
 ```
 
-The QC dependency [ewastools](https://github.com/hhhh5/ewastools) is not on CRAN; `install_github()` installs it from GitHub automatically (DESCRIPTION `Remotes: hhhh5/ewastools`). The annotation files (about 52 MB: probe annotation and the ICR probe panels, hg19 and hg38) are installed with the package under `inst/extdata/`; if one is missing, imprintomeR prints a note when it loads and `setup_imprintome_data()` downloads it.
+`pak::pak("hongjianjin/imprintomeR")` also works. Optional packages (`Suggests`) are needed only for some functions, which say so when one is missing. The most useful is [ewastools](https://github.com/hhhh5/ewastools) (not on CRAN), which adds the control-probe, contamination and donor checks to `runMethQC()`:
+
+```r
+remotes::install_github("hhhh5/ewastools")
+```
+
+The annotation files (about 52 MB: probe annotation and the ICR probe panels, hg19 and hg38) are installed with the package under `inst/extdata/`; if one is missing, imprintomeR prints a note when it loads and `setup_imprintome_data()` downloads it.
 
 hg38 (GRCh38) is the default genome; pass `genome = "hg19"` (CLI `--genome hg19`) for GRCh37 coordinates. Probe IDs, parental-origin labels and `DMR_type` are the same in both builds for every probe-level panel except `Jima` (two extra probes in hg38), so scores do not depend on the build.
 

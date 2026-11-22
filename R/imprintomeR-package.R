@@ -18,11 +18,9 @@
 #' @importFrom stringr str_order str_sort
 #' @importFrom data.table fread
 #' @importFrom reshape2 melt
-#' @importFrom pheatmap pheatmap
 #' @importFrom ComplexHeatmap draw Heatmap HeatmapAnnotation
 #' @importFrom circlize CELL_META circos.clear circos.heatmap circos.heatmap.initialize circos.labels circos.par
 #'   circos.segments circos.text circos.track colorRamp2 convert_x get.cell.meta.data get.current.track.index
-#' @importFrom Rtsne Rtsne
 #' @importFrom openxlsx addWorksheet createStyle createWorkbook getSheetNames loadWorkbook modifyBaseFont
 #'   openxlsx_getOp read.xlsx removeWorksheet saveWorkbook setColWidths writeData writeDataTable
 #' @importFrom grid gpar grid.draw grid.newpage pushViewport upViewport viewport

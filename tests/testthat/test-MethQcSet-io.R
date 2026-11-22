@@ -142,7 +142,9 @@ test_that("CtrlMetrics.QC fails only on bisulfite conversion I", {
   )
   # Sample 4 fails bisulfite conversion II and staining, which are reported but not used.
   expect_equal(.ctrl_metrics_qc(ctrls), c("PASS", "FAIL", "FAIL", "PASS", "PASS"))
-  expect_true(all(ewastools::sample_failure(ctrls)[2:4]))   # ewastools would fail sample 4 too
+  if (requireNamespace("ewastools", quietly = TRUE)) {
+    expect_true(all(ewastools::sample_failure(ctrls)[2:4]))   # ewastools would fail sample 4 too
+  }
   expect_error(.ctrl_metrics_qc(ctrls[-1]), "Bisulfite Conversion I Green")
 })
 

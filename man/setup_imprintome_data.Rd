@@ -16,7 +16,7 @@ Invisibly returns TRUE if successful, FALSE otherwise.
 }
 \description{
 Downloads required annotation data files for the imprintomeR package.
-This is automatically called during package load if files are missing.
+When files are missing, attaching the package prints a note pointing here.
 }
 \details{
 The imprintomeR package requires three annotation files:
@@ -32,7 +32,7 @@ package's \verb{extdata/} directory.
 }
 \examples{
 \dontrun{
-  # Automatically called on package load if files are missing
+  # Download any missing files
   setup_imprintome_data()
 
   # Force re-download

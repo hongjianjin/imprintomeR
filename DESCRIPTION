@@ -28,6 +28,7 @@ Description:
     and epigenetic instability across samples.
 License: Apache License (>= 2)
 Encoding: UTF-8
+biocViews: Software, DNAMethylation, MethylationArray, Epigenetics, QualityControl, Visualization
 Collate:
     'imprintomeR-package.R'
     'module_utilities.R'
@@ -65,18 +66,14 @@ Imports:
     matrixStats,
     ComplexHeatmap,
     circlize,
-    pheatmap,
     reshape2,
     ggbeeswarm,
     ggrepel,
-    Rtsne,
     openxlsx,
     stringr,
     viridisLite,
     patchwork,
-    cowplot,
     minfi,
-    ewastools,
     grid,
     grDevices,
     graphics,
@@ -90,13 +87,17 @@ Suggests:
     rmarkdown,
     bedr,
     BiocGenerics,
+    cowplot,
+    ewastools,
     GenomeInfoDb,
     GenomicRanges,
     ggridges,
     gridBase,
     IRanges,
+    pheatmap,
     ragg,
     rtracklayer,
+    Rtsne,
     S4Vectors,
     UpSetR,
     venn,
