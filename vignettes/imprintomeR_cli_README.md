@@ -187,6 +187,14 @@ The beta matrix should have probes as rows and samples as columns. Metadata shou
 | `--reference-file` | none | External control reference: a beta matrix file or an `.rds` from `BuildReferenceProfile()`. Without controls, the fixed 0.5 reference is used. |
 | `--infinium-type` | all | Infinium design types to score: `all`, `I`, `II`, or `balanced` (deviations computed within type I and type II probes and averaged). |
 | `--balance` | probe | Pooling for the sample-level IDS: `probe` (median over probes) or `icr` (median within each ICR, then across ICRs). |
+| `--n-boot` | 0 | Bootstrap replicates (0 = off; 1000–2000 for reporting). Adds `IDS_lower`, `IDS_upper`, `Angle_lower`, `Angle_upper`, `Mechanism_support` and `Status_interval` (`above cutoff`, `below cutoff` or `borderline`). |
+| `--resample` | icr | Bootstrap scheme: `icr` (ICRs, then probes within ICRs) or `probe`. Panels with one ICR per parental class (`chr11p15`) resample probes. |
+| `--resample-reference` | FALSE | Also resample the controls in each replicate (needs `--reference-group`). |
+| `--n-perm` | 0 | Permutations for the origin test (`origin_perm_p`); needs a control reference. |
+| `--permute` | icr | Permutation unit for the origin test: `icr` or `probe`. |
+| `--conf-level` | 0.95 | Confidence level of the bootstrap intervals. |
+| `--seed` | random | Random seed; when none is given one is drawn and written to `run_imprintomeR.log`. |
+| `--all-probes` | FALSE | Load every probe of `--beta-file`. By default only probes of the bundled panels are read, so genome-wide beta files need little memory. |
 | `--icr` | FALSE | Also score each ICR (`AnalyzeICRStatus()`) and write the per-ICR table, its per-sample multi-locus summary and, with the default or `all` plot set, the per-ICR heatmap (`icr_heatmap`). |
 | `--skip-plots` | FALSE | Skip the ordinary plot workflow; explicit `--rainfall-all`, `--radar-all`, and `--beeswarm-chr-all` outputs still run. |
 | `--rainfall-all` | NULL | Pass `TRUE` to generate one multipage rainfall PDF containing every sample. |
@@ -296,6 +304,8 @@ Rscript "$SCRIPTS"/run_imprintomeR.R \
 An ICR is called altered when |deviation| ≥ 0.175 and |z| ≥ 2 against the controls. These thresholds were validated with control samples: give in-cohort controls with `--reference-group` or an external reference with `--reference-file`. Without controls, `z` is unavailable, only the deviation criterion applies and the calls are exploratory. Per-ICR scores cover all annotated ICRs, secondary DMRs included; `--dmr-type` changes only the sample-level score.
 
 `--balance icr` is a separate option: it computes the sample-level IDS/Angle with each ICR counted once (median within each ICR, then across ICRs). It can be combined with `--icr`.
+
+Bootstrap intervals and the origin test are added with `--n-boot` and `--n-perm`, for example `--reference-group control --n-boot 2000 --resample-reference --n-perm 2000 --seed 1`. The run log records the package version, the arguments and the seed.
 
 The per-ICR thresholds (`delta_cutoff`, `z_cutoff`) and restricting per-ICR scores to gametic ICRs (`dmr_type = "gametic"`) are available from R, through `runImprintome()`, `AnalyzeICRStatus()` and `SummarizeICRStatus()`, but not as command-line options.
 

@@ -108,7 +108,7 @@ Each `MethQcSet` holds one platform, so cohorts on different arrays are never me
 - **Deviation Angle**: atan2(maternal_median - 0.5, paternal_median - 0.5)
 - With a control reference, 0.5 is replaced by each probe's median beta across the controls: paternal/maternal deviations are medians of (beta − reference), and IDS and Angle are computed from these deviations (see [Reference centring](docs/analysis.md#reference-centring-and-infinium-design-types)).
 
-The paternal and maternal classes come from the probeset's `ORIGIN` annotation, and array beta values are bulk, not allele-specific, measurements. IDS and Angle are therefore descriptive summaries along the annotated parental axes, not parent-of-origin calls. The default IDS cutoff (0.2) and confidence tiers (0.1/0.2/0.4) are exploratory screening conventions; calibrate them on tissue-matched controls where possible ([Uncertainty and calibration](docs/analysis.md#uncertainty-and-calibration)). More on the geometry: [docs/analysis.md](docs/analysis.md).
+The paternal and maternal classes come from the probeset's `ORIGIN` annotation, and array beta values are bulk, not allele-specific, measurements. IDS and Angle are therefore descriptive summaries along the annotated parental axes, not parent-of-origin calls. The default IDS cutoff (0.2) is an exploratory screening convention; calibrate it on tissue-matched controls where possible, and use bootstrap intervals (`n_boot`) to see which samples are borderline ([Uncertainty and calibration](docs/analysis.md#uncertainty-and-calibration)). More on the geometry: [docs/analysis.md](docs/analysis.md).
 
 ### Angle Direction Mapping
 Each 45-degree sector of the polar plot is labelled with the direction of shift along the annotated paternal and maternal axes, such as paternal gain or maternal loss of methylation, or global hypo- or hypermethylation. Each label covers the 45° sector centred on the angle in the table (for example, Pat-Gain covers 337.5° to 22.5°). Samples with IDS < 0.2 are labelled ROI (retention of imprinting). The labels are exploratory directional summaries of bulk beta values, not parent-of-origin molecular calls; with `n_boot`, `Mechanism_support` reports how stable a sample's label is under resampling.
@@ -137,8 +137,8 @@ Each 45-degree sector of the polar plot is labelled with the direction of shift 
 | `icr` [`--icr`] | `FALSE` | Adds per-ICR calls, the multi-locus summary and the `icr_heatmap` plot ([Per-ICR scores](docs/analysis.md#per-icr-scores-and-icr-balanced-ids)) |
 | `delta_cutoff`, `z_cutoff` | 0.175, 2 | Per-ICR call thresholds used with `icr = TRUE` (z needs controls) |
 | `balance` [`--balance icr`] | probe-pooled | `"icr"` weights each ICR equally in IDS/Angle |
-| `n_boot`, `n_perm` | 0 | Bootstrap intervals and `Mechanism_support` (`resample_reference = TRUE` also resamples in-cohort controls); exploratory origin permutation test, ICR-level by default (control reference only) ([Uncertainty](docs/analysis.md#uncertainty-and-calibration)) |
-| `ids_cutoff` | 0.2 | IDS below which a sample is labelled ROI; `CalibrateIDS()` derives a cohort cutoff from controls |
+| `n_boot`, `n_perm` [`--n-boot`, `--n-perm`] | 0 | Bootstrap intervals, `Mechanism_support` and `Status_interval` (interval above, below or spanning the cutoff) (`resample_reference = TRUE` also resamples in-cohort controls); exploratory origin permutation test, ICR-level by default (control reference only) ([Uncertainty](docs/analysis.md#uncertainty-and-calibration)) |
+| `ids_cutoff` [`--ids-cutoff`] | 0.2 | IDS below which a sample is `Normal` with `Mechanism` ROI; `CalibrateIDS()` derives a cohort cutoff from controls |
 
 ## Quality control
 

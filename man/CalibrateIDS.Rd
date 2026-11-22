@@ -44,7 +44,7 @@ median and maximum IDS, and the AUC and Youden sensitivity/specificity when case
 \description{
 Derives a cohort-specific IDS cutoff from control samples of the same tissue, platform and
 preprocessing, and expresses each sample's IDS relative to the control distribution. The
-package default cutoff (0.2) and confidence tiers are exploratory; control IDS depends on
+package default cutoff (0.2) is exploratory; control IDS depends on
 tissue and sample type, so a cutoff calibrated on matched controls is preferable when such
 controls exist.
 }

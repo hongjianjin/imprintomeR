@@ -218,3 +218,28 @@ test_that("CalibrateIDS derives cutoffs and control-relative scores", {
   expect_error(CalibrateIDS(res, controls = "none"), "No controls")
   expect_warning(CalibrateIDS(res[c(1:3, 6:10), ], controls = "control"), "at least 5")
 })
+
+test_that("Status_interval places the bootstrap interval relative to the cutoff; no Confidence column", {
+  d <- .make_uncertainty_fixture()
+  .with_uncertainty_panel(d$probeset, {
+    res <- .score_unc(d, reference_group = "control", n_boot = 200, seed = 3)
+    expect_false("Confidence" %in% colnames(res))
+    expected <- ifelse(res$IDS_lower >= 0.2, "above cutoff",
+                       ifelse(res$IDS_upper < 0.2, "below cutoff", "borderline"))
+    expect_identical(res$Status_interval, expected)
+    expect_identical(res["PAT", "Status_interval"], "above cutoff")
+    expect_identical(res["NORM", "Status_interval"], "below cutoff")
+    expect_false("Status_interval" %in% colnames(.score_unc(d, reference_group = "control")))
+  })
+})
+
+test_that("ROI follows ids_cutoff, and the legacy Confidence column can be restored", {
+  d <- .make_uncertainty_fixture()
+  .with_uncertainty_panel(d$probeset, {
+    res <- .score_unc(d, reference_group = "control", ids_cutoff = 0.05)
+    expect_identical(res$Mechanism == "ROI", res$Status == "Normal")
+    old <- options(imprintomeR.legacy_confidence = TRUE)
+    on.exit(options(old), add = TRUE)
+    expect_true("Confidence" %in% colnames(.score_unc(d)))
+  })
+})

@@ -170,9 +170,16 @@ and Angle are computed from. \code{reference} and \code{n_reference_samples} des
 the reference used. \code{balance} records the pooling; with \code{balance = "icr"}, the columns
 \code{n_paternal_icrs} / \code{n_maternal_icrs} give the numbers of ICRs used. With
 \code{n_boot > 0}, the columns \code{IDS_lower}, \code{IDS_upper}, \code{Angle_lower},
-\code{Angle_upper}, \code{Mechanism_support}, \code{n_boot}, \code{resample} and \code{resample_reference} are added; with
+\code{Angle_upper}, \code{Mechanism_support}, \code{n_boot}, \code{resample} and \code{resample_reference} are added,
+and \code{Status_interval}: \code{"above cutoff"} (\code{IDS_lower >= ids_cutoff}), \code{"below cutoff"}
+(\code{IDS_upper < ids_cutoff}) or \code{"borderline"} (the interval spans the cutoff); with
 \code{n_perm > 0}, \code{origin_perm_p}, \code{n_perm} and \code{permute} (see Uncertainty).
 Calibrate the IDS cutoff on controls with \code{\link[=CalibrateIDS]{CalibrateIDS()}}.
+
+Samples with IDS below \code{ids_cutoff} get \code{Status = "Normal"} and \code{Mechanism = "ROI"}.
+The former \code{Confidence} column (fixed IDS bands 0.1/0.2/0.4) is no longer reported: it
+ignored probe number, control spread and resampling. Use \code{Status_interval} (with \code{n_boot})
+or \code{\link[=CalibrateIDS]{CalibrateIDS()}} instead; \code{options(imprintomeR.legacy_confidence = TRUE)} restores it.
 }
 \description{
 Computes maternal/paternal medians, IDS, angle, mechanism, status, and

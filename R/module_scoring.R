@@ -80,6 +80,12 @@ compute_angle <- function(paternal_median, maternal_median) {
 }
 
 
+# Former Confidence column: fixed IDS bands, kept only behind options(imprintomeR.legacy_confidence = TRUE).
+.legacy_confidence <- function(ids) {
+  ifelse(ids < 0.1, "High (Normal)",
+         ifelse(ids < 0.2, "Low (Normal)", ifelse(ids < 0.4, "Moderate (Alteration)", "High (Alteration)")))
+}
+
 #' Classify Imprinting Mechanism from Angle
 #'
 #' Maps angle values to 8 mechanism sectors using a 22.5 degree shift and
@@ -464,9 +470,16 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
 #'   the reference used. `balance` records the pooling; with `balance = "icr"`, the columns
 #'   `n_paternal_icrs` / `n_maternal_icrs` give the numbers of ICRs used. With
 #'   `n_boot > 0`, the columns `IDS_lower`, `IDS_upper`, `Angle_lower`,
-#'   `Angle_upper`, `Mechanism_support`, `n_boot`, `resample` and `resample_reference` are added; with
+#'   `Angle_upper`, `Mechanism_support`, `n_boot`, `resample` and `resample_reference` are added,
+#'   and `Status_interval`: `"above cutoff"` (`IDS_lower >= ids_cutoff`), `"below cutoff"`
+#'   (`IDS_upper < ids_cutoff`) or `"borderline"` (the interval spans the cutoff); with
 #'   `n_perm > 0`, `origin_perm_p`, `n_perm` and `permute` (see Uncertainty).
 #'   Calibrate the IDS cutoff on controls with [CalibrateIDS()].
+#'
+#'   Samples with IDS below `ids_cutoff` get `Status = "Normal"` and `Mechanism = "ROI"`.
+#'   The former `Confidence` column (fixed IDS bands 0.1/0.2/0.4) is no longer reported: it
+#'   ignored probe number, control spread and resampling. Use `Status_interval` (with `n_boot`)
+#'   or [CalibrateIDS()] instead; `options(imprintomeR.legacy_confidence = TRUE)` restores it.
 
 #' @export
 AnalyzeImprintStatus <- function(betaFile, metaFile,
@@ -625,14 +638,9 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
   # 5. Define directional categories
   mechanism <- classify_mechanism(degrees)
 
-  # 6. Status and Confidence Logic
+  # 6. Status; samples below the IDS cutoff are labelled ROI, so Status and Mechanism agree.
   status <- ifelse(ids >= ids_cutoff, "Imprinting Alteration", "Normal")
-  confidence <- ifelse(
-    ids < 0.1,
-    "High (Normal)",
-    ifelse(ids < 0.2, "Low (Normal)", ifelse(ids < 0.4, "Moderate (Alteration)", "High (Alteration)"))
-  )
-  final_mechanism <- classify_mechanism(degrees, ids = ids, roi_cutoff = 0.2)
+  final_mechanism <- classify_mechanism(degrees, ids = ids, roi_cutoff = ids_cutoff)
 
   # 7. Metadata selection
   cols_to_keep <- intersect(colnames(meta), c("Sample_Name", "Sample_Group", "ID2"))
@@ -660,9 +668,9 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
     Angle           = round(degrees, 1),
     Mechanism       = final_mechanism,
     Status          = status,
-    Confidence      = confidence,
     stringsAsFactors = FALSE
   )
+  if (isTRUE(getOption("imprintomeR.legacy_confidence", FALSE))) res$Confidence <- .legacy_confidence(ids)
   # ICR counts only apply to ICR-balanced scoring.
   if (balance != "icr") res$n_paternal_icrs <- res$n_maternal_icrs <- NULL
 
@@ -726,9 +734,15 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
       obs = list(pat = unname(pat_dev), mat = unname(mat_dev), ids = unname(ids), angle = unname(degrees),
                  mechanism = final_mechanism),
       by_icr = balance == "icr", n_boot = n_boot, n_perm = n_perm, conf_level = conf_level,
-      resample = resample, permute = permute, seed = seed, controls = ref_controls
+      resample = resample, permute = permute, seed = seed, controls = ref_controls,
+      roi_cutoff = ids_cutoff
     )
     res <- cbind(res, unc)
+    # Where the bootstrap interval lies relative to the cutoff.
+    if ("IDS_lower" %in% colnames(res)) {
+      res$Status_interval <- ifelse(res$IDS_lower >= ids_cutoff, "above cutoff",
+                                    ifelse(res$IDS_upper < ids_cutoff, "below cutoff", "borderline"))
+    }
   }
 
   return(res)
@@ -822,7 +836,7 @@ BuildReferenceProfile <- function(beta, samples = NULL, probeset = NULL, genome 
 #' @param genome Genome build of the probeset annotation, `"hg19"` or `"hg38"` (default).
 #'
 #' @return Data frame with one row per chromosome: probe counts, parental medians, consistency,
-#'   deviations, `IDS`, `Angle`, `Status`, `Confidence` and `Mechanism`.
+#'   deviations, `IDS`, `Angle`, `Status` and `Mechanism` (ROI below `ids_cutoff`).
 #' @seealso [Survey_Global_Imprinting_Batch()] for all samples.
 #' @export
 Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", "chr20q13"), min_probes = 10, ids_cutoff=0.2, genome = "hg38") {
@@ -913,15 +927,10 @@ Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("selected", "Nano
     status_logic <- data.frame(ids = chrom_survey$IDS) %>%
     mutate(
       Status = if_else(ids >= ids_cutoff, "Imprinting Alteration", "Normal"),
-      Confidence = case_when(
-        ids < 0.1  ~ "High (Normal)",
-        ids < 0.2  ~ "Low (Normal)",
-        ids < 0.4  ~ "Moderate (Alteration)",
-        TRUE       ~ "High (Alteration)"
-      ),
-      # Prioritize ROI: If IDS is very low, the mechanism is "Retention"
-      Mechanism = if_else(ids < 0.2, "ROI", as.character(mechanism))
+      # Below the IDS cutoff the mechanism is "ROI" (retention of imprinting)
+      Mechanism = if_else(ids < ids_cutoff, "ROI", as.character(mechanism))
     )
+  if (isTRUE(getOption("imprintomeR.legacy_confidence", FALSE))) status_logic$Confidence <- .legacy_confidence(status_logic$ids)
   status_logic$ids <- NULL
   chrom_survey  <- cbind(chrom_survey,status_logic )
   chrom_survey <- chrom_survey %>%

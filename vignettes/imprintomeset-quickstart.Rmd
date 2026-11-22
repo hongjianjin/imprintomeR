@@ -250,7 +250,7 @@ Expected columns include:
 - `Angle`
 - `Mechanism`
 - `Status`
-- `Confidence`
+- with `n_boot > 0`: `IDS_lower`, `IDS_upper`, `Mechanism_support` and `Status_interval`
 
 ## 5. Summarize Object State
 

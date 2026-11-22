@@ -93,6 +93,7 @@
 #   controls: in-cohort control samples to resample in each bootstrap replicate (pat$B and mat$B
 #     then hold the beta values), or NULL to hold the reference fixed.
 .imprint_uncertainty <- function(pat, mat, obs, by_icr, n_boot, n_perm, conf_level, resample, permute, seed,
+                                 roi_cutoff = 0.2,
                                  controls = NULL) {
   samples <- colnames(pat$D)
   out <- data.frame(row.names = samples)
@@ -124,7 +125,7 @@
                            numeric(2)))
       support <- vapply(seq_along(samples), function(j) {
         ok <- !is.na(ids_b[, j])
-        mean(classify_mechanism(angle_b[ok, j], ids = ids_b[ok, j], roi_cutoff = 0.2) == obs$mechanism[j])
+        mean(classify_mechanism(angle_b[ok, j], ids = ids_b[ok, j], roi_cutoff = roi_cutoff) == obs$mechanism[j])
       }, numeric(1))
       out$IDS_lower <- round(ids_ci[, 1], 3)
       out$IDS_upper <- round(ids_ci[, 2], 3)
@@ -189,7 +190,7 @@
 #'
 #' Derives a cohort-specific IDS cutoff from control samples of the same tissue, platform and
 #' preprocessing, and expresses each sample's IDS relative to the control distribution. The
-#' package default cutoff (0.2) and confidence tiers are exploratory; control IDS depends on
+#' package default cutoff (0.2) is exploratory; control IDS depends on
 #' tissue and sample type, so a cutoff calibrated on matched controls is preferable when such
 #' controls exist.
 #'

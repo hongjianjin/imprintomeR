@@ -183,11 +183,11 @@ a control reference.
 
 ### Should I use the Confidence column?
 
-No. `Confidence` relabels IDS with fixed bands (< 0.1 "High (Normal)", 0.1–0.2 "Low (Normal)",
+It is no longer reported (removed after 1.5.3; `options(imprintomeR.legacy_confidence = TRUE)` restores it). `Confidence` relabelled IDS with fixed bands (< 0.1 "High (Normal)", 0.1–0.2 "Low (Normal)",
 0.2–0.4 "Moderate (Alteration)", ≥ 0.4 "High (Alteration)"). It ignores the number of probes, the
-controls, the tissue and resampling, and its bands do not follow `ids_cutoff`. Bootstrap intervals
-of samples labelled "High" often extend into the neighbouring band. Use the interval-based call
-above or `CalibrateIDS()` instead.
+controls, the tissue and resampling, and its bands did not follow `ids_cutoff`. Bootstrap intervals
+of samples labelled "High" often extended into the neighbouring band. Use the interval-based call
+above (`Status_interval`, reported with `n_boot`) or `CalibrateIDS()` instead.
 
 ---
 
