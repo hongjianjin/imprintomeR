@@ -80,8 +80,9 @@ compute_angle <- function(paternal_median, maternal_median) {
 }
 
 
-# Former Confidence column: fixed IDS bands, kept only behind options(imprintomeR.legacy_confidence = TRUE).
-.legacy_confidence <- function(ids) {
+# Confidence column: fixed exploratory IDS bands (0.1/0.2/0.4), evaluated in the threshold-selection
+# protocol; independent of ids_cutoff.
+.confidence_band <- function(ids) {
   ifelse(ids < 0.1, "High (Normal)",
          ifelse(ids < 0.2, "Low (Normal)", ifelse(ids < 0.4, "Moderate (Alteration)", "High (Alteration)")))
 }
@@ -477,9 +478,10 @@ compute_consistency <- function(paternal_beta, maternal_beta, sample_ids,
 #'   Calibrate the IDS cutoff on controls with [CalibrateIDS()].
 #'
 #'   Samples with IDS below `ids_cutoff` get `Status = "Normal"` and `Mechanism = "ROI"`.
-#'   The former `Confidence` column (fixed IDS bands 0.1/0.2/0.4) is no longer reported: it
-#'   ignored probe number, control spread and resampling. Use `Status_interval` (with `n_boot`)
-#'   or [CalibrateIDS()] instead; `options(imprintomeR.legacy_confidence = TRUE)` restores it.
+#'   `Confidence` labels IDS with fixed exploratory screening bands (< 0.1 "High (Normal)",
+#'   0.1-0.2 "Low (Normal)", 0.2-0.4 "Moderate (Alteration)", >= 0.4 "High (Alteration)"); the bands
+#'   do not change with `ids_cutoff` and are not a measure of statistical certainty. For that, use
+#'   `Status_interval` (with `n_boot`) or calibrate on controls with [CalibrateIDS()].
 
 #' @export
 AnalyzeImprintStatus <- function(betaFile, metaFile,
@@ -670,7 +672,7 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
     Status          = status,
     stringsAsFactors = FALSE
   )
-  if (isTRUE(getOption("imprintomeR.legacy_confidence", FALSE))) res$Confidence <- .legacy_confidence(ids)
+  res$Confidence <- .confidence_band(ids)
   # ICR counts only apply to ICR-balanced scoring.
   if (balance != "icr") res$n_paternal_icrs <- res$n_maternal_icrs <- NULL
 
@@ -836,7 +838,8 @@ BuildReferenceProfile <- function(beta, samples = NULL, probeset = NULL, genome 
 #' @param genome Genome build of the probeset annotation, `"hg19"` or `"hg38"` (default).
 #'
 #' @return Data frame with one row per chromosome: probe counts, parental medians, consistency,
-#'   deviations, `IDS`, `Angle`, `Status` and `Mechanism` (ROI below `ids_cutoff`).
+#'   deviations, `IDS`, `Angle`, `Status`, `Confidence` (exploratory IDS bands) and `Mechanism`
+#'   (ROI below `ids_cutoff`).
 #' @seealso [Survey_Global_Imprinting_Batch()] for all samples.
 #' @export
 Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("selected", "NanoImprint", "Joshi", "Court", "Rosenski", "Jima", "chr11p15", "chr20q13"), min_probes = 10, ids_cutoff=0.2, genome = "hg38") {
@@ -930,7 +933,7 @@ Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("selected", "Nano
       # Below the IDS cutoff the mechanism is "ROI" (retention of imprinting)
       Mechanism = if_else(ids < ids_cutoff, "ROI", as.character(mechanism))
     )
-  if (isTRUE(getOption("imprintomeR.legacy_confidence", FALSE))) status_logic$Confidence <- .legacy_confidence(status_logic$ids)
+  status_logic$Confidence <- .confidence_band(status_logic$ids)
   status_logic$ids <- NULL
   chrom_survey  <- cbind(chrom_survey,status_logic )
   chrom_survey <- chrom_survey %>%

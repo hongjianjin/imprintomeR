@@ -30,7 +30,8 @@ class's median is set to 0.5 (default 10). Chromosomes with fewer in both classe
 }
 \value{
 Data frame with one row per chromosome: probe counts, parental medians, consistency,
-deviations, \code{IDS}, \code{Angle}, \code{Status} and \code{Mechanism} (ROI below \code{ids_cutoff}).
+deviations, \code{IDS}, \code{Angle}, \code{Status}, \code{Confidence} (exploratory IDS bands) and \code{Mechanism}
+(ROI below \code{ids_cutoff}).
 }
 \description{
 Computes IDS, Angle and Mechanism separately for each chromosome of a probeset panel, from the

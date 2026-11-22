@@ -219,11 +219,11 @@ test_that("CalibrateIDS derives cutoffs and control-relative scores", {
   expect_warning(CalibrateIDS(res[c(1:3, 6:10), ], controls = "control"), "at least 5")
 })
 
-test_that("Status_interval places the bootstrap interval relative to the cutoff; no Confidence column", {
+test_that("Status_interval places the bootstrap interval relative to the cutoff", {
   d <- .make_uncertainty_fixture()
   .with_uncertainty_panel(d$probeset, {
     res <- .score_unc(d, reference_group = "control", n_boot = 200, seed = 3)
-    expect_false("Confidence" %in% colnames(res))
+    expect_true("Confidence" %in% colnames(res))
     expected <- ifelse(res$IDS_lower >= 0.2, "above cutoff",
                        ifelse(res$IDS_upper < 0.2, "below cutoff", "borderline"))
     expect_identical(res$Status_interval, expected)
@@ -233,13 +233,13 @@ test_that("Status_interval places the bootstrap interval relative to the cutoff;
   })
 })
 
-test_that("ROI follows ids_cutoff, and the legacy Confidence column can be restored", {
+test_that("ROI follows ids_cutoff; the Confidence bands stay fixed", {
   d <- .make_uncertainty_fixture()
   .with_uncertainty_panel(d$probeset, {
     res <- .score_unc(d, reference_group = "control", ids_cutoff = 0.05)
     expect_identical(res$Mechanism == "ROI", res$Status == "Normal")
-    old <- options(imprintomeR.legacy_confidence = TRUE)
-    on.exit(options(old), add = TRUE)
-    expect_true("Confidence" %in% colnames(.score_unc(d)))
+    expect_identical(res$Confidence, imprintomeR:::.confidence_band(res$IDS))
+    expect_identical(imprintomeR:::.confidence_band(c(0.05, 0.15, 0.3, 0.5)),
+                     c("High (Normal)", "Low (Normal)", "Moderate (Alteration)", "High (Alteration)"))
   })
 })

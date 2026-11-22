@@ -177,9 +177,10 @@ and \code{Status_interval}: \code{"above cutoff"} (\code{IDS_lower >= ids_cutoff
 Calibrate the IDS cutoff on controls with \code{\link[=CalibrateIDS]{CalibrateIDS()}}.
 
 Samples with IDS below \code{ids_cutoff} get \code{Status = "Normal"} and \code{Mechanism = "ROI"}.
-The former \code{Confidence} column (fixed IDS bands 0.1/0.2/0.4) is no longer reported: it
-ignored probe number, control spread and resampling. Use \code{Status_interval} (with \code{n_boot})
-or \code{\link[=CalibrateIDS]{CalibrateIDS()}} instead; \code{options(imprintomeR.legacy_confidence = TRUE)} restores it.
+\code{Confidence} labels IDS with fixed exploratory screening bands (< 0.1 "High (Normal)",
+0.1-0.2 "Low (Normal)", 0.2-0.4 "Moderate (Alteration)", >= 0.4 "High (Alteration)"); the bands
+do not change with \code{ids_cutoff} and are not a measure of statistical certainty. For that, use
+\code{Status_interval} (with \code{n_boot}) or calibrate on controls with \code{\link[=CalibrateIDS]{CalibrateIDS()}}.
 }
 \description{
 Computes maternal/paternal medians, IDS, angle, mechanism, status, and

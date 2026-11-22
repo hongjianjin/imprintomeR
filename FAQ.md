@@ -183,11 +183,13 @@ a control reference.
 
 ### Should I use the Confidence column?
 
-It is no longer reported (removed after 1.5.3; `options(imprintomeR.legacy_confidence = TRUE)` restores it). `Confidence` relabelled IDS with fixed bands (< 0.1 "High (Normal)", 0.1–0.2 "Low (Normal)",
-0.2–0.4 "Moderate (Alteration)", ≥ 0.4 "High (Alteration)"). It ignores the number of probes, the
-controls, the tissue and resampling, and its bands did not follow `ids_cutoff`. Bootstrap intervals
-of samples labelled "High" often extended into the neighbouring band. Use the interval-based call
-above (`Status_interval`, reported with `n_boot`) or `CalibrateIDS()` instead.
+Only as a coarse screening band. `Confidence` relabels IDS with fixed bands (< 0.1 "High (Normal)",
+0.1–0.2 "Low (Normal)", 0.2–0.4 "Moderate (Alteration)", ≥ 0.4 "High (Alteration)"); their
+sensitivity and specificity are reported in the threshold-selection benchmark. The bands ignore the
+number of probes, the controls, the tissue and resampling, and they do not change with `ids_cutoff`,
+so "High" is not a statement of statistical certainty: bootstrap intervals of samples labelled "High"
+often extend into the neighbouring band. For a call that accounts for uncertainty, use the
+interval-based call above (`Status_interval`, reported with `n_boot`) or `CalibrateIDS()`.
 
 ---
 
@@ -284,4 +286,4 @@ results are complete; add `--icr` to avoid the message.
 - [ ] Mechanism reported only with adequate `Mechanism_support`, or as "between sectors".
 - [ ] Per-ICR thresholds; IC1/IC2 patterns described as methylation-based.
 - [ ] Multi-locus flag described as exploratory, with the flag rate in the controls.
-- [ ] Not used: the `Confidence` column, or the 0.1/0.2/0.4 bands as certainty levels.
+- [ ] The `Confidence` column (0.1/0.2/0.4 bands) described as an exploratory screening band, not as a certainty level.

@@ -166,7 +166,7 @@ test_that("AnalyzeImprintStatus validates ids_cutoff and preserves output shape"
     res <- AnalyzeImprintStatus(d$beta, d$meta, probeset = "selected", ids_cutoff = 0.2)
     expect_true(is.data.frame(res))
     expect_equal(nrow(res), nrow(d$meta))
-    expect_true(all(c("paternal_median", "maternal_median", "IDS", "Angle", "Mechanism", "Status") %in% colnames(res)))
+    expect_true(all(c("paternal_median", "maternal_median", "IDS", "Angle", "Mechanism", "Status", "Confidence") %in% colnames(res)))
   })
 })
 
