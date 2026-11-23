@@ -2,6 +2,15 @@
 on:
   push:
     branches: [main]
+    # Documentation-only pushes skip the check: these files are excluded from the package
+    # build or not run by R CMD check. install-check (README Quick start) and pkgdown still run.
+    paths-ignore:
+      - 'README.md'
+      - 'CITATION.cff'
+      - 'tutorials/**'
+      - 'vignettes/articles/**'
+      - 'benchmark/**'
+      - 'data-raw/**'
   pull_request:
   workflow_dispatch:
 
