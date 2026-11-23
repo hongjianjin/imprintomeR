@@ -12,15 +12,17 @@
 #           the 782 probes of the 'selected' panel.
 #
 # Usage:   Rscript Supplementary_Code.R [output_folder]    (default: supplementary_output)
-# Needs:   imprintomeR (>= 1.6.0), minfiData (example IDATs) and gridBase (circular heatmap):
+# Needs:   imprintomeR (>= 1.6.0), minfiData (example IDATs), gridBase (circular heatmap) and
+#          ragg (PNG output without X11/cairo, e.g. on macOS without XQuartz):
 #            if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-#            BiocManager::install(c("remotes", "hongjianjin/imprintomeR", "minfiData", "gridBase"))
+#            BiocManager::install(c("remotes", "hongjianjin/imprintomeR", "minfiData", "gridBase", "ragg"))
 # Runtime: about 3 minutes on a laptop. All outputs are written to output_folder.
 # CI:      run on Linux, macOS and Windows by the install-check workflow of the repository
 #          (https://github.com/hongjianjin/imprintomeR).
 
 suppressPackageStartupMessages(library(imprintomeR))
-missing <- c("minfiData", "gridBase")[!vapply(c("minfiData", "gridBase"), requireNamespace, logical(1), quietly = TRUE)]
+needed <- c("minfiData", "gridBase", "ragg")
+missing <- needed[!vapply(needed, requireNamespace, logical(1), quietly = TRUE)]
 if (length(missing)) {
   stop("Please install ", paste(missing, collapse = " and "), ": BiocManager::install(c(\"",
        paste(missing, collapse = "\", \""), "\"))")

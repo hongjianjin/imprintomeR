@@ -1793,11 +1793,7 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
   if (save_plot) {
     # Larger canvas: 12x10 inches
     if (format == "png") {
-      if (requireNamespace("ragg", quietly = TRUE)) {
-        ragg::agg_png(outFile, width = 12, height = 10, units = "in", res = res)
-      } else {
-        grDevices::png(outFile, width = 12, height = 10, units = "in", res = res)
-      }
+      .open_png(outFile, width = 12, height = 10, res = res)
     } else {
       pdf(outFile, width = 12, height = 10)
     }

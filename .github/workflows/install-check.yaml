@@ -67,9 +67,9 @@ jobs:
                               warning = function(w) stop("Quick start warning: ", conditionMessage(w)))
           stopifnot(file.exists("polar.pdf"), dir.exists("imprintome_results"), dir.exists("qc_output"))
 
-      - name: Install the companion script's extra package (gridBase, for the circular heatmap)
+      - name: Install the companion script's extra packages (gridBase for the circular heatmap, ragg for PNG output)
         shell: Rscript {0}
-        run: BiocManager::install("gridBase", ask = FALSE, update = FALSE)
+        run: BiocManager::install(c("gridBase", "ragg"), ask = FALSE, update = FALSE)
 
       - name: Run the Supplementary companion script (Supplementary_Code.R)
         run: Rscript src/supplementary/Supplementary_Code.R supplementary_output

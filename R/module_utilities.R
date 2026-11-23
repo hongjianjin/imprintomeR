@@ -910,3 +910,23 @@ aggregate_beta_epicv2 <- function(beta_df, method = c("median", "mean")) {
   }
   invisible(TRUE)
 }
+
+# Open a PNG device: ragg when installed (no X11 or cairo needed), otherwise png().
+# png() needs cairo (or X11), which macOS lacks without XQuartz; then stop with advice
+# instead of failing later while drawing.
+.open_png <- function(filename, width, height, res = 300) {
+  if (requireNamespace("ragg", quietly = TRUE)) {
+    ragg::agg_png(filename, width = width, height = height, units = "in", res = res)
+    return(invisible(TRUE))
+  }
+  n_before <- length(grDevices::dev.list())
+  opened <- tryCatch({
+    suppressWarnings(grDevices::png(filename, width = width, height = height, units = "in", res = res))
+    length(grDevices::dev.list()) > n_before
+  }, error = function(e) FALSE)
+  if (!opened) {
+    stop("Could not open a PNG device (cairo is unavailable, for example on macOS without XQuartz). ",
+         "Install the ragg package (install.packages(\"ragg\")) or save the plot as PDF.", call. = FALSE)
+  }
+  invisible(TRUE)
+}

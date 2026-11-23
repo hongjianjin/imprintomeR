@@ -94,3 +94,11 @@ test_that("export() writes the per-ICR heatmap, whose stored size is a named vec
   utils::capture.output(suppressMessages(export(x, outdir = out, prefix = "t", save_plots = TRUE, overwrite = TRUE)))
   expect_true(file.exists(file.path(out, "t_plot_icr_heatmap.selected.pdf")))
 })
+
+test_that(".open_png() writes a PNG (ragg when installed)", {
+  f <- tempfile(fileext = ".png")
+  imprintomeR:::.open_png(f, width = 2, height = 2, res = 72)
+  graphics::plot(1)
+  grDevices::dev.off()
+  expect_true(file.exists(f) && file.size(f) > 0)
+})

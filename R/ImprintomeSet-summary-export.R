@@ -323,7 +323,7 @@ methods::setMethod(
               if (identical(plot_device, "pdf")) {
                 grDevices::pdf(fpath, width = dims[["width"]], height = dims[["height"]])
               } else {
-                grDevices::png(fpath, width = dims[["width"]], height = dims[["height"]], units = "in", res = 300)
+                .open_png(fpath, width = dims[["width"]], height = dims[["height"]], res = 300)
               }
               tryCatch(
                 ComplexHeatmap::draw(pobj, merge_legend = TRUE),
