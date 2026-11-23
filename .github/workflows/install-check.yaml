@@ -12,6 +12,11 @@ name: install-check
 
 permissions: read-all
 
+# A newer push to the same branch cancels a run still in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   install:
     runs-on: ${{ matrix.os }}

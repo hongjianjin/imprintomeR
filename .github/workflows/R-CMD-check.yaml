@@ -9,6 +9,11 @@ name: R-CMD-check
 
 permissions: read-all
 
+# A newer push to the same branch cancels a run still in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
