@@ -173,7 +173,7 @@ Available `plot_type` values are:
 `auto` first returns the latest stored plot from `plots(x)` when present;
 otherwise, it falls back to polar plotting from IDS/Angle results.
 
-```{r}
+```{r, fig.alt = "Polar plot chosen automatically from the stored results"}
 p_auto <- plot(
   x,
   plot_type = "auto",
@@ -185,7 +185,7 @@ p_auto
 
 ### 2.2 Explicit Dispatch
 
-```{r}
+```{r, fig.alt = "Polar plot of IDS and Angle for each sample"}
 p_polar_s4 <- plot(
   x,
   plot_type = "polar",
@@ -223,7 +223,7 @@ names(plots(x))
 
 ### 3.1 Polar Plot
 
-```{r}
+```{r, fig.alt = "Polar plot of IDS (radius) and Angle for each sample, coloured by sample group"}
 p_polar <- plot(
   x,
   plot_type = "polar",
@@ -238,7 +238,7 @@ p_polar
 
 ### 3.2 Mirror Density
 
-```{r}
+```{r, fig.alt = "Mirror density plot of paternal and maternal probe deviations"}
 p_mirror <- plot(
   x,
   plot_type = "mirror_density",
@@ -252,7 +252,7 @@ p_mirror
 
 One spoke per curated ICR (median IDI of its probes), in genomic order clockwise from the top, labelled chromosome_annotated parental origin_ICR. The saved figure grows with the label length so that no label is clipped.
 
-```{r}
+```{r, fig.alt = "Radar plot of the median imprinting deviation index per ICR for one sample"}
 sample_id1 <- colnames(beta(x))[2]
 p_radar <- plot(
   x,
@@ -268,7 +268,7 @@ p_radar
 
 ### 4.1 Violin Plot
 
-```{r}
+```{r, fig.alt = "Violin plots of beta values per sample"}
 p_vln <- plot(
   x,
   plot_type = "violin",
@@ -280,7 +280,7 @@ p_vln
 
 ### 4.2 Beeswarm Plot
 
-```{r}
+```{r, fig.alt = "Beeswarm plot of beta values per sample"}
 p_bee <- plot(
   x,
   plot_type = "beeswarm",
@@ -292,7 +292,7 @@ p_bee
 
 ### 4.3 Single-Chromosome Beeswarm
 
-```{r}
+```{r, fig.alt = "Beeswarm plot of chromosome 11 probes per sample, coloured by parental origin"}
 p_bee_chr11 <- imprintomeR:::BetaBeePlot_single_chr(
   beta = beta_x,
   meta = meta_x,
@@ -308,7 +308,7 @@ p_bee_chr11
 Use the ImprintomeSet dispatcher (`plot_type = "beeswarm_origin"`) for cohort-wide
 origin split plots.
 
-```{r}
+```{r, fig.alt = "Beeswarm plot of beta values per sample, split by annotated parental origin"}
 p_bee_origin <- plot(
   x,
   plot_type = "beeswarm_origin",
@@ -321,7 +321,7 @@ p_bee_origin
 
 ### 4.5 Single-Sample Beeswarm Faceted by Chromosome
 
-```{r}
+```{r, fig.alt = "Beeswarm plot of one sample's beta values, faceted by chromosome"}
 sample_id1 <- colnames(beta(x))[2]
 p_bee_chr <- plot(
   x,
@@ -357,7 +357,7 @@ list.files(pattern = "^cohort_")   # the correlation heatmap is written to PDF f
 
 Displays individual Illumina probe IDs (e.g., cg00000029) as rows and samples as columns with their methylation values color-coded.
 
-```{r}
+```{r, fig.height = 9, fig.alt = "Heatmap of beta values of the panel probes, probes by samples"}
 plot(
   x,
   plot_type = "heatmap_by_probe",
@@ -388,7 +388,7 @@ allowing visual comparison of methylation patterns across grouped samples and ch
 
 The layout has room for a few sections only, so this example keeps three of the 11 sample groups:
 
-```{r, fig.width = 9, fig.height = 9}
+```{r, fig.width = 9, fig.height = 9, fig.keep = "last", fig.alt = "Circular heatmap of beta values by chromosome for three sample groups"}
 keep <- meta_x$Sample_Group %in% c("Hydatidiform mole", "parthenogenetic activated oocytes",
                                    "Term placenta- fetal side")
 x_sub <- ImprintomeSet(beta = beta_x[, keep], meta = meta_x[keep, ],
@@ -427,7 +427,7 @@ Within each gene, probes are aggregated per sample using the **median** function
 - `clusterColumns`: hierarchical cluster samples? (default `TRUE`)
 - `outFile`: optional output file (PDF, or PNG with a `.png` extension)
 
-```{r}
+```{r, fig.height = 9, fig.alt = "Heatmap of median beta values per gene label, genes by samples"}
 plot(
   x,
   plot_type = "heatmap_by_gene",
@@ -446,7 +446,7 @@ plot(
 
 Chromosome beeswarm plots show only chromosomes with at least five usable (finite) probe values for the selected sample. A single-chromosome request with fewer than five usable probes returns an informative error.
 
-```{r}
+```{r, fig.alt = "Beeswarm panels of beta values for each chromosome"}
 p_bee_chr_all <- plot(
   x,
   plot_type = "beeswarm_chr",
@@ -460,7 +460,7 @@ p_bee_chr_all
 
 ### 6.2 Rainfall Plot
 
-```{r}
+```{r, fig.alt = "Rainfall plot of probe-level imprinting deviation along the genome for one sample"}
 sample_id1 <- colnames(beta(x))[2]
 
 p_rain <- plot(
@@ -474,7 +474,7 @@ p_rain
 
 ### 6.3 Chromosome vs Others Beeswarm
 
-```{r}
+```{r, fig.alt = "Beeswarm plots comparing chromosome 11 probes with all other probes, one per sample"}
 probesets <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))
 ps <- probesets[["selected"]]
 common_probes <- intersect(ps$NAME, rownames(beta_x))
@@ -496,7 +496,7 @@ imprintomeR:::Beeplot_chr_vs_other(
 
 ### 6.4 Batch Chromosome vs Others Convenience Wrapper
 
-```{r}
+```{r, fig.alt = "Beeswarm plots comparing chromosomes 1, 11 and 20 with all other probes"}
 imprintomeR:::Beeplot_chr_vs_other_single(
   input = list(beta = beta_x, meta = meta_x),
   chrs = "chr1,chr11,chr20",
@@ -509,7 +509,7 @@ imprintomeR:::Beeplot_chr_vs_other_single(
 
 `runImprintomeVisualizations()` stores successful plots in `plots(x)` when `store_plots = TRUE`, so the object can be exported later with `export(x, save_plots = TRUE)`. `plot_types = "default"` excludes `circular_heatmap`; add it explicitly when you want that direct-draw plot stored too.
 
-```{r}
+```{r, fig.alt = "Stored polar and beeswarm plots"}
 x <- runImprintomeVisualizations(
   x,
   plot_types = "default",
@@ -536,7 +536,7 @@ x_sub <- runImprintomeVisualizations(
   store_plots = TRUE,
   save_plots = FALSE
 )
-plots(x_sub)[["circular.selected"]]
+names(plots(x_sub))   # the circular heatmap is stored as a rendered PDF
 ```
 
 ## 8. Summarize and Export

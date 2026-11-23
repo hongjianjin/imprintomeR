@@ -105,7 +105,7 @@ Per-ICR calls cover all annotated ICRs, secondary DMRs included; `dmr_type = "ga
 
 ## 5. Heatmaps from tables
 
-```{r, fig.width = 7, fig.height = 6}
+```{r, fig.width = 7, fig.height = 8, fig.alt = c("Heatmap of per-ICR deviations, samples by imprinting control regions, with a colour bar of each ICR's parental origin", "Heatmap of median beta values per gene label of the selected panel, genes by samples, annotated by sample group")}
 # Samples x ICRs, with a colour bar of each ICR's annotated parental origin
 PlotICRHeatmap(icr)
 
@@ -119,6 +119,7 @@ hm <- BetaHeatmapByGene(
   clusterRows = TRUE,
   clusterColumns = TRUE
 )
+hm
 ```
 
 `BetaHeatmapByGene()` takes the median of each gene label's probes, so one ICR can appear as several rows when its probes carry different gene labels; `PlotICRHeatmap()` shows one column per ICR.
@@ -127,7 +128,7 @@ hm <- BetaHeatmapByGene(
 
 These plots are drawn by `plot()` on an `ImprintomeSet`, which can be built from the same tables:
 
-```{r, fig.width = 6, fig.height = 5}
+```{r, fig.width = 6, fig.height = 5, fig.alt = c("Polar plot of IDS (radius) and Angle for each sample, coloured by sample group", "Radar plot of the median imprinting deviation index per ICR for one sample", "Beeswarm plot of probe beta values per sample, split by annotated parental origin")}
 x <- ImprintomeSet(
   beta = beta,
   meta = meta,

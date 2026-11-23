@@ -1,8 +1,10 @@
-<h1><img src="images/logo_small.png" alt="imprintomeR Logo" width="200" style="vertical-align: middle; margin-right: 10px;" />imprintomeR</h1>
+<h1><img src="man/figures/logo_small.png" alt="imprintomeR Logo" width="200" style="vertical-align: middle; margin-right: 10px;" />imprintomeR</h1>
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23741652.svg)](https://doi.org/10.5281/zenodo.23741652)
 [![R-CMD-check](https://github.com/hongjianjin/imprintomeR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/hongjianjin/imprintomeR/actions/workflows/R-CMD-check.yaml)
 [![install-check](https://github.com/hongjianjin/imprintomeR/actions/workflows/install-check.yaml/badge.svg)](https://github.com/hongjianjin/imprintomeR/actions/workflows/install-check.yaml)
+
+**Website:** https://hongjianjin.github.io/imprintomeR/ (function reference, vignettes, guides and worked examples)
 
 imprintomeR measures and visualizes genomic imprinting disturbance from Illumina 450K, EPICv1 and EPICv2 methylation arrays. Starting from IDAT files, it runs quality control (QC) and preprocessing, then scores each sample at imprinting control regions (ICRs):
 
@@ -18,7 +20,7 @@ The workflow is built on two S4 classes:
 - **MethQcSet:** QC results and preprocessed data for one array platform.
 - **ImprintomeSet:** scores and annotations, ready for analysis and plotting.
 
-Every step can be run from R or with the command-line scripts in `inst/scripts/` (see the [command-line guide](vignettes/articles/command-line.Rmd)).
+Every step can be run from R or with the command-line scripts in `inst/scripts/` (see the [command-line guide](https://hongjianjin.github.io/imprintomeR/articles/command-line.html)).
 
 ## Table of Contents
 
@@ -80,7 +82,7 @@ results(x)[["AnalyzeImprintStatus.selected"]][, c("Sample_Name", "IDS", "Angle",
 
 In part A, the moles and the leukocytes with paternal uniparental disomy are called `Pat-Gain+Mat-Loss`, the parthenogenetic cells and the maternal-disomy sample `Mat-Gain+Pat-Loss`, and the somatic tissues, placentas and embryonic stem cells normal (`ROI`); sperm, with a paternal germline pattern, is called `Pat-Gain+Mat-Loss` as expected.
 
-For your own data, see [Input files](#input-files); each step is described in [docs/qc.md](docs/qc.md) and [docs/analysis.md](docs/analysis.md).
+For your own data, see [Input files](#input-files); each step is described in [Quality control](https://hongjianjin.github.io/imprintomeR/articles/qc.html) and [Analysis](https://hongjianjin.github.io/imprintomeR/articles/analysis.html).
 
 ## Input files
 
@@ -104,12 +106,12 @@ There are two entry points. Start from IDAT files to run QC with imprintomeR (pa
 | Metadata (`data.frame`) | **Required:** `Sample_Name` (unique; matched to the beta column names) and `Sample_Group` (or pass `auto_group = TRUE`). Samples present in only one of the two tables are dropped. Other columns are kept and exported. |
 | Panel, genome, assay | `probeset`: a panel from `probesets_hg38.rds` / `probesets_hg19.rds` (see [Bundled probesets](#bundled-probesets)); `genome`: `"hg38"` or `"hg19"`; `assay`: the array type (`"450K"`, `"EPICv1"` or `"EPICv2"`), recorded with the results. |
 
-Example files: `imprintome_example("beta", path = TRUE)` and `imprintome_example("meta", path = TRUE)` are tab-delimited text files in this layout (782 probes × 28 samples from GEO GSE52576), and can be passed directly to the command-line script (`run_imprintomeR.R --beta-file ... --meta-file ...`). For data from GEO, the [GSE52576](vignettes/articles/GSE52576.Rmd) tutorial starts from a series-matrix beta table, and the [GSE240091](vignettes/articles/GSE240091.Rmd) tutorial from IDAT files.
+Example files: `imprintome_example("beta", path = TRUE)` and `imprintome_example("meta", path = TRUE)` are tab-delimited text files in this layout (782 probes × 28 samples from GEO GSE52576), and can be passed directly to the command-line script (`run_imprintomeR.R --beta-file ... --meta-file ...`). For data from GEO, the [GSE52576](https://hongjianjin.github.io/imprintomeR/articles/GSE52576.html) tutorial starts from a series-matrix beta table, and the [GSE240091](https://hongjianjin.github.io/imprintomeR/articles/GSE240091.html) tutorial from IDAT files.
 
 ## Workflow
 
 <p align="center">
-  <img src="images/workflow.jpg" alt="imprintomeR workflow" width="720" />
+  <img src="man/figures/workflow.jpg" alt="imprintomeR workflow" width="720" />
 </p>
 
 ```
@@ -144,9 +146,9 @@ Each `MethQcSet` holds one platform, so cohorts on different arrays are never me
 - Imprinting Deviation Index (**IDI**): (beta - 0.5) × 2
 - Imprinting Deviation Score (**IDS**): √((paternal_median - 0.5)² + (maternal_median - 0.5)²)
 - **Deviation Angle**: atan2(maternal_median - 0.5, paternal_median - 0.5)
-- With a control reference, 0.5 is replaced by each probe's median beta across the controls: paternal/maternal deviations are medians of (beta − reference), and IDS and Angle are computed from these deviations (see [Reference centring](docs/analysis.md#reference-centring-and-infinium-design-types)).
+- With a control reference, 0.5 is replaced by each probe's median beta across the controls: paternal/maternal deviations are medians of (beta − reference), and IDS and Angle are computed from these deviations (see [Reference centring](https://hongjianjin.github.io/imprintomeR/articles/analysis.html#reference-centring-and-infinium-design-types)).
 
-The paternal and maternal classes come from the probeset's `ORIGIN` annotation, and array beta values are bulk, not allele-specific, measurements. IDS and Angle are therefore descriptive summaries along the annotated parental axes, not parent-of-origin calls. The default IDS cutoff (0.2) and confidence tiers (0.1/0.2/0.4, the `Confidence` column) are exploratory screening conventions; calibrate them on tissue-matched controls where possible, and use bootstrap intervals (`n_boot`) to see which samples are borderline ([Uncertainty and calibration](docs/analysis.md#uncertainty-and-calibration)). More on the geometry: [docs/analysis.md](docs/analysis.md).
+The paternal and maternal classes come from the probeset's `ORIGIN` annotation, and array beta values are bulk, not allele-specific, measurements. IDS and Angle are therefore descriptive summaries along the annotated parental axes, not parent-of-origin calls. The default IDS cutoff (0.2) and confidence tiers (0.1/0.2/0.4, the `Confidence` column) are exploratory screening conventions; calibrate them on tissue-matched controls where possible, and use bootstrap intervals (`n_boot`) to see which samples are borderline ([Uncertainty and calibration](https://hongjianjin.github.io/imprintomeR/articles/analysis.html#uncertainty-and-calibration)). More on the geometry: [Analysis](https://hongjianjin.github.io/imprintomeR/articles/analysis.html).
 
 ### Angle Direction Mapping
 Each 45-degree sector of the polar plot is labelled with the direction of shift along the annotated paternal and maternal axes, such as paternal gain or maternal loss of methylation, or global hypo- or hypermethylation. Each label covers the 45° sector centred on the angle in the table (for example, Pat-Gain covers 337.5° to 22.5°). Samples with IDS < 0.2 are labelled ROI (retention of imprinting). The labels are exploratory directional summaries of bulk beta values, not parent-of-origin molecular calls; with `n_boot`, `Mechanism_support` reports how stable a sample's label is under resampling.
@@ -164,18 +166,18 @@ Each 45-degree sector of the polar plot is labelled with the direction of shift 
 
 ## Main analysis options
 
-`runImprintome()` arguments (command-line flags of `run_imprintomeR.R` in brackets). Details and examples: [docs/analysis.md](docs/analysis.md).
+`runImprintome()` arguments (command-line flags of `run_imprintomeR.R` in brackets). Details and examples: [Analysis](https://hongjianjin.github.io/imprintomeR/articles/analysis.html).
 
 | Argument | Default | What it does |
 |---|---|---|
 | `probeset` [`--probeset`] | `"selected"` | Probe panel to score (see [Bundled probesets](#bundled-probesets)) |
 | `dmr_type` [`--dmr-type`] | gametic ICRs for `selected` | `"all"` scores every probe; `"secondary"` reports secondary DMRs separately |
-| `reference_group` / `reference_beta` [`--reference-group` / `--reference-file`] | fixed 0.5 | Centre scores on in-cohort or external tissue-matched controls ([Reference centring](docs/analysis.md#reference-centring-and-infinium-design-types)) |
+| `reference_group` / `reference_beta` [`--reference-group` / `--reference-file`] | fixed 0.5 | Centre scores on in-cohort or external tissue-matched controls ([Reference centring](https://hongjianjin.github.io/imprintomeR/articles/analysis.html#reference-centring-and-infinium-design-types)) |
 | `infinium_type` [`--infinium-type`] | all probes | `"balanced"` averages type I and type II deviations |
-| `icr` [`--icr`] | `FALSE` | Adds per-ICR calls, the multi-locus summary and the `icr_heatmap` plot ([Per-ICR scores](docs/analysis.md#per-icr-scores-and-icr-balanced-ids)) |
+| `icr` [`--icr`] | `FALSE` | Adds per-ICR calls, the multi-locus summary and the `icr_heatmap` plot ([Per-ICR scores](https://hongjianjin.github.io/imprintomeR/articles/analysis.html#per-icr-scores-and-icr-balanced-ids)) |
 | `delta_cutoff`, `z_cutoff` | 0.175, 2 | Per-ICR call thresholds used with `icr = TRUE` (z needs controls) |
 | `balance` [`--balance icr`] | probe-pooled | `"icr"` weights each ICR equally in IDS/Angle |
-| `n_boot`, `n_perm` [`--n-boot`, `--n-perm`] | 0 | Bootstrap intervals, `Mechanism_support` and `Status_interval` (interval above, below or spanning the cutoff) (`resample_reference = TRUE` also resamples in-cohort controls); exploratory origin permutation test, ICR-level by default (control reference only) ([Uncertainty](docs/analysis.md#uncertainty-and-calibration)) |
+| `n_boot`, `n_perm` [`--n-boot`, `--n-perm`] | 0 | Bootstrap intervals, `Mechanism_support` and `Status_interval` (interval above, below or spanning the cutoff) (`resample_reference = TRUE` also resamples in-cohort controls); exploratory origin permutation test, ICR-level by default (control reference only) ([Uncertainty](https://hongjianjin.github.io/imprintomeR/articles/analysis.html#uncertainty-and-calibration)) |
 | `ids_cutoff` [`--ids-cutoff`] | 0.2 | IDS below which a sample is `Normal` with `Mechanism` ROI; `CalibrateIDS()` derives a cohort cutoff from controls |
 
 ## Quality control
@@ -187,13 +189,13 @@ Each 45-degree sector of the polar plot is labelled with the direction of shift 
 
 The control-probe metrics, SNP sample-swap check and predicted donor IDs follow the [ewastools](https://github.com/hhhh5/ewastools) methods (Heiss and Just, 2018) and give the same results as ewastools 1.8.2, without needing it installed.
 
-All other metrics (other control metrics, intensities, predicted sex, SNP contamination, donor IDs) are reported, not used. Beta values are noob-normalized by default (`"noob_swan"` and `"raw"` are alternatives). Normalization, QC tables, plots and export files: [docs/qc.md](docs/qc.md).
+All other metrics (other control metrics, intensities, predicted sex, SNP contamination, donor IDs) are reported, not used. Beta values are noob-normalized by default (`"noob_swan"` and `"raw"` are alternatives). Normalization, QC tables, plots and export files: [Quality control](https://hongjianjin.github.io/imprintomeR/articles/qc.html).
 
 ## Bundled probesets
 
 `probesets_hg19.rds` and `probesets_hg38.rds` hold the same eleven panels: the probe-level `Jima`, `Joshi`, `Court`, `Rosenski`, `selected`, `NanoImprint`, `chr11p15` and `chr20q13` (GNAS) panels, and the region-level `Rosenski_region`, `chr11p15_region` and `chr20q13_region`. Every probe-level panel carries parental-origin (`ORIGIN`), `ICR_name`, `DMR_type` (following Monk et al., 2018) and Infinium design type.
 
-`selected`, the default, keeps the probes present in at least two of `Court`, `Jima`, `Joshi` and `Rosenski` that are on the 450K array and on EPICv1 and/or EPICv2: 782 probes, all on 450K, 742 on EPICv1 and 683 on EPICv2. How the panels and `selected` were built, with the platform table: [docs/probesets.md](docs/probesets.md).
+`selected`, the default, keeps the probes present in at least two of `Court`, `Jima`, `Joshi` and `Rosenski` that are on the 450K array and on EPICv1 and/or EPICv2: 782 probes, all on 450K, 742 on EPICv1 and 683 on EPICv2. How the panels and `selected` were built, with the platform table: [Probesets](https://hongjianjin.github.io/imprintomeR/articles/probesets.html).
 
 ## Plots
 
@@ -216,21 +218,23 @@ p <- plot(x, plot_type = "polar", result_name = "AnalyzeImprintStatus.selected",
 x <- runImprintomeVisualizations(x, plot_types = "default", probeset = "selected")
 ```
 
-Colours by parental origin follow the `ORIGIN` annotation (legend "Annotated parental origin"), not allele-specific measurements. QC plots on a `MethQcSet` take `type =` instead of `plot_type =`. All plot types with examples: [docs/plots.md](docs/plots.md).
+Colours by parental origin follow the `ORIGIN` annotation (legend "Annotated parental origin"), not allele-specific measurements. QC plots on a `MethQcSet` take `type =` instead of `plot_type =`. All plot types with examples: [Plots](https://hongjianjin.github.io/imprintomeR/articles/plots.html).
 
 ## Documentation
 
-- [docs/qc.md](docs/qc.md): QC preprocessing, normalization, QC tables, merging and export files
-- [docs/analysis.md](docs/analysis.md): `ImprintomeSet`, scoring options, reference centring, per-ICR calls, uncertainty and calibration, export
-- [docs/plots.md](docs/plots.md): all plot types with examples
-- [docs/probesets.md](docs/probesets.md): bundled panels, how `selected` was built, platform coverage
-- [FAQ.md](FAQ.md): choosing an IDS cutoff and interpreting results (control references, bootstrap intervals, `Mechanism_support`, per-ICR calls, the multi-locus flag)
-- [Command-line guide](vignettes/articles/command-line.Rmd): command-line QC and analysis
+All guides, vignettes and the function reference are on the [website](https://hongjianjin.github.io/imprintomeR/); the sources of the guides are in `vignettes/articles/`.
+
+- [Quality control](https://hongjianjin.github.io/imprintomeR/articles/qc.html): QC preprocessing, normalization, QC tables, merging and export files
+- [Analysis](https://hongjianjin.github.io/imprintomeR/articles/analysis.html): `ImprintomeSet`, scoring options, reference centring, per-ICR calls, uncertainty and calibration, export
+- [Plots](https://hongjianjin.github.io/imprintomeR/articles/plots.html): all plot types with examples
+- [Probesets](https://hongjianjin.github.io/imprintomeR/articles/probesets.html): bundled panels, how `selected` was built, platform coverage
+- [FAQ](https://hongjianjin.github.io/imprintomeR/articles/faq.html): choosing an IDS cutoff and interpreting results (control references, bootstrap intervals, `Mechanism_support`, per-ICR calls, the multi-locus flag)
+- [Command-line guide](https://hongjianjin.github.io/imprintomeR/articles/command-line.html): command-line QC and analysis
 - R vignettes: `vignette("imprintomeset-quickstart")`, `vignette("imprintomeset-results-export")`, `vignette("imprintomeR-workflow-basic")` (core functions without S4 objects)
 - Worked GEO examples (guides in `vignettes/articles/`, with run notebooks and their outputs in `tutorials/`):
-  - GSE52576 ([guide](vignettes/articles/GSE52576.Rmd), [notebook](tutorials/GSE52576.ipynb)): androgenetic and parthenogenetic samples
-  - GSE240091 ([guide](vignettes/articles/GSE240091.Rmd), [notebook](tutorials/GSE240091.ipynb)): QC and analysis of an EPIC cohort
-  - GSE74738 ([guide](vignettes/articles/GSE74738.Rmd), [notebook](tutorials/GSE74738.ipynb)): 450K placentas scored against their own controls, with per-ICR calls, bootstrap intervals, the origin permutation test and a control-calibrated cutoff
+  - GSE52576 ([guide](https://hongjianjin.github.io/imprintomeR/articles/GSE52576.html), [notebook](https://github.com/hongjianjin/imprintomeR/blob/main/tutorials/GSE52576.ipynb)): androgenetic and parthenogenetic samples
+  - GSE240091 ([guide](https://hongjianjin.github.io/imprintomeR/articles/GSE240091.html), [notebook](https://github.com/hongjianjin/imprintomeR/blob/main/tutorials/GSE240091.ipynb)): QC and analysis of an EPIC cohort
+  - GSE74738 ([guide](https://hongjianjin.github.io/imprintomeR/articles/GSE74738.html), [notebook](https://github.com/hongjianjin/imprintomeR/blob/main/tutorials/GSE74738.ipynb)): 450K placentas scored against their own controls, with per-ICR calls, bootstrap intervals, the origin permutation test and a control-calibrated cutoff
 
 ## Test Suite
 
@@ -250,4 +254,4 @@ Center for Applied Bioinformatics, St. Jude Children's Research Hospital, Memphi
 
 ## SessionInfo
 
-The R session used to build and test imprintomeR 1.5.0 (R 4.3.3), with the versions of the declared dependencies, is recorded in [tutorials/sessionInfo.md](tutorials/sessionInfo.md). Since then, ewastools and Vennerable have been removed as dependencies, and cowplot, pheatmap and Rtsne moved to `Suggests`.
+The R session used to build and test imprintomeR 1.5.0 (R 4.3.3), with the versions of the declared dependencies, is recorded in [tutorials/sessionInfo.md](https://github.com/hongjianjin/imprintomeR/blob/main/tutorials/sessionInfo.md). Since then, ewastools and Vennerable have been removed as dependencies, and cowplot, pheatmap and Rtsne moved to `Suggests`.

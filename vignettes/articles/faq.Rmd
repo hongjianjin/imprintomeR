@@ -1,4 +1,6 @@
-# imprintomeR FAQ: choosing cutoffs and interpreting results
+---
+title: "imprintomeR FAQ: choosing cutoffs and interpreting results"
+---
 
 Written for imprintomeR 1.5.3.
 

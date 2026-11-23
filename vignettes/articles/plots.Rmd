@@ -1,6 +1,6 @@
-# Visualization
-
-[← Back to README](../README.md)
+---
+title: "Visualization"
+---
 
 ## Available plot types
 
@@ -17,7 +17,7 @@
 - `cor_heatmap` - sample-to-sample correlation heatmap
 - `rainfall` - chromosomal rainfall plot of probe-level IDI (single sample)
 - `radar` - radar plot of ICR-level deviation (single sample): one spoke per curated ICR (median IDI of its probes), in genomic order clockwise from the top, labelled chromosome_annotated parental origin_ICR
-- `icr_heatmap` - per-ICR heatmap (samples × ICRs) from the per-ICR calls; its size follows the numbers of samples and ICRs, sample names are hidden above 300 samples (`show_sample_names`), and the file format follows the extension (`.pdf`, `.png`, `.jpg`); needs `runImprintome(icr = TRUE)` (see [Per-ICR scores](analysis.md#per-icr-scores-and-icr-balanced-ids))
+- `icr_heatmap` - per-ICR heatmap (samples × ICRs) from the per-ICR calls; its size follows the numbers of samples and ICRs, sample names are hidden above 300 samples (`show_sample_names`), and the file format follows the extension (`.pdf`, `.png`, `.jpg`); needs `runImprintome(icr = TRUE)` (see [Per-ICR scores](https://hongjianjin.github.io/imprintomeR/articles/analysis.html#per-icr-scores-and-icr-balanced-ids))
 
 ImprintomeSet plots take `plot_type =`; MethQcSet QC plots (Step 1) take `type =`.
 

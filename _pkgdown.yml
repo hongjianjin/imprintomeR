@@ -1,0 +1,165 @@
+url: https://hongjianjin.github.io/imprintomeR/
+
+template:
+  bootstrap: 5
+
+home:
+  title: "imprintomeR: genomic imprinting disturbance from methylation arrays"
+
+navbar:
+  structure:
+    left: [intro, reference, articles]
+    right: [search, github]
+  components:
+    intro:
+      text: Get started
+      href: articles/imprintomeset-quickstart.html
+
+articles:
+- title: Get started
+  navbar: ~
+  contents:
+  - imprintomeset-quickstart
+  - imprintomeR-workflow-basic
+- title: Guides
+  navbar: Guides
+  contents:
+  - articles/qc
+  - articles/analysis
+  - articles/plots
+  - imprintomeset-results-export
+  - articles/probesets
+  - articles/command-line
+  - articles/faq
+- title: Worked GEO examples
+  navbar: Worked GEO examples
+  desc: >
+    Download, QC and analysis of public cohorts. Code is shown, not run, on this site;
+    run notebooks with their outputs are in the tutorials/ folder of the GitHub repository.
+  contents:
+  - articles/GSE52576
+  - articles/GSE240091
+  - articles/GSE74738
+
+reference:
+- title: Example data and setup
+  contents:
+  - imprintome_example
+  - setup_imprintome_data
+  - imprintomeR-package
+
+- title: Quality control (MethQcSet)
+  desc: Read IDAT files, run QC and preprocessing for one array platform.
+  contents:
+  - check_platform
+  - runMethQC
+  - MethQcSet
+  - MethQcSet-class
+  - MethQcSet-io
+  - MethQcSet-accessors
+  - MethQcSet-methods
+  - subsetMethQC
+  - '`merge,MethQcSet,ANY-method`'
+  - MethQcSet-merge
+  - find_intersection
+  - qc_summarize
+  - Meth_QC
+  - '`plot,MethQcSet,missing-method`'
+  - MethQcSet-viz
+  - '`export,MethQcSet-method`'
+
+- title: Conversion and probe aggregation
+  desc: From a MethQcSet to an ImprintomeSet; EPICv2 replicate probes.
+  contents:
+  - as.ImprintomeSet
+  - MethQcSet-convert
+  - aggregate_probes
+  - aggregate_beta_epicv2
+
+- title: Imprinting analysis (ImprintomeSet)
+  desc: Build the analysis object and score each sample.
+  contents:
+  - ImprintomeSet
+  - ImprintomeSet-class
+  - ImprintomeSet-accessors
+  - runImprintome
+  - summarize
+  - validate_meta_tier
+
+- title: Scores and references
+  desc: Sample-level scores (IDS, Angle, Mechanism), control references, uncertainty and calibration.
+  contents:
+  - AnalyzeImprintStatus
+  - compute_ids
+  - compute_angle
+  - classify_mechanism
+  - BuildReferenceProfile
+  - CalibrateIDS
+  - compute_consistency
+  - DetectMosaicism
+
+- title: Per-ICR calls
+  desc: Each imprinting control region scored on its own, and the multi-locus summary.
+  contents:
+  - AnalyzeICRStatus
+  - SummarizeICRStatus
+  - AggregateByLocus
+  - Calculate_impvar
+  - Survey_Global_Imprinting
+  - Survey_Global_Imprinting_Batch
+
+- title: Plots
+  contents:
+  - ImprintomeSet-plot
+  - runImprintomeVisualizations
+  - PlotPolar
+  - PlotICRHeatmap
+  - PlotRainfall
+  - BetaHeatmapByGene
+  - BetaCircularHeatmap
+  - BetaVlnPlot
+  - BetaBeePlot
+  - BetaBeePlot_orgin
+  - BetaBeePlot_orgin2
+  - BetaBeePlot_single_chr
+  - Beeplot_chr_vs_other
+  - Beeplot_chr_vs_other_single
+  - Plot_ICR_var_med
+  - plot_imp_consistency
+  - GetColors
+  - Check_Meta_Color
+
+- title: Export
+  contents:
+  - export
+  - SaveTable
+  - SaveTableStyle
+  - QC_final_Cutoffs
+  - ctrlMatCutoffs
+
+- title: Input, probesets and annotation
+  desc: Read beta and metadata tables; subset and annotate probes.
+  contents:
+  - LoadBeta
+  - LoadMeta
+  - LoadMetaBeta
+  - LoadTable
+  - SubsetBeta_By_Probeset
+  - AnnotateProbe2Gene
+  - ExtractProbesByBeds
+  - ExtractProbesByGenelist
+  - Bed2Granges
+  - ParseBedFile
+  - ParseBedFile2
+
+- title: Utilities
+  contents:
+  - Between
+  - CalcAvgByGrp
+  - CheckHeader
+  - CheckProbeIDs
+  - CheckSentrixID
+  - CheckSheetName
+  - idx_matching_column
+  - .imprint_origin_colors
+  - .imprint_save_plot

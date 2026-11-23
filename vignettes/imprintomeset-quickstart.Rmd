@@ -315,7 +315,7 @@ names(plots(x))
 
 ### 7.1 Access Stored Plot Objects
 
-```{r}
+```{r, fig.alt = c("Stored beeswarm plot of beta values by annotated parental origin", "Stored chromosome beeswarm plot for one sample")}
 p_from_object <- plots(x)[["beeswarm_origin.selected"]]
 p_from_object
 

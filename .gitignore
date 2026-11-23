@@ -20,3 +20,6 @@ test_set/
 
 # Local rebuttal notes
 tmp_rebuttal_progress.md
+
+# pkgdown site (built by CI into gh-pages)
+docs/

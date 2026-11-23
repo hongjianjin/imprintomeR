@@ -47,6 +47,12 @@
 
 PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", prefix=NULL){
   .require_suggested("pheatmap", "plot_type = 'cor_heatmap'")
+  # pheatmap(filename = ) can leave a PDF device open; close any device opened here so
+  # later plots are not drawn into it.
+  devs_before <- grDevices::dev.list()
+  on.exit({
+    for (d in rev(setdiff(grDevices::dev.list(), devs_before))) grDevices::dev.off(d)
+  }, add = TRUE)
   resolved <- .resolve_beta_meta_inputs(betaFile, metaFile, require_meta = TRUE)
   betaFile <- resolved$beta
   metaFile <- resolved$meta
@@ -1581,7 +1587,8 @@ BetaHeatmapByGene <- function(beta, meta = NULL, probeset = "selected",
     cat("\n\t", basename(outFile), "[saved]")
   }
 
-  invisible(hm)
+  # Return visibly when nothing was saved, so the heatmap is drawn when printed (as BetaHeatmap() does)
+  if (is.null(outFile)) hm else invisible(hm)
 }
 
 ##################################################################

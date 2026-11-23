@@ -1,6 +1,6 @@
-# Quality control and preprocessing (MethQcSet)
-
-[← Back to README](../README.md)
+---
+title: "Quality control and preprocessing (MethQcSet)"
+---
 
 QC runs on one array platform at a time and produces a `MethQcSet`. Samples are marked `Final.QC` PASS or FAIL; none are removed until `subsetMethQC()`.
 
@@ -96,7 +96,7 @@ The control-probe metrics (Illumina BeadArray Controls Reporter), SNP genotype c
 
 All other values are reported for review and do not affect `Final.QC`: the other control metrics (staining, extension, hybridization, specificity and so on), median intensities, predicted sex, SNP contamination and predicted donor IDs. `subsetMethQC(qcset, final_qc = "PASS")` keeps the passing samples.
 
-> **Already have QC-cleaned data?** Skip to [Step 2 Option B](analysis.md#step-2-create-analysis-container-imprintomeset) and construct `ImprintomeSet` directly from `beta` + `meta`.
+> **Already have QC-cleaned data?** Skip to [Step 2 Option B](https://hongjianjin.github.io/imprintomeR/articles/analysis.html#step-2-create-analysis-container-imprintomeset) and construct `ImprintomeSet` directly from `beta` + `meta`.
 
 Key MethQcSet features:
 
@@ -210,4 +210,4 @@ export(
 
 The "Notes" section of `{prefix}_summary.txt` lists the optional sheets that were not written because their data were missing (for example `Ctrl_matrix`, `contamination` and `predUniqDonor_ID` when ewastools did not run), or states that all documented sheets were created.
 
-ImprintomeSet results are exported with `export(x, ...)` (see [Step 4](analysis.md#step-4-summarize-visualize-export)).
+ImprintomeSet results are exported with `export(x, ...)` (see [Step 4](https://hongjianjin.github.io/imprintomeR/articles/analysis.html#step-4-summarize-visualize-export)).

@@ -106,6 +106,6 @@ Suggests:
     venn
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-URL: https://github.com/hongjianjin/imprintomeR
+URL: https://hongjianjin.github.io/imprintomeR/, https://github.com/hongjianjin/imprintomeR
 BugReports: https://github.com/hongjianjin/imprintomeR/issues
 

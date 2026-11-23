@@ -1,12 +1,12 @@
-# Imprinting analysis (ImprintomeSet)
-
-[← Back to README](../README.md)
+---
+title: "Imprinting analysis (ImprintomeSet)"
+---
 
 ## Score geometry
 
 Subtracting 0.5 moves the hemimethylated state of an imprinting control region to the origin (0, 0) of a plane whose axes are the paternal and maternal median deviations. Each sample is then a deviation vector: IDS is its length, the Euclidean distance from balanced imprinting, and Angle its direction. Without the shift, distance and direction would be measured from a fully unmethylated locus. IDI applies the same shift probe by probe and rescales it to [−1, 1].
 
-The interpretation of the scores and the default cutoffs are described in the [README](../README.md#core-formulas).
+The interpretation of the scores and the default cutoffs are described in the [README](https://github.com/hongjianjin/imprintomeR#core-formulas).
 
 ## Step 2: Create Analysis Container (ImprintomeSet)
 
@@ -179,7 +179,7 @@ manifest <- export(x, outdir = "imprintome_export", prefix = "imprintome",
                    save_plots = TRUE, plot_device = "pdf")
 ```
 
-`export()` writes every result table and, with `save_plots = TRUE`, every stored plot; it returns a manifest of the files written. Plot types and options are listed under [Visualization](plots.md#visualization).
+`export()` writes every result table and, with `save_plots = TRUE`, every stored plot; it returns a manifest of the files written. Plot types and options are listed under [Visualization](https://hongjianjin.github.io/imprintomeR/articles/plots.html).
 
 ## Inspecting the objects
 
