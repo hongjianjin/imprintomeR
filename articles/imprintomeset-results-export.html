@@ -383,8 +383,13 @@ label is clipped.</p>
 <span>  sample_id <span class="op">=</span> <span class="va">sample_id1</span>,</span>
 <span>  title <span class="op">=</span> <span class="st">"ImprintomeSet Radar"</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">p_radar</span></span></code></pre></div>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-10-1.png" class="r-plt" alt="Radar plot of the median imprinting deviation index per ICR for one sample" width="100%"></p>
+<span><span class="co"># Size (inches) that keeps the panel at 12 in with room for the labels; ggsave() uses it too</span></span>
+<span><span class="va">radar_size</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">p_radar</span>, <span class="st">"imprintomeR_figure_size"</span><span class="op">)</span></span>
+<span><span class="va">radar_size</span></span>
+<span><span class="co">#&gt; [1] 16.77778</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">p_radar</span></span></code></pre></div>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-11-1.png" class="r-plt" alt="Radar plot of the median imprinting deviation index per ICR for one sample" width="100%"></p>
 </div>
 </div>
 <div class="section level2">
@@ -393,7 +398,7 @@ label is clipped.</p>
 <div class="section level3">
 <h3 id="violin-plot">4.1 Violin Plot<a class="anchor" aria-label="anchor" href="#violin-plot"></a>
 </h3>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p_vln</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  plot_type <span class="op">=</span> <span class="st">"violin"</span>,</span>
@@ -405,12 +410,12 @@ label is clipped.</p>
 <span><span class="va">p_vln</span></span>
 <span><span class="co">#&gt; Warning: Removed 2378 rows containing missing values or values outside the scale range</span></span>
 <span><span class="co">#&gt; (`geom_violin()`).</span></span></code></pre></div>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-11-1.png" class="r-plt" alt="Violin plots of beta values per sample" width="100%"></p>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-12-1.png" class="r-plt" alt="Violin plots of beta values per sample" width="100%"></p>
 </div>
 <div class="section level3">
 <h3 id="beeswarm-plot">4.2 Beeswarm Plot<a class="anchor" aria-label="anchor" href="#beeswarm-plot"></a>
 </h3>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p_bee</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  plot_type <span class="op">=</span> <span class="st">"beeswarm"</span>,</span>
@@ -422,12 +427,12 @@ label is clipped.</p>
 <span><span class="va">p_bee</span></span>
 <span><span class="co">#&gt; Warning: Removed 16 rows containing missing values or values outside the scale range</span></span>
 <span><span class="co">#&gt; (`position_quasirandom()`).</span></span></code></pre></div>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-12-1.png" class="r-plt" alt="Beeswarm plot of beta values per sample" width="100%"></p>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-13-1.png" class="r-plt" alt="Beeswarm plot of beta values per sample" width="100%"></p>
 </div>
 <div class="section level3">
 <h3 id="single-chromosome-beeswarm">4.3 Single-Chromosome Beeswarm<a class="anchor" aria-label="anchor" href="#single-chromosome-beeswarm"></a>
 </h3>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p_bee_chr11</span> <span class="op">&lt;-</span> <span class="fu">imprintomeR</span><span class="fu">:::</span><span class="fu"><a href="../reference/BetaBeePlot_single_chr.html">BetaBeePlot_single_chr</a></span><span class="op">(</span></span>
 <span>  beta <span class="op">=</span> <span class="va">beta_x</span>,</span>
 <span>  meta <span class="op">=</span> <span class="va">meta_x</span>,</span>
@@ -440,7 +445,7 @@ label is clipped.</p>
 <span><span class="va">p_bee_chr11</span></span>
 <span><span class="co">#&gt; Warning: Removed 2 rows containing missing values or values outside the scale range</span></span>
 <span><span class="co">#&gt; (`position_quasirandom()`).</span></span></code></pre></div>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-13-1.png" class="r-plt" alt="Beeswarm plot of chromosome 11 probes per sample, coloured by parental origin" width="100%"></p>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-14-1.png" class="r-plt" alt="Beeswarm plot of chromosome 11 probes per sample, coloured by parental origin" width="100%"></p>
 </div>
 <div class="section level3">
 <h3 id="origin-split-beeswarm">4.4 Origin-Split Beeswarm<a class="anchor" aria-label="anchor" href="#origin-split-beeswarm"></a>
@@ -448,7 +453,7 @@ label is clipped.</p>
 <p>Use the ImprintomeSet dispatcher
 (<code>plot_type = "beeswarm_origin"</code>) for cohort-wide origin
 split plots.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p_bee_origin</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  plot_type <span class="op">=</span> <span class="st">"beeswarm_origin"</span>,</span>
@@ -457,12 +462,12 @@ split plots.</p>
 <span>  title <span class="op">=</span> <span class="st">"Beeswarm Origin (Cohort)"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">p_bee_origin</span></span></code></pre></div>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-14-1.png" class="r-plt" alt="Beeswarm plot of beta values per sample, split by annotated parental origin" width="100%"></p>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-15-1.png" class="r-plt" alt="Beeswarm plot of beta values per sample, split by annotated parental origin" width="100%"></p>
 </div>
 <div class="section level3">
 <h3 id="single-sample-beeswarm-faceted-by-chromosome">4.5 Single-Sample Beeswarm Faceted by Chromosome<a class="anchor" aria-label="anchor" href="#single-sample-beeswarm-faceted-by-chromosome"></a>
 </h3>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sample_id1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/row_colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="fu"><a href="../reference/MethQcSet-accessors.html">beta</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span></span>
 <span><span class="va">p_bee_chr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
@@ -473,7 +478,7 @@ split plots.</p>
 <span>  title <span class="op">=</span> <span class="st">"Beeswarm by Chromosome (Origin Split)"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">p_bee_chr</span></span></code></pre></div>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-15-1.png" class="r-plt" alt="Beeswarm plot of one sample's beta values, faceted by chromosome" width="100%"></p>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-16-1.png" class="r-plt" alt="Beeswarm plot of one sample's beta values, faceted by chromosome" width="100%"></p>
 <p>The subtitle reports the selected sample, probeset, and chromosome
 scope. Within each chromosome panel, maternal/paternal points are
 separated and median summary markers are overlaid.</p>
@@ -485,7 +490,7 @@ separated and median summary markers are overlaid.</p>
 <div class="section level3">
 <h3 id="correlation-heatmap">5.1 Correlation Heatmap<a class="anchor" aria-label="anchor" href="#correlation-heatmap"></a>
 </h3>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  plot_type <span class="op">=</span> <span class="st">"cor_heatmap"</span>,</span>
@@ -679,14 +684,14 @@ separated and median summary markers are overlaid.</p>
 </h3>
 <p>Displays individual Illumina probe IDs (e.g., cg00000029) as rows and
 samples as columns with their methylation values color-coded.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  plot_type <span class="op">=</span> <span class="st">"heatmap_by_probe"</span>,</span>
 <span>  probeset <span class="op">=</span> <span class="st">"selected"</span>,</span>
 <span>  SAMPLEID <span class="op">=</span> <span class="st">"Sample_Name"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-17-1.png" class="r-plt" alt="Heatmap of beta values of the panel probes, probes by samples" width="100%"></p>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-18-1.png" class="r-plt" alt="Heatmap of beta values of the panel probes, probes by samples" width="100%"></p>
 </div>
 <div class="section level3">
 <h3 id="circular-heatmap">5.3 Circular Heatmap<a class="anchor" aria-label="anchor" href="#circular-heatmap"></a>
@@ -720,7 +725,7 @@ both are missing, all samples appear in one section.</li>
 </ul>
 <p>The layout has room for a few sections only, so this example keeps
 three of the 11 sample groups:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">keep</span> <span class="op">&lt;-</span> <span class="va">meta_x</span><span class="op">$</span><span class="va">Sample_Group</span> <span class="op"><a href="https://rdrr.io/pkg/BiocGenerics/man/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Hydatidiform mole"</span>, <span class="st">"parthenogenetic activated oocytes"</span>,</span>
 <span>                                   <span class="st">"Term placenta- fetal side"</span><span class="op">)</span></span>
 <span><span class="va">x_sub</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ImprintomeSet.html">ImprintomeSet</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="va">beta_x</span><span class="op">[</span>, <span class="va">keep</span><span class="op">]</span>, meta <span class="op">=</span> <span class="va">meta_x</span><span class="op">[</span><span class="va">keep</span>, <span class="op">]</span>,</span>
@@ -751,7 +756,7 @@ three of the 11 sample groups:</p>
 <span><span class="co">#&gt; Note: 1 point is out of plotting region in sector 'chr22', track '7'.</span></span>
 <span><span class="co">#&gt; Note: 33 points are out of plotting region in sector 'chr22', track</span></span>
 <span><span class="co">#&gt; '7'.</span></span></code></pre></div>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-18-1.png" class="r-plt" alt="Circular heatmap of beta values by chromosome for three sample groups" width="100%"></p>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-19-1.png" class="r-plt" alt="Circular heatmap of beta values by chromosome for three sample groups" width="100%"></p>
 </div>
 <div class="section level3">
 <h3 id="heatmap-aggregated-by-gene-symbol">5.4 Heatmap Aggregated by Gene Symbol<a class="anchor" aria-label="anchor" href="#heatmap-aggregated-by-gene-symbol"></a>
@@ -792,7 +797,7 @@ linkage)</li>
 <code>outFile</code>: optional output file (PDF, or PNG with a
 <code>.png</code> extension)</li>
 </ul>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  plot_type <span class="op">=</span> <span class="st">"heatmap_by_gene"</span>,</span>
@@ -802,7 +807,7 @@ linkage)</li>
 <span>  clusterRows <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  clusterColumns <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-19-1.png" class="r-plt" alt="Heatmap of median beta values per gene label, genes by samples" width="100%"></p>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-20-1.png" class="r-plt" alt="Heatmap of median beta values per gene label, genes by samples" width="100%"></p>
 </div>
 </div>
 <div class="section level2">
@@ -815,7 +820,7 @@ linkage)</li>
 usable (finite) probe values for the selected sample. A
 single-chromosome request with fewer than five usable probes returns an
 informative error.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p_bee_chr_all</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  plot_type <span class="op">=</span> <span class="st">"beeswarm_chr"</span>,</span>
@@ -825,12 +830,12 @@ informative error.</p>
 <span>  title <span class="op">=</span> <span class="st">"Beeswarm by Chromosome (All Chromosomes)"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">p_bee_chr_all</span></span></code></pre></div>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-20-1.png" class="r-plt" alt="Beeswarm panels of beta values for each chromosome" width="100%"></p>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-21-1.png" class="r-plt" alt="Beeswarm panels of beta values for each chromosome" width="100%"></p>
 </div>
 <div class="section level3">
 <h3 id="rainfall-plot">6.2 Rainfall Plot<a class="anchor" aria-label="anchor" href="#rainfall-plot"></a>
 </h3>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sample_id1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/row_colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="fu"><a href="../reference/MethQcSet-accessors.html">beta</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span></span>
 <span></span>
 <span><span class="va">p_rain</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
@@ -842,12 +847,12 @@ informative error.</p>
 <span><span class="va">p_rain</span></span>
 <span><span class="co">#&gt; Warning: Removed 1 row containing missing values or values outside the scale range</span></span>
 <span><span class="co">#&gt; (`geom_point()`).</span></span></code></pre></div>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-21-1.png" class="r-plt" alt="Rainfall plot of probe-level imprinting deviation along the genome for one sample" width="100%"></p>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-22-1.png" class="r-plt" alt="Rainfall plot of probe-level imprinting deviation along the genome for one sample" width="100%"></p>
 </div>
 <div class="section level3">
 <h3 id="chromosome-vs-others-beeswarm">6.3 Chromosome vs Others Beeswarm<a class="anchor" aria-label="anchor" href="#chromosome-vs-others-beeswarm"></a>
 </h3>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">probesets</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"probesets_hg38.rds"</span>, package <span class="op">=</span> <span class="st">"imprintomeR"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">ps</span> <span class="op">&lt;-</span> <span class="va">probesets</span><span class="op">[[</span><span class="st">"selected"</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="va">common_probes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">intersect</a></span><span class="op">(</span><span class="va">ps</span><span class="op">$</span><span class="va">NAME</span>, <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/row_colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">beta_x</span><span class="op">)</span><span class="op">)</span></span>
@@ -871,19 +876,19 @@ informative error.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Did you misspell an argument name?</span></span>
 <span><span class="co">#&gt; Warning: Removed 2 rows containing missing values or values outside the scale range</span></span>
 <span><span class="co">#&gt; (`position_quasirandom()`).</span></span></code></pre></div>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-22-1.png" class="r-plt" alt="Beeswarm plots comparing chromosome 11 probes with all other probes, one per sample" width="100%"></p>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-23-1.png" class="r-plt" alt="Beeswarm plots comparing chromosome 11 probes with all other probes, one per sample" width="100%"></p>
 <pre><code><span><span class="co">#&gt; Warning in fortify(data, ...): Arguments in `...` must be used.</span></span>
 <span><span class="co">#&gt; <span style="color: #BB0000;">✖</span> Problematic argument:</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> alpha = 1</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Did you misspell an argument name?</span></span>
 <span><span class="co">#&gt; Warning: Removed 1 row containing missing values or values outside the scale range</span></span>
 <span><span class="co">#&gt; (`position_quasirandom()`).</span></span></code></pre>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-22-2.png" class="r-plt" alt="Beeswarm plots comparing chromosome 11 probes with all other probes, one per sample" width="100%"></p>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-23-2.png" class="r-plt" alt="Beeswarm plots comparing chromosome 11 probes with all other probes, one per sample" width="100%"></p>
 </div>
 <div class="section level3">
 <h3 id="batch-chromosome-vs-others-convenience-wrapper">6.4 Batch Chromosome vs Others Convenience Wrapper<a class="anchor" aria-label="anchor" href="#batch-chromosome-vs-others-convenience-wrapper"></a>
 </h3>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">imprintomeR</span><span class="fu">:::</span><span class="fu"><a href="../reference/Beeplot_chr_vs_other_single.html">Beeplot_chr_vs_other_single</a></span><span class="op">(</span></span>
 <span>  input <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="va">beta_x</span>, meta <span class="op">=</span> <span class="va">meta_x</span><span class="op">)</span>,</span>
 <span>  chrs <span class="op">=</span> <span class="st">"chr1,chr11,chr20"</span>,</span>
@@ -1326,7 +1331,7 @@ object can be exported later with
 <code>plot_types = "default"</code> excludes
 <code>circular_heatmap</code>; add it explicitly when you want that
 direct-draw plot stored too.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/runImprintomeVisualizations.html">runImprintomeVisualizations</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  plot_types <span class="op">=</span> <span class="st">"default"</span>,</span>
@@ -1356,11 +1361,11 @@ direct-draw plot stored too.</p>
 <span></span>
 <span><span class="co"># Access stored plot objects</span></span>
 <span><span class="fu"><a href="../reference/ImprintomeSet-accessors.html">plots</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">[[</span><span class="st">"polar.selected"</span><span class="op">]</span><span class="op">]</span></span></code></pre></div>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-24-1.png" class="r-plt" alt="Stored polar and beeswarm plots" width="100%"></p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/ImprintomeSet-accessors.html">plots</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">[[</span><span class="st">"beeswarm_origin.selected"</span><span class="op">]</span><span class="op">]</span></span></code></pre></div>
-<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-24-2.png" class="r-plt" alt="Stored polar and beeswarm plots" width="100%"></p>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-25-1.png" class="r-plt" alt="Stored polar and beeswarm plots" width="100%"></p>
 <div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/ImprintomeSet-accessors.html">plots</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">[[</span><span class="st">"beeswarm_origin.selected"</span><span class="op">]</span><span class="op">]</span></span></code></pre></div>
+<p><img src="imprintomeset-results-export_files/figure-html/unnamed-chunk-25-2.png" class="r-plt" alt="Stored polar and beeswarm plots" width="100%"></p>
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
 <span><span class="co"># Store circular heatmap explicitly when needed (three sample groups, see section 5.3)</span></span>
 <span><span class="va">x_sub</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/runImprintomeVisualizations.html">runImprintomeVisualizations</a></span><span class="op">(</span></span>
@@ -1388,7 +1393,7 @@ direct-draw plot stored too.</p>
 <div class="section level2">
 <h2 id="summarize-and-export">8. Summarize and Export<a class="anchor" aria-label="anchor" href="#summarize-and-export"></a>
 </h2>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/summarize.html">summarize</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
 <span><span class="va">s</span><span class="op">$</span><span class="va">object</span></span>
 <span><span class="co">#&gt;   assay genome beta_nrow beta_ncol meta_nrow meta_ncol probeset_type</span></span>
@@ -1468,7 +1473,7 @@ remain available through <code>qc(x)</code> and
 <p><strong>For MethQcSet export</strong>, the output includes a
 <code>summary.txt</code> file with an automatically-generated “Notes”
 section:</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/export.html">export</a></span><span class="op">(</span><span class="va">qcset</span>, outdir <span class="op">=</span> <span class="st">"qc_output"</span>, format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"xlsx"</span>, <span class="st">"rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Inspect the summary.txt file to see which sheets were created:</span></span>
@@ -1495,7 +1500,7 @@ needed.</li>
 <div class="section level2">
 <h2 id="session-info">Session Info<a class="anchor" aria-label="anchor" href="#session-info"></a>
 </h2>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.6.2 (2026-10-29)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-pc-linux-gnu</span></span>

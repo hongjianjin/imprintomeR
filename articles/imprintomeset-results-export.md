@@ -325,11 +325,19 @@ p_radar <- plot(
   sample_id = sample_id1,
   title = "ImprintomeSet Radar"
 )
+# Size (inches) that keeps the panel at 12 in with room for the labels; ggsave() uses it too
+radar_size <- attr(p_radar, "imprintomeR_figure_size")
+radar_size
+#> [1] 16.77778
+```
+
+``` r
+
 p_radar
 ```
 
 ![Radar plot of the median imprinting deviation index per ICR for one
-sample](imprintomeset-results-export_files/figure-html/unnamed-chunk-10-1.png)
+sample](imprintomeset-results-export_files/figure-html/unnamed-chunk-11-1.png)
 
 ## 4. Probe-Level Visualizations
 
@@ -351,7 +359,7 @@ p_vln
 ```
 
 ![Violin plots of beta values per
-sample](imprintomeset-results-export_files/figure-html/unnamed-chunk-11-1.png)
+sample](imprintomeset-results-export_files/figure-html/unnamed-chunk-12-1.png)
 
 ### 4.2 Beeswarm Plot
 
@@ -371,7 +379,7 @@ p_bee
 ```
 
 ![Beeswarm plot of beta values per
-sample](imprintomeset-results-export_files/figure-html/unnamed-chunk-12-1.png)
+sample](imprintomeset-results-export_files/figure-html/unnamed-chunk-13-1.png)
 
 ### 4.3 Single-Chromosome Beeswarm
 
@@ -392,7 +400,7 @@ p_bee_chr11
 ```
 
 ![Beeswarm plot of chromosome 11 probes per sample, coloured by parental
-origin](imprintomeset-results-export_files/figure-html/unnamed-chunk-13-1.png)
+origin](imprintomeset-results-export_files/figure-html/unnamed-chunk-14-1.png)
 
 ### 4.4 Origin-Split Beeswarm
 
@@ -412,7 +420,7 @@ p_bee_origin
 ```
 
 ![Beeswarm plot of beta values per sample, split by annotated parental
-origin](imprintomeset-results-export_files/figure-html/unnamed-chunk-14-1.png)
+origin](imprintomeset-results-export_files/figure-html/unnamed-chunk-15-1.png)
 
 ### 4.5 Single-Sample Beeswarm Faceted by Chromosome
 
@@ -431,7 +439,7 @@ p_bee_chr
 ```
 
 ![Beeswarm plot of one sample's beta values, faceted by
-chromosome](imprintomeset-results-export_files/figure-html/unnamed-chunk-15-1.png)
+chromosome](imprintomeset-results-export_files/figure-html/unnamed-chunk-16-1.png)
 
 The subtitle reports the selected sample, probeset, and chromosome
 scope. Within each chromosome panel, maternal/paternal points are
@@ -648,7 +656,7 @@ plot(
 ```
 
 ![Heatmap of beta values of the panel probes, probes by
-samples](imprintomeset-results-export_files/figure-html/unnamed-chunk-17-1.png)
+samples](imprintomeset-results-export_files/figure-html/unnamed-chunk-18-1.png)
 
 ### 5.3 Circular Heatmap
 
@@ -714,7 +722,7 @@ plot(
 ```
 
 ![Circular heatmap of beta values by chromosome for three sample
-groups](imprintomeset-results-export_files/figure-html/unnamed-chunk-18-1.png)
+groups](imprintomeset-results-export_files/figure-html/unnamed-chunk-19-1.png)
 
 ### 5.4 Heatmap Aggregated by Gene Symbol
 
@@ -758,7 +766,7 @@ plot(
 ```
 
 ![Heatmap of median beta values per gene label, genes by
-samples](imprintomeset-results-export_files/figure-html/unnamed-chunk-19-1.png)
+samples](imprintomeset-results-export_files/figure-html/unnamed-chunk-20-1.png)
 
 ## 6. Chromosome and Genome Visualizations
 
@@ -783,7 +791,7 @@ p_bee_chr_all
 ```
 
 ![Beeswarm panels of beta values for each
-chromosome](imprintomeset-results-export_files/figure-html/unnamed-chunk-20-1.png)
+chromosome](imprintomeset-results-export_files/figure-html/unnamed-chunk-21-1.png)
 
 ### 6.2 Rainfall Plot
 
@@ -804,7 +812,7 @@ p_rain
 
 ![Rainfall plot of probe-level imprinting deviation along the genome for
 one
-sample](imprintomeset-results-export_files/figure-html/unnamed-chunk-21-1.png)
+sample](imprintomeset-results-export_files/figure-html/unnamed-chunk-22-1.png)
 
 ### 6.3 Chromosome vs Others Beeswarm
 
@@ -837,7 +845,7 @@ imprintomeR:::Beeplot_chr_vs_other(
 
 ![Beeswarm plots comparing chromosome 11 probes with all other probes,
 one per
-sample](imprintomeset-results-export_files/figure-html/unnamed-chunk-22-1.png)
+sample](imprintomeset-results-export_files/figure-html/unnamed-chunk-23-1.png)
 
     #> Warning in fortify(data, ...): Arguments in `...` must be used.
     #> ✖ Problematic argument:
@@ -848,7 +856,7 @@ sample](imprintomeset-results-export_files/figure-html/unnamed-chunk-22-1.png)
 
 ![Beeswarm plots comparing chromosome 11 probes with all other probes,
 one per
-sample](imprintomeset-results-export_files/figure-html/unnamed-chunk-22-2.png)
+sample](imprintomeset-results-export_files/figure-html/unnamed-chunk-23-2.png)
 
 ### 6.4 Batch Chromosome vs Others Convenience Wrapper
 
@@ -1328,7 +1336,7 @@ plots(x)[["polar.selected"]]
 ```
 
 ![Stored polar and beeswarm
-plots](imprintomeset-results-export_files/figure-html/unnamed-chunk-24-1.png)
+plots](imprintomeset-results-export_files/figure-html/unnamed-chunk-25-1.png)
 
 ``` r
 
@@ -1336,7 +1344,7 @@ plots(x)[["beeswarm_origin.selected"]]
 ```
 
 ![Stored polar and beeswarm
-plots](imprintomeset-results-export_files/figure-html/unnamed-chunk-24-2.png)
+plots](imprintomeset-results-export_files/figure-html/unnamed-chunk-25-2.png)
 
 ``` r
 

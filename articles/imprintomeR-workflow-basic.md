@@ -441,21 +441,35 @@ x <- runImprintome(x, probeset = "selected")
 #>  [meta dim: 28 x 5 ]
 #>  [beta dim: 782 x 28 ]
 #>  [SubsetBeta] subset by probeset [query: 782; matched probes: 782 ]
+```
+
+``` r
 
 plot(x, plot_type = "polar", probeset = "selected")
 ```
 
 ![Polar plot of IDS (radius) and Angle for each sample, coloured by
 sample
-group](imprintomeR-workflow-basic_files/figure-html/unnamed-chunk-8-1.png)
+group](imprintomeR-workflow-basic_files/figure-html/unnamed-chunk-9-1.png)
+
+The radar plot has one labelled spoke per ICR; it is drawn at the size
+stored in the plot (a 12-inch panel plus room for the labels), which
+[`ggsave()`](https://ggplot2.tidyverse.org/reference/ggsave.html) also
+uses:
 
 ``` r
 
-plot(x, plot_type = "radar", probeset = "selected", sample_id = meta$Sample_Name[1])
+p_radar <- plot(x, plot_type = "radar", probeset = "selected", sample_id = meta$Sample_Name[1])
+radar_size <- attr(p_radar, "imprintomeR_figure_size")
+```
+
+``` r
+
+p_radar
 ```
 
 ![Radar plot of the median imprinting deviation index per ICR for one
-sample](imprintomeR-workflow-basic_files/figure-html/unnamed-chunk-8-2.png)
+sample](imprintomeR-workflow-basic_files/figure-html/unnamed-chunk-11-1.png)
 
 ``` r
 
@@ -464,7 +478,7 @@ plot(x, plot_type = "beeswarm_origin", probeset = "selected")
 
 ![Beeswarm plot of probe beta values per sample, split by annotated
 parental
-origin](imprintomeR-workflow-basic_files/figure-html/unnamed-chunk-8-3.png)
+origin](imprintomeR-workflow-basic_files/figure-html/unnamed-chunk-12-1.png)
 
 Each call returns a ggplot object; add `outFile = "polar.pdf"` (or
 `.png`) to save it to a file.
