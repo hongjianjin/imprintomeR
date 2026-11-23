@@ -18,7 +18,8 @@ knitr::opts_chunk$set(
   fig.height = 5,
   out.width = "100%",
   # ragg draws figures without X11/cairo (missing on some macOS systems)
-  dev = if (requireNamespace("ragg", quietly = TRUE)) "ragg_png" else "png"
+  dev = if (requireNamespace("ragg", quietly = TRUE)) "ragg_png" else "png",
+  dev.args = list(bg = "white")
 )
 ```
 

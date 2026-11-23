@@ -18,7 +18,8 @@ knitr::opts_chunk$set(
   fig.height = 5,
   out.width = "100%",
   # ragg draws figures without X11/cairo (missing on some macOS systems)
-  dev = if (requireNamespace("ragg", quietly = TRUE)) "ragg_png" else "png"
+  dev = if (requireNamespace("ragg", quietly = TRUE)) "ragg_png" else "png",
+  dev.args = list(bg = "white")
 )
 ```
 
@@ -173,7 +174,7 @@ Available `plot_type` values are:
 `auto` first returns the latest stored plot from `plots(x)` when present;
 otherwise, it falls back to polar plotting from IDS/Angle results.
 
-```{r, fig.alt = "Polar plot chosen automatically from the stored results"}
+```{r, fig.width = 8, fig.height = 8, fig.alt = "Polar plot chosen automatically from the stored results"}
 p_auto <- plot(
   x,
   plot_type = "auto",
@@ -185,7 +186,7 @@ p_auto
 
 ### 2.2 Explicit Dispatch
 
-```{r, fig.alt = "Polar plot of IDS and Angle for each sample"}
+```{r, fig.width = 8, fig.height = 8, fig.alt = "Polar plot of IDS and Angle for each sample"}
 p_polar_s4 <- plot(
   x,
   plot_type = "polar",
@@ -223,7 +224,7 @@ names(plots(x))
 
 ### 3.1 Polar Plot
 
-```{r, fig.alt = "Polar plot of IDS (radius) and Angle for each sample, coloured by sample group"}
+```{r, fig.width = 8, fig.height = 8, fig.alt = "Polar plot of IDS (radius) and Angle for each sample, coloured by sample group"}
 p_polar <- plot(
   x,
   plot_type = "polar",
@@ -252,7 +253,7 @@ p_mirror
 
 One spoke per curated ICR (median IDI of its probes), in genomic order clockwise from the top, labelled chromosome_annotated parental origin_ICR. The saved figure grows with the label length so that no label is clipped.
 
-```{r, fig.alt = "Radar plot of the median imprinting deviation index per ICR for one sample"}
+```{r}
 sample_id1 <- colnames(beta(x))[2]
 p_radar <- plot(
   x,
@@ -261,6 +262,12 @@ p_radar <- plot(
   sample_id = sample_id1,
   title = "ImprintomeSet Radar"
 )
+# Size (inches) that keeps the panel at 12 in with room for the labels; ggsave() uses it too
+radar_size <- attr(p_radar, "imprintomeR_figure_size")
+radar_size
+```
+
+```{r, fig.width = radar_size, fig.height = radar_size, fig.alt = "Radar plot of the median imprinting deviation index per ICR for one sample"}
 p_radar
 ```
 
@@ -446,7 +453,7 @@ plot(
 
 Chromosome beeswarm plots show only chromosomes with at least five usable (finite) probe values for the selected sample. A single-chromosome request with fewer than five usable probes returns an informative error.
 
-```{r, fig.alt = "Beeswarm panels of beta values for each chromosome"}
+```{r, fig.width = 14, fig.height = 5, fig.alt = "Beeswarm panels of beta values for each chromosome"}
 p_bee_chr_all <- plot(
   x,
   plot_type = "beeswarm_chr",
