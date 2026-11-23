@@ -358,6 +358,11 @@ the guides are in `vignettes/articles/`.
   [`vignette("imprintomeset-results-export")`](https://hongjianjin.github.io/imprintomeR/articles/imprintomeset-results-export.md),
   [`vignette("imprintomeR-workflow-basic")`](https://hongjianjin.github.io/imprintomeR/articles/imprintomeR-workflow-basic.md)
   (core functions without S4 objects)
+- [Supplementary_Code.R](https://github.com/hongjianjin/imprintomeR/blob/main/supplementary/Supplementary_Code.R):
+  companion script to the Supplementary Workflow Examples of the
+  Application Note; runs every example on public data (minfiData IDATs
+  and the bundled GSE52576 example) in about 3 minutes, and is run by CI
+  on Linux, macOS and Windows
 - Worked GEO examples (guides in `vignettes/articles/`, with run
   notebooks and their outputs in `tutorials/`):
   - GSE52576
