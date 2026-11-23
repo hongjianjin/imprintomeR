@@ -12,14 +12,19 @@
 #           the 782 probes of the 'selected' panel.
 #
 # Usage:   Rscript Supplementary_Code.R [output_folder]    (default: supplementary_output)
-# Needs:   imprintomeR (>= 1.6.0) and minfiData:
+# Needs:   imprintomeR (>= 1.6.0), minfiData (example IDATs) and gridBase (circular heatmap):
 #            if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-#            BiocManager::install(c("remotes", "hongjianjin/imprintomeR", "minfiData"))
+#            BiocManager::install(c("remotes", "hongjianjin/imprintomeR", "minfiData", "gridBase"))
 # Runtime: about 3 minutes on a laptop. All outputs are written to output_folder.
 # CI:      run on Linux, macOS and Windows by the install-check workflow of the repository
 #          (https://github.com/hongjianjin/imprintomeR).
 
 suppressPackageStartupMessages(library(imprintomeR))
+missing <- c("minfiData", "gridBase")[!vapply(c("minfiData", "gridBase"), requireNamespace, logical(1), quietly = TRUE)]
+if (length(missing)) {
+  stop("Please install ", paste(missing, collapse = " and "), ": BiocManager::install(c(\"",
+       paste(missing, collapse = "\", \""), "\"))")
+}
 
 args <- commandArgs(trailingOnly = TRUE)
 outdir <- if (length(args)) args[1] else "supplementary_output"
@@ -38,9 +43,6 @@ probesets <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imp
 #   meta_epic <- meta[meta$Platform == "EPIC", ]     # QC one platform at a time
 #   qcset <- runMethQC(meta_epic, platform = "EPIC", outdir = "qc_results/epic", prefix = "epic")
 # Here: the minfiData IDATs (an Illumina sample sheet, read with minfi).
-if (!requireNamespace("minfiData", quietly = TRUE)) {
-  stop("Part 1 needs the minfiData package: BiocManager::install(\"minfiData\")")
-}
 meta <- minfi::read.metharray.sheet(system.file("extdata", package = "minfiData"))  # adds Basename
 meta$Donor_ID <- meta$person              # known donors, checked against the SNP-probe donors
 meta <- check_platform(meta)              # reads one IDAT per sample

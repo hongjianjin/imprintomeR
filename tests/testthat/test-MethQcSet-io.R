@@ -84,9 +84,14 @@ test_that("check_platform() errors when meta is not a data.frame", {
 })
 
 test_that("check_platform() returns meta with expected new columns", {
-  # Mock .detect_platform_one to avoid hitting real IDAT files
-  local_mocked_bindings(
-    .detect_platform_one = function(basename, sample_name, max_retries = 5) {
+  # Mock .detect_platform_one to avoid hitting real IDAT files (restored afterwards)
+  meta <- data.frame(
+    Sample_Name = c("S1", "S2"),
+    Basename    = c("/tmp/S1", "/tmp/S2"),
+    stringsAsFactors = FALSE
+  )
+  result <- .with_namespace_mocks(
+    list(.detect_platform_one = function(basename, sample_name, max_retries = 5) {
       data.frame(
         Sample_Name  = sample_name,
         Platform     = "EPIC",
@@ -95,16 +100,9 @@ test_that("check_platform() returns meta with expected new columns", {
         Status       = "Success",
         stringsAsFactors = FALSE
       )
-    },
-    .env = getNamespace("imprintomeR")
+    }),
+    suppressMessages(check_platform(meta))
   )
-
-  meta <- data.frame(
-    Sample_Name = c("S1", "S2"),
-    Basename    = c("/tmp/S1", "/tmp/S2"),
-    stringsAsFactors = FALSE
-  )
-  result <- check_platform(meta)
 
   expect_true(all(c("Platform", "Array_Size", "Manifest", "Status") %in% colnames(result)))
   expect_equal(nrow(result), 2)
