@@ -221,7 +221,7 @@ Metadata should contain `Sample_Name`; `Sample_Group` is preferred.
 | `--resample` | icr | Bootstrap scheme: `icr` (ICRs, then probes within ICRs) or `probe`. Panels with one ICR per parental class (`chr11p15`) resample probes. |
 | `--resample-reference` | FALSE | Also resample the controls in each replicate (needs `--reference-group`). |
 | `--n-perm` | 0 | Permutations for the origin test (`origin_perm_p`); needs a control reference. |
-| `--permute` | icr | Permutation unit for the origin test: `icr` or `probe`. |
+| `--permute` | icr | Permutation unit for the origin test: `icr` or `probe`. When not given, panels with one ICR per parental class (such as `chr11p15`) fall back to `probe`, with a warning. |
 | `--conf-level` | 0.95 | Confidence level of the bootstrap intervals. |
 | `--seed` | random | Random seed; when none is given one is drawn and written to `run_imprintomeR.log`. |
 | `--all-probes` | FALSE | Load every probe of `--beta-file`. By default only probes of the bundled panels are read, so genome-wide beta files need little memory. |

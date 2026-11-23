@@ -1,6 +1,6 @@
 # imprintomeR FAQ: choosing cutoffs and interpreting results
 
-Written for imprintomeR 1.5.3.
+Written for imprintomeR 1.6.0.
 
 ## Contents
 
@@ -163,7 +163,9 @@ of cases.
 
 ### How do I get confidence intervals?
 
-From R (the command-line script has no bootstrap options in 1.5.3):
+From R, or with the `--n-boot` and `--n-perm` options of the
+command-line script (see the [command-line
+guide](https://hongjianjin.github.io/imprintomeR/articles/command-line.html)):
 
 ``` r
 
@@ -335,10 +337,10 @@ When the command is stored in a shell variable, run it with
 
 ### The command-line run ends with a differing number of rows error
 
-In 1.5.3, `run_imprintomeR.R` without `--icr` can end with
+In 1.5.3, `run_imprintomeR.R` without `--icr` could end with
 `arguments imply differing number of rows: 2, 3, 1` after all results
-have been written. The results are complete; add `--icr` to avoid the
-message.
+had been written. The results were complete; the message is fixed in
+1.6.0 (with 1.5.3, add `--icr` to avoid it).
 
 ------------------------------------------------------------------------
 

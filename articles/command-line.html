@@ -51,6 +51,7 @@
     <li><a class="dropdown-item" href="../articles/GSE74738.html">Imprinting Analysis with Control Reference: GSE74738</a></li>
   </ul>
 </li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -494,7 +495,9 @@ a control reference.</td>
 <td><code>--permute</code></td>
 <td>icr</td>
 <td>Permutation unit for the origin test: <code>icr</code> or
-<code>probe</code>.</td>
+<code>probe</code>. When not given, panels with one ICR per parental
+class (such as <code>chr11p15</code>) fall back to <code>probe</code>,
+with a warning.</td>
 </tr>
 <tr class="even">
 <td><code>--conf-level</code></td>
