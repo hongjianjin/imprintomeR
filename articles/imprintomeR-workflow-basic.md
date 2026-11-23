@@ -515,7 +515,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] imprintomeR_1.5.3
+#> [1] imprintomeR_1.6.0
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6          beeswarm_0.4.0        circlize_0.4.18      
