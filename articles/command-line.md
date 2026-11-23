@@ -1,0 +1,529 @@
+# imprintomeR Command-Line Workflows
+
+This guide describes the package-installed command-line scripts for
+running methylation QC and imprinting analysis with `imprintomeR`.
+
+The two scripts, `run_meth_QC.R` and `run_imprintomeR.R`, live in
+`inst/scripts/` of the source package and are installed into the
+`scripts/` folder of the installed package. Locate that folder once per
+shell session; the examples below use `$SCRIPTS`:
+
+``` bash
+unset R_HOME
+SCRIPTS=$(Rscript -e 'cat(system.file("scripts", package = "imprintomeR"))')
+[ -n "$SCRIPTS" ] || echo "imprintomeR is not installed for this Rscript" >&2
+echo "$SCRIPTS"    # e.g. ~/R/x86_64-pc-linux-gnu-library/4.3/imprintomeR/scripts
+
+Rscript "$SCRIPTS"/run_meth_QC.R --help
+Rscript "$SCRIPTS"/run_imprintomeR.R --help
+```
+
+[`system.file()`](https://rdrr.io/r/base/system.file.html) returns an
+empty string when imprintomeR is not installed for the `Rscript` on your
+`PATH`; on a cluster, load the same R module you installed the package
+with. To run the scripts from a source checkout instead, set
+`SCRIPTS=/path/to/imprintomeR/inst/scripts`.
+
+## Workflow Overview
+
+1.  Run `run_meth_QC.R` on raw IDAT files to create a `MethQcSet` and QC
+    output files.
+2.  Run `run_imprintomeR.R` on the QC RDS, or on beta plus metadata
+    files, to create an `ImprintomeSet`, run imprinting analysis, save
+    plot PDFs, and export result tables.
+
+The recommended end-to-end workflow is:
+
+``` bash
+Rscript "$SCRIPTS"/run_meth_QC.R \
+  -m metadata.tsv \
+  -o qc_results \
+  --platform EPIC \
+  -v
+
+Rscript "$SCRIPTS"/run_imprintomeR.R \
+  -r qc_results/epic/data/epic_qcset.rds \
+  -o imprintome_results \
+  --prefix GSE240091 \
+  --probeset selected \
+  --plot-types default \
+  -v
+```
+
+## Step 1: Methylation QC CLI
+
+`run_meth_QC.R` processes IDAT files and exports a `MethQcSet` object
+plus QC tables and plots. By default, it also writes beta-density PDFs
+from the `MethQcSet` beta matrix and raw minfi density PDFs from
+[`minfi::qcReport()`](https://rdrr.io/pkg/minfi/man/qcReport.html) for
+all, PASS, and FAIL samples.
+
+### Inputs
+
+Metadata should be TSV or CSV and include:
+
+| Column | Required | Notes |
+|----|----|----|
+| `Sample_Name` | Yes | Unique sample identifier. |
+| `SAMPLE_NAME` | Backward compatible | Accepted and normalized to `Sample_Name`. |
+| Basename | Yes | Full absolute IDAT path prefix, excluding Red.idat and Grn.idat. |
+| `Sample_Group` | Recommended | Added automatically if missing. |
+
+IDAT files should use minfi-compatible names:
+
+``` text
+<Basename>_Red.idat
+<Basename>_Grn.idat
+```
+
+Compressed `.idat.gz` files are accepted. Lowercase `*_red.idat` /
+`*_green.idat` files are renamed to `*_Red.idat` / `*_Grn.idat` when
+needed.
+
+### Basic QC Run
+
+``` bash
+Rscript "$SCRIPTS"/run_meth_QC.R \
+  -m metadata.tsv \
+  -o qc_results
+```
+
+### Useful QC Options
+
+| Option | Default | Description |
+|----|----|----|
+| `--platform` | auto-detect | Override platform detection: EPIC, EPICv2, 450K, or 27K. |
+| `--pcutoff` / `-p` | 0.05 | Detection p-value threshold used for `Final.QC`: a sample passes when at least 95% of probes are detected at p \< this value (and the bisulfite conversion I controls pass). |
+| `--icutoff` / `-i` | 11 | Reference line for intensity plots only. Low intensity no longer fails `Final.QC`. |
+| `--plot-types` | intensity,detection_pval,probe_coverage,beta_density | QC plots: `intensity`, `detection_pval`, `probe_coverage`, `qc_bar`, `beta_density`, or `all`. |
+| `--no-qc-plots` | FALSE | Suppress QC plot generation. |
+| `--no-qc-report` | FALSE | Suppress default QC report PDFs: root review PDFs plus secondary reports in `plots/`. |
+| `--normalization` | noob | Beta normalization: `noob`, `noob_swan`, or `raw` (unnormalized, as in earlier versions). Recorded in `qc_params(qcset)$normalization`. |
+| `--skip-ewastools` | FALSE | Deprecated and ignored: the control-probe, contamination and donor checks are built in and no longer use ewastools. |
+| `--verbose` / `-v` | FALSE | Print detailed progress messages. |
+
+### QC Outputs
+
+For an EPIC run, the output directory typically contains:
+
+``` text
+qc_results/
++-- epic/
+|   +-- epic_summary.txt
+|   +-- epic_qc_table_main.xlsx
+|   +-- epic_QC_detection_pval.pdf         # default root review plot
+|   +-- epic_QC_probe_coverage.pdf         # default root review plot
+|   +-- epic_QC_minfiDensity_all.pdf       # default root minfi density report
+|   +-- data/
+|   |   +-- epic_qcset.rds
+|   |   +-- epic_beta.txt
+|   |   +-- epic_meta.txt
+|   +-- QC_tables/
+|   |   +-- epic_qc_table_extra.xlsx
+|   |   +-- epic_qc_matrix.txt
+|   |   +-- epic_qc_statistics.txt
+|   |   +-- epic_qc_recall_rate.txt
+|   |   +-- epic_qc_cutoffs.txt
+|   |   +-- epic_qc_ctrl_metrics.txt
+|   |   +-- epic_qc_contamination.txt
+|   |   +-- epic_qc_predUniqDonor_ID.txt
+|   |   +-- epic_qc_qc_report_files.txt
+|   +-- plots/
+|       +-- epic_QC_intensity.pdf
+|       +-- epic_QC_betaDensity_all.pdf    # cache-friendly
+|       +-- epic_QC_betaDensity_pass.pdf   # cache-friendly
+|       +-- epic_QC_betaDensity_fail.pdf   # if FAIL samples exist
+|       +-- epic_QC_minfiDensity_pass.pdf  # fresh IDAT QC only
+|       +-- epic_QC_minfiDensity_fail.pdf  # fresh IDAT QC only, if FAIL samples exist
+|       +-- qc_intensity.png
+|       +-- qc_detection_pval.png
+|       +-- qc_probe_coverage.png
+|       +-- qc_beta_density.png
++-- run_meth_QC.log
+```
+
+The complete QC object is saved as `data/{platform}_qcset.rds`, for
+example:
+
+``` text
+qc_results/epic/data/epic_qcset.rds
+```
+
+`run_meth_QC.R` reuses this cached RDS only when it is a `MethQcSet`,
+the platform matches, and the cached `Sample_Name` set matches the
+current metadata. PNG QC plots and beta-density PDFs can be regenerated
+from cache. Raw minfi density PDFs require IDAT reload; remove the
+cached RDS to force a full rerun when `{platform}_QC_minfiDensity_*.pdf`
+files are needed. If the script warns that
+[`runMethQC()`](https://hongjianjin.github.io/imprintomeR/reference/runMethQC.md)
+does not support density-report output, reinstall/update `imprintomeR`
+so the loaded package version matches the CLI script.
+
+## Step 2: Imprintome Analysis CLI
+
+`run_imprintomeR.R` runs post-QC imprinting analysis. It can start from
+either a `MethQcSet` RDS or beta plus metadata files.
+
+### Recommended Input: MethQcSet RDS
+
+``` bash
+Rscript "$SCRIPTS"/run_imprintomeR.R \
+  -r qc_results/epic/data/epic_qcset.rds \
+  -o imprintome_results \
+  --prefix GSE240091 \
+  --probeset selected \
+  -v
+```
+
+When `Final.QC` is available in the `MethQcSet`, the runner keeps
+QC-pass samples using:
+
+``` r
+
+qcset_pass <- subsetMethQC(qcset, final_qc = "PASS")
+```
+
+If no sample has `Final.QC == "PASS"`, the script stops.
+
+### Alternative Input: Beta and Metadata Files
+
+``` bash
+Rscript "$SCRIPTS"/run_imprintomeR.R \
+  -b /data/beta.txt \
+  -m /data/meta.txt \
+  -o imprintome_results \
+  --prefix beta_run \
+  --probeset selected
+```
+
+The beta matrix should have probes as rows and samples as columns.
+Metadata should contain `Sample_Name`; `Sample_Group` is preferred.
+
+### Useful Analysis Options
+
+| Option | Default | Description |
+|----|----|----|
+| `--rds` / `-r` | NA | Input `MethQcSet` RDS file. |
+| `--beta-file` / `-b` | NA | Beta matrix file, required unless `--rds` is used. |
+| `--meta-file` / `-m` | NA | Metadata file, required unless `--rds` is used. |
+| `--outdir` / `-o` | required | Output directory. |
+| `--prefix` / `-p` | basename of `outdir` | Dataset prefix for result, plot, and RDS filenames; the normalized genome is appended automatically. |
+| `--probeset` | selected | One of `selected`, `NanoImprint`, `Joshi`, `Court`, `Rosenski`, `Jima`, `chr11p15`, `chr20q13`. |
+| `--plot-types` | default | Comma-separated plot types, `default`, or `all`. |
+| `--ids-cutoff` | 0.2 | IDS cutoff passed to [`runImprintome()`](https://hongjianjin.github.io/imprintomeR/reference/runImprintome.md). |
+| `--genome` | hg38 | Genome build for bundled probesets (`hg19` or `hg38`). Also used in output file names. |
+| `--dmr-type` | panel default | DMR types to score: `all`, or comma-separated `DMR_type` values such as `gametic` or `secondary`. The `selected` panel is scored on gametic ICRs by default; other panels on all probes. |
+| `--reference-group` | none | Comma-separated `Sample_Group` value(s) used as in-cohort controls: each probe’s reference becomes the controls’ median beta (controls scored leave-one-out). |
+| `--reference-file` | none | External control reference: a beta matrix file or an `.rds` from [`BuildReferenceProfile()`](https://hongjianjin.github.io/imprintomeR/reference/BuildReferenceProfile.md). Without controls, the fixed 0.5 reference is used. |
+| `--infinium-type` | all | Infinium design types to score: `all`, `I`, `II`, or `balanced` (deviations computed within type I and type II probes and averaged). |
+| `--balance` | probe | Pooling for the sample-level IDS: `probe` (median over probes) or `icr` (median within each ICR, then across ICRs). |
+| `--n-boot` | 0 | Bootstrap replicates (0 = off; 1000–2000 for reporting). Adds `IDS_lower`, `IDS_upper`, `Angle_lower`, `Angle_upper`, `Mechanism_support` and `Status_interval` (`above cutoff`, `below cutoff` or `borderline`). |
+| `--resample` | icr | Bootstrap scheme: `icr` (ICRs, then probes within ICRs) or `probe`. Panels with one ICR per parental class (`chr11p15`) resample probes. |
+| `--resample-reference` | FALSE | Also resample the controls in each replicate (needs `--reference-group`). |
+| `--n-perm` | 0 | Permutations for the origin test (`origin_perm_p`); needs a control reference. |
+| `--permute` | icr | Permutation unit for the origin test: `icr` or `probe`. |
+| `--conf-level` | 0.95 | Confidence level of the bootstrap intervals. |
+| `--seed` | random | Random seed; when none is given one is drawn and written to `run_imprintomeR.log`. |
+| `--all-probes` | FALSE | Load every probe of `--beta-file`. By default only probes of the bundled panels are read, so genome-wide beta files need little memory. |
+| `--icr` | FALSE | Also score each ICR ([`AnalyzeICRStatus()`](https://hongjianjin.github.io/imprintomeR/reference/AnalyzeICRStatus.md)) and write the per-ICR table, its per-sample multi-locus summary and, with the default or `all` plot set, the per-ICR heatmap (`icr_heatmap`). |
+| `--skip-plots` | FALSE | Skip the ordinary plot workflow; explicit `--rainfall-all`, `--radar-all`, and `--beeswarm-chr-all` outputs still run. |
+| `--rainfall-all` | NULL | Pass `TRUE` to generate one multipage rainfall PDF containing every sample. |
+| `--radar-all` | NULL | Pass `TRUE` to generate one multipage radar PDF containing every sample. |
+| `--beeswarm-chr-all` | NULL | Pass `TRUE` to generate one multipage chromosome-beeswarm PDF containing every sample. |
+| `--verbose` / `-v` | FALSE | Print detailed progress messages. |
+
+## Plot Types
+
+`--plot-types default` uses the standard workflow plot set from
+[`runImprintomeVisualizations()`](https://hongjianjin.github.io/imprintomeR/reference/runImprintomeVisualizations.md):
+
+- `polar`
+- `beeswarm_origin`
+- `mirror_density`
+- `heatmap_by_probe`
+- `heatmap_by_gene`
+- `radar`
+- `beeswarm_chr`
+- `rainfall`
+- `icr_heatmap` (with `--icr`): samples × ICRs heatmap of the per-ICR
+  deviations
+  ([`PlotICRHeatmap()`](https://hongjianjin.github.io/imprintomeR/reference/PlotICRHeatmap.md));
+  non-gametic ICRs are marked with `*`
+
+`circular_heatmap` is not included in `default`. Request it explicitly
+when needed:
+
+``` bash
+Rscript "$SCRIPTS"/run_imprintomeR.R \
+  -r qc_results/epic/data/epic_qcset.rds \
+  -o imprintome_results \
+  --prefix GSE240091 \
+  --plot-types circular_heatmap
+```
+
+`--plot-types all` includes all supported plot types, including
+`circular_heatmap`, `beeswarm`, `violin`, and `cor_heatmap`.
+
+Plots are saved directly as PDF files and are not embedded in the
+exported `ImprintomeSet` RDS. This keeps the cached RDS smaller.
+
+### Rainfall Plots For All Samples
+
+Pass `--rainfall-all TRUE` to generate one multipage rainfall PDF with
+one 12 x 6 inch page per sample:
+
+``` bash
+Rscript "$SCRIPTS"/run_imprintomeR.R \
+  -r qc_results/epic/data/epic_qcset.rds \
+  -o imprintome_results \
+  --prefix GSE240091 \
+  --probeset selected \
+  --rainfall-all TRUE
+```
+
+When enabled, the ordinary single-sample `rainfall` entry is removed
+from the regular plot workflow. All-sample rainfall generation is
+explicit and independent of `--skip-plots`. The PDF is written directly
+under the output directory as
+`<prefix>_<genome>_rainfall.<probeset>.all.pdf`. Omitting
+`--rainfall-all` preserves the existing single-sample rainfall behavior.
+
+### Radar Plots For All Samples
+
+Pass `--radar-all TRUE` to generate one multipage radar PDF with one
+page per sample. Radar plots have one spoke per curated ICR, in genomic
+order clockwise from the top, labelled chromosome_annotated parental
+origin_ICR; the page size grows with the label length (about 17 x 17
+inches for the `selected` panel) so that no label is clipped:
+
+``` bash
+Rscript "$SCRIPTS"/run_imprintomeR.R \
+  -r qc_results/epic/data/epic_qcset.rds \
+  -o imprintome_results \
+  --prefix GSE240091 \
+  --probeset selected \
+  --radar-all TRUE
+```
+
+When enabled, the ordinary single-sample `radar` entry is removed from
+the regular plot workflow. All-sample radar generation is explicit and
+independent of `--skip-plots`. The PDF is written directly under the
+output directory as `<prefix>_<genome>_radar.<probeset>.all.pdf`.
+Omitting `--radar-all` preserves the existing single-sample radar
+behavior.
+
+Single-sample rainfall and radar files use
+`<prefix>_<genome>_rainfall.<probeset>.<sampleID>.pdf` and
+`<prefix>_<genome>_radar.<probeset>.<sampleID>.pdf`, respectively.
+
+### Chromosome Beeswarm For All Samples
+
+Pass `--beeswarm-chr-all TRUE` to generate one multipage PDF with one 10
+x 4 inch page per sample:
+
+``` bash
+Rscript "$SCRIPTS"/run_imprintomeR.R \
+  -r qc_results/epic/data/epic_qcset.rds \
+  -o imprintome_results \
+  --prefix GSE166531 \
+  --probeset chr11p15 \
+  --beeswarm-chr-all TRUE
+```
+
+When enabled, the ordinary single-sample `beeswarm_chr` entry is removed
+from the regular plot workflow. Multipage generation is explicit and
+independent of `--skip-plots`. The PDF is written directly under the
+output directory as `<prefix>_<genome>_beeswarm_chr.<probeset>.all.pdf`.
+
+Each page shows only chromosomes with at least five usable (finite)
+probe values for that sample.
+
+## Per-ICR Scores
+
+The sample-level IDS pools all probes of a parental class, so a defect
+at one ICR or on one chromosome changes it little. Add `--icr` to also
+score each ICR on its own and summarize the altered ICRs per sample:
+
+``` bash
+Rscript "$SCRIPTS"/run_imprintomeR.R \
+  -r qc_results/epic/data/epic_qcset.rds \
+  -o imprintome_results \
+  --prefix GSE240091 \
+  --probeset selected \
+  --reference-group control \
+  --icr \
+  -v
+```
+
+`--icr` writes, in addition to the sample-level table:
+
+- `<prefix>_<genome>_results_ICRStatus.<probeset>.tsv`: one row per
+  sample and ICR, with the deviation, `z`, the altered call, and the
+  ICR’s annotated parental origin and `DMR_type`;
+- `<prefix>_<genome>_results_ICRSummary.<probeset>.tsv`: per sample, the
+  numbers of altered ICRs (gains and losses), the chromosomes involved
+  and the multi-locus (`MLID`) flag;
+- `<prefix>_<genome>_icr_heatmap.<probeset>.pdf`: samples by ICRs
+  heatmap of the deviations, drawn with `--plot-types default` or `all`
+  (or alone with `--plot-types icr_heatmap`); non-gametic ICRs are
+  marked with `*`.
+
+An ICR is called altered when \|deviation\| ≥ 0.175 and \|z\| ≥ 2
+against the controls. These thresholds were validated with control
+samples: give in-cohort controls with `--reference-group` or an external
+reference with `--reference-file`. Without controls, `z` is unavailable,
+only the deviation criterion applies and the calls are exploratory.
+Per-ICR scores cover all annotated ICRs, secondary DMRs included;
+`--dmr-type` changes only the sample-level score.
+
+`--balance icr` is a separate option: it computes the sample-level
+IDS/Angle with each ICR counted once (median within each ICR, then
+across ICRs). It can be combined with `--icr`.
+
+Bootstrap intervals and the origin test are added with `--n-boot` and
+`--n-perm`, for example
+`--reference-group control --n-boot 2000 --resample-reference --n-perm 2000 --seed 1`.
+The run log records the package version, the arguments and the seed.
+
+The per-ICR thresholds (`delta_cutoff`, `z_cutoff`) and restricting
+per-ICR scores to gametic ICRs (`dmr_type = "gametic"`) are available
+from R, through
+[`runImprintome()`](https://hongjianjin.github.io/imprintomeR/reference/runImprintome.md),
+[`AnalyzeICRStatus()`](https://hongjianjin.github.io/imprintomeR/reference/AnalyzeICRStatus.md)
+and
+[`SummarizeICRStatus()`](https://hongjianjin.github.io/imprintomeR/reference/SummarizeICRStatus.md),
+but not as command-line options.
+
+## Imprintome Outputs
+
+A typical analysis directory (default `--genome hg38`) contains:
+
+``` text
+imprintome_results/
++-- run_imprintomeR.log
++-- GSE240091_hg38_imprintomeSet.rds
++-- GSE240091_hg38_results_AnalyzeImprintStatus.selected.tsv
++-- GSE240091_hg38_results_ICRStatus.selected.tsv     (--icr)
++-- GSE240091_hg38_results_ICRSummary.selected.tsv    (--icr)
++-- GSE240091_hg38_polar.selected.pdf
++-- GSE240091_hg38_heatmap_by_gene.selected.pdf
++-- GSE240091_hg38_icr_heatmap.selected.pdf          (--icr)
++-- GSE240091_hg38_radar.<probeset>.<sample_id>.pdf
++-- GSE240091_hg38_rainfall.<probeset>.<sample_id>.pdf
+```
+
+With `--genome hg19` the names use `_hg19_` instead. Runs made before
+the default changed to hg38 wrote `_hg19_` files; pass `--genome hg19`
+to reuse those cached results.
+
+The main result table is stored as `AnalyzeImprintStatus.<probeset>`
+inside `results(x)` and exported as a genome-prefixed TSV file.
+
+Example reload:
+
+``` r
+
+library(imprintomeR)
+x <- readRDS("imprintome_results/GSE240091_hg38_imprintomeSet.rds")
+names(results(x))
+status <- results(x)[["AnalyzeImprintStatus.selected"]]
+```
+
+## Imprintome RDS Cache Behavior
+
+The runner saves a lean object as:
+
+``` text
+<prefix>_<genome>_imprintomeSet.rds
+```
+
+The object contains beta values, metadata, probeset data, and result
+tables, but not stored plot objects.
+
+The same dataset and genome share this RDS across probesets. Different
+genomes use separate cache files. On later runs:
+
+- If the cached RDS contains `AnalyzeImprintStatus.<probeset>` with
+  matching genome and `--ids-cutoff` provenance, analysis is skipped and
+  requested plot/result files are regenerated without overwriting the
+  RDS.
+- If the requested probeset result is absent, or its stored
+  `--ids-cutoff` differs, core analysis is rerun for that probeset and
+  the lean RDS is updated. Recalculation replaces that probeset’s prior
+  result while preserving other named probeset results.
+- Plot PDFs are generated directly and are not saved back into the RDS.
+
+## End-to-End Example For HPC
+
+``` bash
+module load R/4.2.2
+
+Rscript "$SCRIPTS"/run_meth_QC.R \
+  -m GSE240091_metadata.tsv \
+  -b GSE240091_raw/idats \
+  -o GSE240091_qc \
+  --platform EPIC \
+  --plot-types all \
+  -v
+
+Rscript "$SCRIPTS"/run_imprintomeR.R \
+  -r GSE240091_qc/epic/data/epic_qcset.rds \
+  -o GSE240091_imprintome \
+  --prefix GSE240091 \
+  --probeset selected \
+  --plot-types default \
+  -v
+```
+
+## Troubleshooting
+
+### `imprintomeR` package not found
+
+Install the package into the R library used by the job or Jupyter
+kernel:
+
+``` r
+
+install.packages("/path/to/imprintomeR", repos = NULL, type = "source")
+```
+
+### IDAT files not found
+
+Check Basename. It must be a full absolute IDAT path prefix.
+
+### No samples with `Final.QC == "PASS"`
+
+The imprintome runner stops because there are no QC-clean samples to
+analyze. Review `qc_tables(qcset)$QC_matrix` from the QC stage.
+
+### Plot PDFs are missing
+
+Run with `--verbose` and try a smaller plot set first:
+
+``` bash
+--plot-types polar,heatmap_by_gene
+```
+
+Some plots require enough samples, enough probes, or metadata columns
+such as `Sample_Group`.
+
+## Quick Output Checklist
+
+After QC:
+
+``` text
+qc_results/<platform>/data/<platform>_qcset.rds
+qc_results/<platform>/<platform>_qc_table_main.xlsx
+qc_results/<platform>/plots/
+```
+
+After imprintome analysis:
+
+``` text
+imprintome_results/<prefix>_<genome>_imprintomeSet.rds
+imprintome_results/<prefix>_<genome>_results_AnalyzeImprintStatus.<probeset>.tsv
+imprintome_results/<prefix>_<genome>_<plot_name>.pdf
+imprintome_results/<prefix>_<genome>_rainfall.<probeset>.all.pdf
+imprintome_results/<prefix>_<genome>_radar.<probeset>.all.pdf
+imprintome_results/<prefix>_<genome>_beeswarm_chr.<probeset>.all.pdf
+```

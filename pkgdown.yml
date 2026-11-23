@@ -1,0 +1,20 @@
+pandoc: 3.8.3
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  articles/analysis: analysis.html
+  articles/command-line: command-line.html
+  articles/faq: faq.html
+  articles/GSE240091: GSE240091.html
+  articles/GSE52576: GSE52576.html
+  articles/GSE74738: GSE74738.html
+  imprintomeR-workflow-basic: imprintomeR-workflow-basic.html
+  imprintomeset-quickstart: imprintomeset-quickstart.html
+  imprintomeset-results-export: imprintomeset-results-export.html
+  articles/plots: plots.html
+  articles/probesets: probesets.html
+  articles/qc: qc.html
+last_built: 2026-11-23T14:44Z
+urls:
+  reference: https://hongjianjin.github.io/imprintomeR/reference
+  article: https://hongjianjin.github.io/imprintomeR/articles
