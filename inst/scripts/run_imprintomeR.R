@@ -78,8 +78,8 @@ option_list <- list(
     make_option(c("--n-perm"), type = "integer", default = 0L,
         help = "Permutations for the origin test origin_perm_p (0 = off; needs a control reference) [default: %default]"),
 
-    make_option(c("--permute"), type = "character", default = "icr",
-        help = "Permutation unit for the origin test: icr or probe [default: %default]"),
+    make_option(c("--permute"), type = "character", default = NA,
+        help = "Permutation unit for the origin test: icr or probe [default: icr; with one ICR per parental class, as in chr11p15, it falls back to probe with a warning]"),
 
     make_option(c("--conf-level"), type = "double", default = 0.95,
         help = "Confidence level of the bootstrap intervals [default: %default]"),
@@ -276,7 +276,7 @@ tryCatch({
     if (!args$resample %in% c("icr", "probe")) {
         errors <- c(errors, paste0("ERROR: Invalid --resample '", args$resample, "'. Must be one of: icr, probe"))
     }
-    if (!args$permute %in% c("icr", "probe")) {
+    if (!is.na(args$permute) && !args$permute %in% c("icr", "probe")) {
         errors <- c(errors, paste0("ERROR: Invalid --permute '", args$permute, "'. Must be one of: icr, probe"))
     }
     if (is.na(args$`conf-level`) || args$`conf-level` <= 0 || args$`conf-level` >= 1) {
@@ -313,7 +313,7 @@ tryCatch({
         resample = args$resample,
         resample_reference = isTRUE(args$`resample-reference`),
         n_perm = as.integer(args$`n-perm`),
-        permute = args$permute,
+        permute = if (is.na(args$permute)) "default" else args$permute,   # "default": icr, falling back to probe
         conf_level = as.numeric(args$`conf-level`),
         seed = if (is.na(args$seed)) NULL else as.integer(args$seed)
     )
@@ -700,7 +700,7 @@ tryCatch({
                 resample = if (is.null(scoring$resample)) "icr" else scoring$resample,
                 resample_reference = isTRUE(scoring$resample_reference),
                 n_perm = if (is.null(scoring$n_perm)) 0L else scoring$n_perm,
-                permute = if (is.null(scoring$permute)) "icr" else scoring$permute,
+                permute = if (is.null(scoring$permute) || identical(scoring$permute, "default")) c("icr", "probe") else scoring$permute,
                 conf_level = if (is.null(scoring$conf_level)) 0.95 else scoring$conf_level,
                 seed = scoring$seed
             )
@@ -791,7 +791,7 @@ tryCatch({
 .same_scoring <- function(cached, requested) {
     defaults <- list(reference_group = NULL, reference_file = NULL, infinium_type = "all", dmr_type = NULL,
                      balance = "probe", icr = FALSE, n_boot = 0L, resample = "icr",
-                     resample_reference = FALSE, n_perm = 0L, permute = "icr", conf_level = 0.95,
+                     resample_reference = FALSE, n_perm = 0L, permute = "default", conf_level = 0.95,
                      seed = NULL)
     fill <- function(x) utils::modifyList(defaults, if (is.null(x)) list() else x)
     identical(fill(cached)[names(defaults)], fill(requested)[names(defaults)])

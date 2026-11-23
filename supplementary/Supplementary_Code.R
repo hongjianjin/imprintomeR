@@ -135,8 +135,9 @@ ggplot2::ggsave(file.path(outdir, "icr_heatmap.pdf"), p_icr, width = 10, height 
 
 # Bootstrap intervals and origin permutation; calibrate the cutoff on controls.
 # Whole ICRs are permuted by default (permute = "icr"), which needs at least two ICRs per
-# parental class: use the selected panel (48 ICRs), or permute = "probe" for chr11p15
-# (one ICR per class, IC1 and IC2).
+# parental class, so the selected panel (48 ICRs) is used here. On chr11p15 (one ICR per
+# class, IC1 and IC2) the test falls back to permuting probes, with a warning that its
+# p-values are anti-conservative.
 x <- runImprintome(x, probeset = "selected", reference_group = controls,
                    n_boot = 2000, n_perm = 2000, seed = 1,
                    result_name = "AnalyzeImprintStatus.selected.ref-controls.boot")

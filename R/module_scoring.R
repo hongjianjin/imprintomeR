@@ -536,7 +536,8 @@ AnalyzeImprintStatus <- function(betaFile, metaFile,
     stop("conf_level must be a single number between 0 and 1.")
   }
   resample <- match.arg(resample)
-  permute_default <- missing(permute)
+  # Not chosen by the caller: missing, or the full default passed on unchanged (runImprintome()).
+  permute_default <- missing(permute) || identical(permute, c("icr", "probe"))
   permute <- match.arg(permute)
   if (!is.logical(resample_reference) || length(resample_reference) != 1L || is.na(resample_reference)) {
     stop("resample_reference must be TRUE or FALSE.")

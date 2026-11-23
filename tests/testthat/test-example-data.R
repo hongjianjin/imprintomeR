@@ -102,3 +102,18 @@ test_that(".open_png() writes a PNG (ragg when installed)", {
   grDevices::dev.off()
   expect_true(file.exists(f) && file.size(f) > 0)
 })
+
+test_that("runImprintome() falls back to probe permutation on chr11p15 unless permute is chosen", {
+  beta <- imprintome_example("beta")
+  meta <- imprintome_example("meta")
+  panel <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))[["selected"]]
+  x <- ImprintomeSet(beta = beta, meta = meta, probeset = panel, genome = "hg38", assay = "450K")
+  expect_warning(
+    suppressMessages(runImprintome(x, probeset = "chr11p15", n_perm = 20, seed = 1)),
+    "falls back"
+  )
+  expect_error(
+    suppressMessages(runImprintome(x, probeset = "chr11p15", n_perm = 20, permute = "icr", seed = 1)),
+    "at least two annotated ICRs"
+  )
+})
