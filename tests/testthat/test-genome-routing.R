@@ -107,8 +107,8 @@ test_that("plotting and survey helpers default to hg38 and no code reads the hg1
   }
   skip_if_not(dir.exists(r_dir), "R/ source directory not available")
   hits <- character(0)
-  # zzz.R only lists the data files; module_legacy_migrated.R holds unexported, unused legacy code.
-  skip_files <- file.path(r_dir, c("zzz.R", "module_legacy_migrated.R"))
+  # zzz.R only lists the data files.
+  skip_files <- file.path(r_dir, "zzz.R")
   for (f in setdiff(list.files(r_dir, pattern = "[.]R$", full.names = TRUE), skip_files)) {
     code <- sub("#.*$", "", readLines(f, warn = FALSE))
     i <- grep("probesets_hg19[.]rds", code)

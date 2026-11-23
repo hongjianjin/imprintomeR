@@ -10,7 +10,6 @@
 ^validate_nanoprint_liftover\.R$
 ^validate_selected_hg19\.R$
 ^benchmark$
-^legacy$
 ^LICENSE$
 ^tmp_jupyter$
 ^tmp_cli$
