@@ -1,4 +1,5 @@
-# Install imprintomeR exactly as the README says, on a clean runner, then run the README Quick start.
+# Install imprintomeR exactly as the README says, on a clean runner, then run the README Quick start
+# and the Supplementary companion script (supplementary/Supplementary_Code.R).
 on:
   push:
     branches: [main]
@@ -60,3 +61,18 @@ jobs:
           withCallingHandlers(source("quickstart.R", echo = TRUE, max.deparse.length = 300),
                               warning = function(w) stop("Quick start warning: ", conditionMessage(w)))
           stopifnot(file.exists("polar.pdf"), dir.exists("imprintome_results"), dir.exists("qc_output"))
+
+      - name: Run the Supplementary companion script (Supplementary_Code.R)
+        run: Rscript src/supplementary/Supplementary_Code.R supplementary_output
+
+      - name: Check the companion script outputs
+        shell: Rscript {0}
+        run: |
+          out <- "supplementary_output"
+          stopifnot(
+            file.exists(file.path(out, "qc_results")),
+            file.exists(file.path(out, "reference.rds")),
+            file.exists(file.path(out, "icr_heatmap.pdf")),
+            file.exists(file.path(out, "plots", "circular.png")),
+            length(list.files(file.path(out, "imprintome_output"), pattern = "AnalyzeImprintStatus")) >= 6
+          )

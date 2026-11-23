@@ -166,8 +166,9 @@ SaveTableStyle <- function(dat, sheetName = NULL, file = NULL, append = FALSE, c
   }
   cat("\n")
   addWorksheet(wb1, sheetName = sheetName, gridLines = FALSE)
+  dat <- .unique_names_ignore_case(as.data.frame(dat, check.names = FALSE))
   writeDataTable(wb1, sheetName,
-    x = as.data.frame(dat),
+    x = dat,
     colNames = colNames, rowNames = rowNames,
     tableStyle = "TableStyleLight9"
   )
@@ -602,3 +603,25 @@ LoadMetaBeta <- function(metaFile, betaFile = NULL, probeset = NULL) {
 
 #================================================================
 
+
+# Excel tables need column names that differ by more than letter case (for example a
+# sample sheet's "status" next to check_platform()'s "Status"); suffix later duplicates
+# with "_2", "_3", ... so the table can be written.
+.unique_names_ignore_case <- function(dat) {
+  nm <- colnames(dat)
+  if (is.null(nm) || !anyDuplicated(tolower(nm))) return(dat)
+  seen <- character()
+  for (i in seq_along(nm)) {
+    base <- nm[i]
+    k <- 1L
+    while (tolower(nm[i]) %in% seen) {
+      k <- k + 1L
+      nm[i] <- paste0(base, "_", k)
+    }
+    seen <- c(seen, tolower(nm[i]))
+  }
+  message("Columns renamed for the Excel table (names must differ by more than letter case): ",
+          paste(colnames(dat)[colnames(dat) != nm], "->", nm[colnames(dat) != nm], collapse = ", "))
+  colnames(dat) <- nm
+  dat
+}

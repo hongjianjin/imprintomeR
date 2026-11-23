@@ -31,6 +31,7 @@ test_that("runMethQC() on minfiData: predicted sex, donors and no swaps when Sam
   skip_on_cran()
   meta <- suppressMessages(minfi::read.metharray.sheet(system.file("extdata", package = "minfiData")))
   meta$Donor_ID <- meta$person
+  expect_identical(unique(suppressMessages(check_platform(meta))$Platform), "450K")   # minfi says "450k"
   expect_false(any(meta$Sample_Name == basename(meta$Basename)))
   qcset <- suppressMessages(runMethQC(meta, platform = "450K", save_qc_report = FALSE))
   qm <- qc_tables(qcset)$QC_matrix
@@ -68,4 +69,28 @@ test_that("probe-level plots work on an ImprintomeSet whose meta has default row
   utils::capture.output(p <- suppressWarnings(
     BetaBeePlot_single_chr(beta = beta, meta = meta, chr = "chr11", probeset = "selected")))
   expect_false(is.null(p))
+})
+
+test_that("Excel export keeps columns whose names differ only by case", {
+  d <- data.frame(status = "a", Status = "b", x = 1, check.names = FALSE)
+  expect_message(imprintomeR:::.unique_names_ignore_case(d), "Status -> Status_2")
+  out <- suppressMessages(imprintomeR:::.unique_names_ignore_case(d))
+  expect_identical(colnames(out), c("status", "Status_2", "x"))
+  f <- tempfile(fileext = ".xlsx")
+  utils::capture.output(SaveTableStyle(d, file = f, sheetName = "s"))
+  expect_true(file.exists(f))
+})
+
+test_that("export() writes the per-ICR heatmap, whose stored size is a named vector", {
+  beta <- imprintome_example("beta")
+  meta <- imprintome_example("meta")
+  panel <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))[["selected"]]
+  x <- ImprintomeSet(beta = beta, meta = meta, probeset = panel, genome = "hg38", assay = "450K")
+  x <- suppressMessages(runImprintome(x, probeset = "selected", icr = TRUE))
+  utils::capture.output(x <- suppressWarnings(suppressMessages(runImprintomeVisualizations(
+    x, plot_types = "icr_heatmap", probeset = "selected", store_plots = TRUE, save_plots = FALSE))))
+  expect_named(attr(plots(x)[["icr_heatmap.selected"]], "imprintomeR_figure_size"), c("width", "height"))
+  out <- tempfile()
+  utils::capture.output(suppressMessages(export(x, outdir = out, prefix = "t", save_plots = TRUE, overwrite = TRUE)))
+  expect_true(file.exists(file.path(out, "t_plot_icr_heatmap.selected.pdf")))
 })

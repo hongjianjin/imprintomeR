@@ -33,9 +33,12 @@ NULL
                   if (array_size > 400000)  "450K"   else
                   if (array_size > 20000)   "27K"    else NA_character_
 
-      if (!is.na(expected) && !grepl(expected, platform_raw, ignore.case = TRUE)) {
-        warning(sample_name, ": platform mismatch - annotation '", platform_raw,
-                "' vs array size suggests '", expected, "'. Using array-size value.")
+      if (!is.na(expected)) {
+        if (!grepl(expected, platform_raw, ignore.case = TRUE)) {
+          warning(sample_name, ": platform mismatch - annotation '", platform_raw,
+                  "' vs array size suggests '", expected, "'. Using array-size value.")
+        }
+        # Always report the documented label: minfi annotates 450K arrays as "450k".
         platform_raw <- expected
       }
 

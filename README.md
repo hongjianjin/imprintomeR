@@ -231,6 +231,7 @@ All guides, vignettes and the function reference are on the [website](https://ho
 - [FAQ](https://hongjianjin.github.io/imprintomeR/articles/faq.html): choosing an IDS cutoff and interpreting results (control references, bootstrap intervals, `Mechanism_support`, per-ICR calls, the multi-locus flag)
 - [Command-line guide](https://hongjianjin.github.io/imprintomeR/articles/command-line.html): command-line QC and analysis
 - R vignettes: `vignette("imprintomeset-quickstart")`, `vignette("imprintomeset-results-export")`, `vignette("imprintomeR-workflow-basic")` (core functions without S4 objects)
+- [Supplementary_Code.R](https://github.com/hongjianjin/imprintomeR/blob/main/supplementary/Supplementary_Code.R): companion script to the Supplementary Workflow Examples of the Application Note; runs every example on public data (minfiData IDATs and the bundled GSE52576 example) in about 3 minutes, and is run by CI on Linux, macOS and Windows
 - Worked GEO examples (guides in `vignettes/articles/`, with run notebooks and their outputs in `tutorials/`):
   - GSE52576 ([guide](https://hongjianjin.github.io/imprintomeR/articles/GSE52576.html), [notebook](https://github.com/hongjianjin/imprintomeR/blob/main/tutorials/GSE52576.ipynb)): androgenetic and parthenogenetic samples
   - GSE240091 ([guide](https://hongjianjin.github.io/imprintomeR/articles/GSE240091.html), [notebook](https://github.com/hongjianjin/imprintomeR/blob/main/tutorials/GSE240091.ipynb)): QC and analysis of an EPIC cohort

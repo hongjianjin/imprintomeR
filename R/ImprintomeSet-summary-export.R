@@ -282,7 +282,7 @@ methods::setMethod(
         plot_dims <- function(plot_name, pobj) {
           # A plot that records its own figure size keeps it: one value for a square page
           # (PlotRadar() sizes the page to fit its labels), or width and height (PlotICRHeatmap()).
-          fig_in <- attr(pobj, "imprintomeR_figure_size")
+          fig_in <- unname(attr(pobj, "imprintomeR_figure_size"))   # PlotICRHeatmap() names its width and height
           fig_in <- if (is.numeric(fig_in) && length(fig_in) %in% 1:2 && all(is.finite(fig_in) & fig_in > 0)) rep(fig_in, length.out = 2) else NULL
           is_radar <- grepl("(^|[_.-])radar([_.-]|$)", plot_name, ignore.case = TRUE)
           default_w <- if (!is.null(fig_in)) fig_in[1] else if (is_radar) 12 else 8
