@@ -42,3 +42,13 @@ test_that("runMethQC() on minfiData: predicted sex, donors and no swaps when Sam
   expect_identical(nrow(qc_tables(qcset)$contamination), 0L)
   expect_true(all(qc_tables(qcset)$ctrl_metrics$CtrlMetrics.QC == "PASS"))
 })
+
+test_that("ImprintomeSet() rejects percentages and M-values", {
+  beta <- imprintome_example("beta")
+  meta <- imprintome_example("meta")
+  panel <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))[["selected"]]
+  mk <- function(b) ImprintomeSet(beta = b, meta = meta, probeset = panel, genome = "hg38", assay = "450K")
+  expect_error(mk(beta * 100), "between 0 and 1")
+  expect_error(mk(log2(beta / (1 - beta))), "between 0 and 1")
+  expect_s4_class(mk(beta), "ImprintomeSet")
+})

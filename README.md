@@ -24,6 +24,7 @@ Every step can be run from R or with the command-line scripts in `inst/scripts/`
 
 - [Installation](#installation)
 - [Quick start](#quick-start)
+- [Input files](#input-files)
 - [Workflow](#workflow)
 - [Core Formulas](#core-formulas)
 - [Main analysis options](#main-analysis-options)
@@ -81,7 +82,31 @@ results(x)[["AnalyzeImprintStatus.selected"]][, c("Sample_Name", "IDS", "Angle",
 
 In part A, the moles and the leukocytes with paternal uniparental disomy are called `Pat-Gain+Mat-Loss`, the parthenogenetic cells and the maternal-disomy sample `Mat-Gain+Pat-Loss`, and the somatic tissues, placentas and embryonic stem cells normal (`ROI`); sperm, with a paternal germline pattern, is called `Pat-Gain+Mat-Loss` as expected.
 
-For your own IDATs, the sample sheet needs `Sample_Name`, `Sample_Group` and `Basename` (the IDAT path prefix); with several array types, run `meta <- check_platform(meta)` and QC one platform at a time, and for EPICv2 add `qcset <- aggregate_probes(qcset)` before `as.ImprintomeSet()`. Each step is described in [docs/qc.md](docs/qc.md) and [docs/analysis.md](docs/analysis.md).
+For your own data, see [Input files](#input-files); each step is described in [docs/qc.md](docs/qc.md) and [docs/analysis.md](docs/analysis.md).
+
+## Input files
+
+There are two entry points. Start from IDAT files to run QC with imprintomeR (part B of the Quick start), or from a beta matrix if QC and normalization were done elsewhere (part A).
+
+### IDAT files → `runMethQC()`
+
+| Input | Requirement |
+|---|---|
+| IDAT files | One `_Grn.idat` and one `_Red.idat` file per sample (`.idat.gz` also read), from a 450K, EPICv1 or EPICv2 array. |
+| Sample sheet (`data.frame`) | One row per sample. **Required:** `Sample_Name` (unique sample ID, used in every result table) and `Basename` (the IDAT path without the `_Grn.idat`/`_Red.idat` suffix, e.g. `idats/200925700125_R07C01`). **Optional:** `Sample_Group` (groups samples in QC reports and plots; when absent, `as.ImprintomeSet()` uses `Sample_Name`), `Donor_ID` (checked against the donors predicted from the SNP probes), `Platform` (filled in by `check_platform()`). Other columns are kept and exported. |
+| Platform | One platform per `runMethQC()` call: `platform = "450K"`, `"EPIC"` or `"EPICv2"`. For a mixed cohort, run `meta <- check_platform(meta)` and call `runMethQC()` on each platform's rows. EPICv2 needs the Bioconductor packages `IlluminaHumanMethylationEPICv2manifest` and `IlluminaHumanMethylationEPICv2anno.20a1.hg38`, and `aggregate_probes()` before `as.ImprintomeSet()`. |
+
+`minfi::read.metharray.sheet()` reads an Illumina sample sheet (CSV) and adds `Basename`; any `data.frame` with these columns also works. Example: `minfi::read.metharray.sheet(system.file("extdata", package = "minfiData"))` (6 samples, 450K).
+
+### Beta matrix → `ImprintomeSet()`
+
+| Input | Requirement |
+|---|---|
+| Beta matrix | Probes × samples, numeric, values between 0 and 1 (percentages or M-values are rejected with an error). Probe IDs (`cg…`, as on the 450K/EPIC manifests) as row names, or in a first column named `TargetID`, `NAME` or `ID`. Column names are sample IDs. Missing values (`NA`) are allowed. Only probes of the chosen panel are used, so a genome-wide matrix and a panel-only matrix give the same result; for EPICv2, first collapse replicate probes (e.g. `cg06373096_TC11`, `cg06373096_TC12` → `cg06373096`), for example to their median as `aggregate_probes()` does for a `MethQcSet`. |
+| Metadata (`data.frame`) | **Required:** `Sample_Name` (unique; matched to the beta column names) and `Sample_Group` (or pass `auto_group = TRUE`). Samples present in only one of the two tables are dropped. Other columns are kept and exported. |
+| Panel, genome, assay | `probeset`: a panel from `probesets_hg38.rds` / `probesets_hg19.rds` (see [Bundled probesets](#bundled-probesets)); `genome`: `"hg38"` or `"hg19"`; `assay`: the array type (`"450K"`, `"EPICv1"` or `"EPICv2"`), recorded with the results. |
+
+Example files: `imprintome_example("beta", path = TRUE)` and `imprintome_example("meta", path = TRUE)` are tab-delimited text files in this layout (782 probes × 28 samples from GEO GSE52576), and can be passed directly to the command-line script (`run_imprintomeR.R --beta-file ... --meta-file ...`). For data from GEO, the [GSE52576](vignettes/GSE52576.md) tutorial starts from a series-matrix beta table, and the [GSE240091](vignettes/GSE240091.md) tutorial from IDAT files.
 
 ## Workflow
 

@@ -42,6 +42,19 @@ setClassUnion("DataFrameOrList", c("data.frame", "list"))
     if (is.null(colnames(beta))) {
       errors <- c(errors, "slot 'beta' must have sample column names")
     }
+    # Beta values must be fractions in [0, 1]; percentages or M-values would give
+    # meaningless scores without any error.
+    num_ok <- if (is.data.frame(beta)) all(vapply(beta, is.numeric, logical(1))) else is.numeric(beta)
+    if (!num_ok) {
+      errors <- c(errors, "slot 'beta' must be numeric (probe IDs as row names, samples as columns)")
+    } else {
+      rng <- suppressWarnings(range(as.matrix(beta), na.rm = TRUE, finite = TRUE))
+      if (all(is.finite(rng)) && (rng[1] < 0 || rng[2] > 1)) {
+        errors <- c(errors, sprintf(paste0(
+          "beta values must be between 0 and 1 (found %g to %g); ",
+          "divide percentages by 100, or convert M-values with 2^M / (2^M + 1)"), rng[1], rng[2]))
+      }
+    }
   }
 
   # meta structure checks
