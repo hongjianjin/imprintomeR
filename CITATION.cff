@@ -11,16 +11,13 @@ authors:
     given-names: Gang
     email: gang.wu@stjude.org
     orcid: "https://orcid.org/0000-0002-1678-5864"
-version: 1.5.3
-date-released: 2026-11-03
+version: 1.6.0
+date-released: 2026-11-23
 doi: 10.5281/zenodo.23741652
 identifiers:
   - type: doi
     value: 10.5281/zenodo.23741652
     description: "Concept DOI: all versions, resolves to the latest"
-  - type: doi
-    value: 10.5281/zenodo.23932081
-    description: "Version DOI: release v1.5.3"
 repository-code: "https://github.com/hongjianjin/imprintomeR"
 license: Apache-2.0
 keywords:
