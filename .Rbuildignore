@@ -15,8 +15,6 @@
 ^tmp_jupyter$
 ^tmp_cli$
 ^CITATION\.cff$
-^mcp_server$
-^skills$
 ^docs$
 ^FAQ\.md$
 ^\.github$
