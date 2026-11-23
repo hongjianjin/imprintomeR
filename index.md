@@ -353,11 +353,16 @@ the guides are in `vignettes/articles/`.
 - [Command-line
   guide](https://hongjianjin.github.io/imprintomeR/articles/command-line.html):
   command-line QC and analysis
-- R vignettes:
-  [`vignette("imprintomeset-quickstart")`](https://hongjianjin.github.io/imprintomeR/articles/imprintomeset-quickstart.md),
-  [`vignette("imprintomeset-results-export")`](https://hongjianjin.github.io/imprintomeR/articles/imprintomeset-results-export.md),
-  [`vignette("imprintomeR-workflow-basic")`](https://hongjianjin.github.io/imprintomeR/articles/imprintomeR-workflow-basic.md)
-  (core functions without S4 objects)
+- R vignettes: [ImprintomeSet
+  quickstart](https://hongjianjin.github.io/imprintomeR/articles/imprintomeset-quickstart.html),
+  [visualization
+  gallery](https://hongjianjin.github.io/imprintomeR/articles/imprintomeset-results-export.html)
+  and [basic
+  workflow](https://hongjianjin.github.io/imprintomeR/articles/imprintomeR-workflow-basic.html)
+  (core functions without S4 objects), rendered from the example data.
+  The default install does not build vignettes, so
+  [`vignette()`](https://rdrr.io/r/utils/vignette.html) lists them only
+  when the package was installed with `build_vignettes = TRUE`.
 - [Supplementary_Code.R](https://github.com/hongjianjin/imprintomeR/blob/main/supplementary/Supplementary_Code.R):
   companion script to the Supplementary Workflow Examples of the
   Application Note; runs every example on public data (minfiData IDATs
