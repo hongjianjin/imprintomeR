@@ -1,0 +1,696 @@
+---
+title: "Real-World Imprinting Analysis: GSE52576 Dataset"
+---
+
+*Download, preprocess, and analyze methylation data from a public GEO dataset*
+
+
+## Overview
+
+This vignette demonstrates imprintomeR on **GSE52576**, a real-world methylation dataset from the Gene Expression Omnibus (GEO). You will:
+
+1. **Download** normalized beta values from GEO using GEOquery
+2. **Create** an ImprintomeSet analysis-ready object
+3. **Analyze** imprinting status across samples
+4. **Visualize** results with all available plot types
+5. **Interpret** biological patterns and aberrant imprinting
+6. **Compare** scoring options: DMR type, bootstrap intervals, ICR-balanced and per-ICR scores, and locus panels
+
+The workflow is optimized for **reproducibility** and **Jupyter notebook conversion**.
+
+---
+
+## Phase 1: Setup & Data Download
+
+### Load libraries
+
+```r
+library(imprintomeR)
+library(GEOquery)
+library(tidyverse)
+library(ComplexHeatmap)
+library(ggplot2)
+library(knitr)
+
+# For reproducibility
+set.seed(2026)
+```
+
+### Download GSE52576 from GEO
+
+GSE52576 is a publicly available dataset of	Genome-wide parent-of-origin DNA methylation analysis using Illumina 450K methylation arrays.
+
+```r
+# Download GSE52576 from GEO
+geo_gse <- "GSE52576"
+message("Downloading ", geo_gse, " from GEO...")
+
+tryCatch({
+  gse <- getGEO(geo_gse, GSEMatrix = TRUE, AnnotGPL = TRUE, getGPL = FALSE)
+  eset <- gse[[1]]  # Extract ExpressionSet object
+
+  message("✓ Download successful")
+  message("  Samples: ", ncol(eset))
+  message("  Probes:  ", nrow(eset))
+}, error = function(e) {
+  stop("Failed to download ", geo_gse, ":\n", conditionMessage(e),
+       "\nCheck internet connection and GEO availability.")
+})
+```
+
+### Extract metadata and beta values
+
+```r
+# Extract phenotype data (metadata)
+pdata <- pData(eset)
+message("Available metadata columns:")
+print(colnames(pdata))
+
+# Display sample information
+message("\nSample overview:")
+head(pdata[, c("geo_accession", "title", "source_name_ch1")], n = 3)
+```
+
+### Format data for imprintomeR
+
+```r
+# Extract beta values (methylation intensities, 0-1 scale)
+beta_matrix <- exprs(eset)
+message("Beta matrix dimensions: ", nrow(beta_matrix), " probes × ",
+        ncol(beta_matrix), " samples")
+message("Beta range: [", round(min(beta_matrix, na.rm = TRUE), 3), ", ",
+        round(max(beta_matrix, na.rm = TRUE), 3), "]")
+
+# Create metadata data.frame compatible with imprintomeR
+meta <- data.frame(
+  Sample_Name = colnames(beta_matrix),
+  Sample_Group = pdata$source_name_ch1,  # Disease status or tissue type
+  Disease_Status = pdata$characteristics_ch1.1,  # Detailed phenotype
+  stringsAsFactors = FALSE
+)
+
+# Clean up Sample_Group (shorten for readability)
+meta$Sample_Group <- gsub("^.*: ", "", meta$Sample_Group)
+
+message("\nMetadata created:")
+message("Samples: ", nrow(meta))
+print(table(meta$Sample_Group))
+
+message("\nFirst few samples:")
+head(meta, n = 3)
+```
+
+### Validate data integrity
+
+```r
+# Check for missing values
+pct_missing <- colSums(is.na(beta_matrix)) / nrow(beta_matrix) * 100
+message("Missing values per sample:")
+if (max(pct_missing) > 0) {
+  print(head(sort(pct_missing, decreasing = TRUE)))
+} else {
+  message("  ✓ No missing values")
+}
+
+# Verify sample name alignment
+if (all(colnames(beta_matrix) == meta$Sample_Name)) {
+  message("✓ Sample names aligned between beta and metadata")
+} else {
+  stop("Sample name mismatch!")
+}
+```
+
+---
+
+## Phase 2: Load & Create ImprintomeSet
+
+### Load data using imprintomeR utilities
+
+```r
+# Use imprintomeR's LoadMetaBeta function to validate and intersect data
+beta <- as.data.frame(beta_matrix)
+beta <- cbind(NAME = rownames(beta), beta)
+input <- LoadMetaBeta(meta, beta, probeset = NULL)
+
+message("Loaded data:")
+message("  Samples: ", ncol(input$beta))
+message("  Probes:  ", nrow(input$beta))
+message("  Metadata cols: ", paste(colnames(input$meta), collapse = ", "))
+
+# Peek at data structure
+message("\nBeta matrix (first 5 probes, 3 samples):")
+print(round(input$beta[1:5, 1:3], 3))
+```
+
+### Create ImprintomeSet object
+
+```r
+# Load probeset annotations
+probesets <- readRDS(
+  system.file("extdata", "probesets_hg38.rds", package = "imprintomeR")
+)
+
+# Create analysis-ready ImprintomeSet
+x <- ImprintomeSet(
+  beta = input$beta,
+  meta = input$meta,
+  probeset = probesets[["selected"]],  # Use all probes; will be subset by runImprintome
+  genome = "hg38",
+  assay = "450K"  # GSE52576 uses Illumina 450K (close to EPIC v1)
+)
+
+# Verify object structure
+message("ImprintomeSet created:")
+message("  Samples: ", ncol(beta(x)))
+message("  Probes: ", nrow(beta(x)))
+message("  Genome: ", x@genome)
+message("  Assay: ", x@assay)
+print(summary(x))
+```
+
+---
+
+## Phase 3: Run Workflow & Compute Statistics
+
+### Execute imprintomeR analysis
+
+```r
+message("Running imprintome analysis...")
+x <- runImprintome(x)
+message("Analysis complete")
+
+# Extract results
+res <- results(x)
+message("\nResults available:")
+print(names(res))
+
+# Display analysis summary
+message("\nAnalysis summary:")
+status <- res$AnalyzeImprintStatus.selected
+print(head(status,n=5))
+
+```
+
+### Compute per-group statistics
+
+```r
+# Summarize by Sample_Group
+message("\nImprinting status by group:")
+print(table(status[, c("Sample_Group", "Status")]))
+```
+
+### Review key metrics
+
+```r
+# Distribution of key imprinting metrics
+message("IDS (Imprinting Defect Score) distribution:")
+print(summary(status$IDS))
+
+message("\nStatus classification:")
+print(table(status$Status))
+
+message("\nAngle (parental origin deviation) distribution:")
+print(summary(status$Angle))
+```
+
+---
+
+## Phase 4: Visualizations - Complete Gallery
+
+```r
+sample_id_1 <- colnames(beta(x))[2]
+message("Representative sample for single-sample plots: ", sample_id_1)
+
+x <- runImprintomeVisualizations(
+  x,
+  probeset = "selected",
+  sample_id = sample_id_1,
+  prefix = "GSE52576",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+
+attr(x, "visualization_manifest")
+names(plots(x))
+```
+
+### Display selected stored plots
+
+```r
+if (!is.null(plots(x)[["polar.selected"]])) {
+  options(repr.plot.width = 10, repr.plot.height = 10)
+  print(plots(x)[["polar.selected"]])
+}
+
+if (!is.null(plots(x)[["beeswarm_origin.selected"]])) {
+   options(repr.plot.width = 12, repr.plot.height = 6)
+  print(plots(x)[["beeswarm_origin.selected"]])
+}
+
+rainfall_name <- grep("^rainfall\\.", names(plots(x)), value = TRUE)[1]
+if (!is.na(rainfall_name)) {
+    options(repr.plot.width = 12, repr.plot.height = 6)
+  print(plots(x)[[rainfall_name]])
+}
+```
+
+### Visualizations by plot_type
+
+The workflow helper can also run one plot backend at a time by setting `plot_types` explicitly.
+
+#### Plot 1: Polar scatter
+
+```r
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "polar",
+  probeset = "selected",
+  result_name = "AnalyzeImprintStatus.selected",
+  colorColumn = "Sample_Group",
+  prefix = "GSE52576_polar",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+options(repr.plot.width = 8, repr.plot.height = 8)
+print(plots(x)[["polar.selected"]])
+```
+
+#### Plot 2: Beeswarm by origin
+
+```r
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "beeswarm_origin",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  prefix = "GSE52576_beeswarm_origin",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+options(repr.plot.width = 12, repr.plot.height = 6)
+print(plots(x)[["beeswarm_origin.selected"]])
+```
+
+#### Plot 3: Mirror density
+
+```r
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "mirror_density",
+  probeset = "selected",
+  prefix = "GSE52576_mirror_density",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+options(repr.plot.width = 10, repr.plot.height = 6)
+print(plots(x)[["mirror_density.selected"]])
+```
+
+#### Plot 4: Circular heatmap
+
+```r
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "circular_heatmap",
+  probeset = "selected",
+  sectionColumn = "Sample_Group",
+  prefix = "GSE52576_circular_heatmap",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+options(repr.plot.width = 10, repr.plot.height = 10)
+print(plots(x)[["circular.selected"]])
+```
+
+#### Plot 5: Beta heatmap by probe
+
+```r
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "heatmap_by_probe",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  annoColumn = "Sample_Group",
+  prefix = "GSE52576_heatmap_by_probe",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+options(repr.plot.width = 10, repr.plot.height = 8)
+print(plots(x)[["heatmap.selected"]])
+```
+
+#### Plot 6: Beta heatmap by gene
+
+```r
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "heatmap_by_gene",
+  probeset = "selected",
+  SAMPLEID = "Sample_Name",
+  annoColumn = "Sample_Group",
+  clusterRows = TRUE,
+  clusterColumns = TRUE,
+  prefix = "GSE52576_heatmap_by_gene",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+options(repr.plot.width = 10, repr.plot.height = 12)
+print(plots(x)[["heatmap_by_gene.selected"]])
+```
+
+#### Plot 7: Radar plot
+
+```r
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "radar",
+  probeset = "selected",
+  sample_id = sample_id_1,
+  prefix = "GSE52576_radar",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+radar_name <- grep("^radar\\.", names(plots(x)), value = TRUE)[1]
+if (!is.na(radar_name)) {
+  options(repr.plot.width = 12, repr.plot.height = 12)
+  print(plots(x)[[radar_name]])
+}
+```
+
+#### Plot 8: Beeswarm by chromosome
+
+```r
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "beeswarm_chr",
+  probeset = "selected",
+  sample_id = sample_id_1,
+  prefix = "GSE52576_beeswarm_chr",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+beeswarm_chr_name <- grep("^beeswarm_chr\\.", names(plots(x)), value = TRUE)[1]
+if (!is.na(beeswarm_chr_name)) {
+  options(repr.plot.width = 12, repr.plot.height = 6)
+  print(plots(x)[[beeswarm_chr_name]])
+}
+```
+
+#### Plot 9: Rainfall plot
+
+```r
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "rainfall",
+  sample_id = sample_id_1,
+  rainfall_probeset = "selected",
+  prefix = "GSE52576_rainfall",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+rainfall_name <- grep("^rainfall\\.", names(plots(x)), value = TRUE)[1]
+if (!is.na(rainfall_name)) {
+  options(repr.plot.width = 12, repr.plot.height = 6)
+  print(plots(x)[[rainfall_name]])
+}
+```
+
+---
+
+## Phase 5: Results Interpretation & Case Study
+
+### Summary statistics
+
+```r
+res <- results(x)
+status <- res$AnalyzeImprintStatus.selected
+normal_n <- sum(status$Status %in% "Normal", na.rm = TRUE)
+total_n <- nrow(status)
+normal_pct <- normal_n / total_n * 100
+abnormal_pct <- 100 - normal_pct
+
+message("=== OVERALL IMPRINTING SUMMARY ===")
+message(sprintf("Normal imprinting:   %6.1f%% (%d/%d samples)",
+                normal_pct, normal_n, total_n))
+message(sprintf("Altered imprinting:  %6.1f%% (%d/%d samples)",
+                abnormal_pct, total_n - normal_n, total_n))
+
+message("\n=== BY SAMPLE GROUP ===")
+if ("Sample_Group" %in% colnames(status)) {
+  for (group in unique(status$Sample_Group)) {
+    idx <- status$Sample_Group == group
+    n <- sum(idx, na.rm = TRUE)
+    normal <- sum(status$Status[idx] == "Normal", na.rm = TRUE)
+    message(sprintf("%20s: %d samples, %d normal (%.1f%%)",
+                    group, n, normal, 100 * normal / n))
+  }
+} else {
+  message("Sample_Group column not available in status table.")
+}
+```
+
+### Identify samples with altered imprinting
+
+```r
+abnormal <- status %>% filter(!Status %in% "Normal")
+sample_col <- intersect(c("Sample_Name", "Sample_ID"), colnames(status))[1]
+
+if (nrow(abnormal) > 0) {
+  message("=== ALTERED IMPRINTING SAMPLES ===")
+  message("Sample count: ", nrow(abnormal))
+  cols_to_show <- c(sample_col, intersect("Sample_Group", colnames(abnormal)),
+                    "Status", "IDS", "Angle")
+  print(abnormal %>% select(all_of(cols_to_show)) %>% head(n = 12))
+} else {
+  message("All samples show normal imprinting patterns by the selected IDS cutoff.")
+}
+```
+
+### Phenotype-imprinting associations
+
+```r
+if ("Sample_Group" %in% colnames(status) && length(unique(status$Sample_Group)) > 1) {
+  message("Cross-tabulation: Sample_Group vs Imprinting Status")
+  tbl <- table(status$Sample_Group, status$Status)
+  print(tbl)
+
+  group_summary <- status %>%
+    group_by(Sample_Group, Status) %>%
+    summarise(
+      n = n(),
+      median_IDS = median(IDS, na.rm = TRUE),
+      median_Angle = median(Angle, na.rm = TRUE),
+      .groups = "drop"
+    )
+  print(group_summary)
+} else {
+  message("Sample_Group is unavailable or has one level; skipping group cross-tabulation.")
+}
+```
+
+### Key findings
+
+```r
+message("=== KEY BIOLOGICAL INSIGHTS ===")
+message("1. Dataset: GSE52576, methylation study of imprinting disorders")
+message("2. Platform: Illumina HumanMethylation450K")
+message("3. Samples analyzed: ", total_n)
+message("4. IDS range: [",
+        round(min(status$IDS, na.rm = TRUE), 3), ", ",
+        round(max(status$IDS, na.rm = TRUE), 3), "]")
+message("5. Most common imprinting status: ",
+        names(sort(table(status$Status), decreasing = TRUE))[1])
+message("6. Compare Sample_Group summaries above to relate imprinting status to phenotype groups.")
+```
+---
+
+## Phase 6: Scoring Options
+
+The sections above use the package defaults: the `selected` panel scored on gametic ICRs against the fixed 0.5 reference. This phase shows the other scoring options on the same data. Each call adds a result table to `results(x)` under its own name, so earlier results are kept.
+
+GSE52576 has no tissue-matched control group, so all scores here use the fixed 0.5 reference.
+
+### Gametic ICRs, all probes and secondary DMRs
+
+`runImprintome()` scores the core `selected` panel on gametic ICRs by default (`dmr_type = "gametic"`). `dmr_type = "all"` scores every probe, as in earlier package versions, and `dmr_type = "secondary"` scores the secondary DMRs separately.
+
+```r
+x <- runImprintome(x, probeset = "selected", dmr_type = "all")
+x <- runImprintome(x, probeset = "selected", dmr_type = "secondary")
+res <- results(x)
+
+scored <- c(gametic    = "AnalyzeImprintStatus.selected",
+            all_probes = "AnalyzeImprintStatus.selected.all",
+            secondary  = "AnalyzeImprintStatus.selected.secondary")
+
+# Probes per parental class for each selection
+t(sapply(scored, function(nm) unlist(res[[nm]][1, c("n_paternal_probes", "n_maternal_probes")])))
+
+# Mechanism of each sample under each selection
+mechanism_by_selection <- data.frame(
+  Sample_Name  = status$Sample_Name,
+  Sample_Group = status$Sample_Group,
+  sapply(scored, function(nm) res[[nm]]$Mechanism[match(status$Sample_Name, res[[nm]]$Sample_Name)])
+)
+mechanism_by_selection[order(mechanism_by_selection$Sample_Group), ]
+```
+
+The gametic paternal class is essentially the H19/IGF2 IG-DMR, so report `n_paternal_probes` alongside gametic scores.
+
+### Bootstrap uncertainty intervals
+
+`n_boot` adds percentile intervals for IDS and Angle from a two-stage bootstrap (ICRs, then probes within ICRs), and `Mechanism_support`, the fraction of replicates that fall in the reported sector. Use at least 1,000 replicates for reporting; 200 keep this example fast.
+
+```r
+x <- runImprintome(x, probeset = "selected", n_boot = 200, seed = 2026,
+                   result_name = "AnalyzeImprintStatus.selected.boot")
+boot <- results(x)[["AnalyzeImprintStatus.selected.boot"]]
+boot[, c("Sample_Name", "Sample_Group", "IDS", "IDS_lower", "IDS_upper",
+         "Angle", "Angle_lower", "Angle_upper", "Mechanism", "Mechanism_support")]
+```
+
+The intervals are conditional on the reference (with in-cohort controls, `resample_reference = TRUE` includes its uncertainty). The origin permutation test (`n_perm`) is interpretable only for scores centred on control samples (`reference_group`), and `CalibrateIDS()` needs tissue-matched controls, so neither is shown here.
+
+### ICR-balanced IDS and per-ICR calls
+
+The sample-level IDS pools all probes of a parental class, so probe-rich ICRs dominate it. `balance = "icr"` takes the median within each ICR and then across ICRs, so that each ICR counts once. `icr = TRUE` also scores each ICR on its own and summarizes the altered ICRs per sample.
+
+```r
+x <- runImprintome(x, probeset = "selected", balance = "icr", icr = TRUE)
+res <- results(x)
+
+# Probe-pooled versus ICR-balanced IDS
+balanced <- res[["AnalyzeImprintStatus.selected.icr"]]
+data.frame(Sample_Name      = status$Sample_Name,
+           Sample_Group     = status$Sample_Group,
+           IDS_pooled       = status$IDS,
+           IDS_icr_balanced = balanced$IDS[match(status$Sample_Name, balanced$Sample_Name)])
+
+# Per-ICR table (one row per sample and ICR) and per-sample summary
+icr_table   <- res[["ICRStatus.selected"]]
+icr_summary <- res[["ICRSummary.selected"]]
+table(icr_table$DMR_type[!duplicated(icr_table$ICR_name)])   # ICRs scored, by DMR type
+icr_summary[, c("Sample_Name", "Sample_Group", "n_icrs", "n_altered", "n_gain", "n_loss",
+                "n_altered_chromosomes", "MLID")]
+
+# Count gametic ICRs only
+SummarizeICRStatus(icr_table, dmr_type = "gametic")[, c("Sample_Name", "n_icrs", "n_altered", "MLID")]
+```
+
+Per-ICR calls cover all annotated ICRs, secondary DMRs included. The call thresholds (|deviation| ≥ 0.175 and |z| ≥ 2) were selected and evaluated with control samples. GSE52576 has normal tissues but no control group matched to the other samples' tissue. Without controls, `z` is unavailable and only the deviation criterion applies, so tissue-specific methylation is called altered. Note how many ICRs are called altered in samples expected to be normal. Treat these calls as exploratory, or rerun with controls from the same study (`reference_group`), or with a larger `delta_cutoff` such as 0.25.
+
+### Locus panels: chr11p15 and chr20q13 (GNAS)
+
+Locus panels give a two-axis IDS/Angle for a single imprinted domain: IC1 and IC2 at 11p15.5 (`chr11p15`), and GNAS-NESP against the maternal GNAS DMRs at 20q13 (`chr20q13`).
+
+```r
+x <- runImprintome(x, probeset = "chr11p15")
+x <- runImprintome(x, probeset = "chr20q13")
+res <- results(x)
+
+do.call(rbind, lapply(c("chr11p15", "chr20q13"), function(p) {
+  res[[paste0("AnalyzeImprintStatus.", p)]] %>%
+    group_by(Sample_Group) %>%
+    summarise(panel = p, n = n(), median_IDS = round(median(IDS), 3), max_IDS = round(max(IDS), 3),
+              .groups = "drop")
+}))
+```
+
+### Per-ICR heatmap
+
+The `icr_heatmap` plot type draws the stored per-ICR table, samples by ICRs; non-gametic ICRs are marked with `*`. `runImprintomeVisualizations()` includes it in the default set whenever `runImprintome(..., icr = TRUE)` has been run.
+
+```r
+x <- runImprintomeVisualizations(
+  x,
+  plot_types = "icr_heatmap",
+  probeset = "selected",
+  prefix = "GSE52576_icr_heatmap",
+  store_plots = TRUE,
+  save_plots = FALSE,
+  verbose = TRUE
+)
+options(repr.plot.width = 12, repr.plot.height = 8)
+print(plots(x)[["icr_heatmap.selected"]])
+```
+
+```r
+names(results(x))
+```
+
+---
+
+## Phase 7: Export Results
+
+```r
+manifest <- export(
+  x,
+  outdir = "GSE52576_imprintome_output",
+  prefix = "GSE52576",
+  save_plots = TRUE,
+  plot_device = "pdf",
+  overwrite = TRUE
+)
+
+head(manifest)
+```
+
+`export()` writes the full `ImprintomeSet` object as `<prefix>_imprintomeSet.rds`, plus `results(x)` and optionally `plots(x)`. Save extra summary tables only when you need custom reporting beyond the export manifest.
+
+---
+
+## Session Information & Reproducibility
+
+```r
+# Reproducibility information
+message("=== REPRODUCIBILITY ===")
+message("R version: ", R.version$version.string)
+message("imprintomeR version: ", packageVersion("imprintomeR"))
+message("Execution date: ", Sys.Date())
+message("Random seed: 2026")
+
+sessionInfo()
+```
+
+---
+
+## Jupyter Notebook Conversion Guide
+
+A run copy of this guide as a notebook, with outputs, is [tutorials/GSE52576.ipynb](https://github.com/hongjianjin/imprintomeR/blob/main/tutorials/GSE52576.ipynb). This guide is plain Markdown (code blocks are shown, not run, on the website); each R code block is one notebook cell. To create a notebook with an R kernel:
+
+```bash
+jupytext --from md --to notebook --set-kernel ir vignettes/articles/GSE52576.Rmd
+```
+
+**Tips for Jupyter users:**
+- Run the raw-IDAT download and QC cells only when you need full preprocessing; they download a large archive.
+- Save the downloaded GEO and IDAT files once and reuse them, rather than downloading in every session.
+- Set `outFile` in plot calls to save publication-ready PDFs or PNGs.
+- End with `local({ si <- sessionInfo(); si$BLAS <- basename(si$BLAS); si$LAPACK <- basename(si$LAPACK); si })` so that saved notebooks do not record local library paths.
+
+---
+
+## References
+
+- **GSE52576**: [NCBI GEO record](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE52576)
+- **imprintomeR documentation**: See package vignettes
+- **GEOquery**: Bioconductor package for GEO data access
+- **Imprinting Control Regions**: See `?setup_imprintome_data` for probeset annotations
+
+---
+
+## License & Attribution
+
+This vignette uses publicly available data from NCBI Gene Expression Omnibus (GEO).
+Please cite the original GSE52576 study and imprintomeR when using this analysis.
+

@@ -1,4 +1,4 @@
-# R CMD check on Linux, macOS and Windows (r-lib/actions).
+# R CMD check on Linux, macOS and Windows (r-lib/actions), building and running the vignettes on the bundled example data.
 on:
   push:
     branches: [main]
@@ -41,6 +41,6 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
-          build_args: 'c("--no-manual", "--no-build-vignettes")'
-          args: 'c("--no-manual", "--ignore-vignettes", "--as-cran")'
+          build_args: 'c("--no-manual")'
+          args: 'c("--no-manual", "--as-cran")'
           error-on: '"error"'

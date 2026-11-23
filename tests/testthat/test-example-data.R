@@ -52,3 +52,20 @@ test_that("ImprintomeSet() rejects percentages and M-values", {
   expect_error(mk(log2(beta / (1 - beta))), "between 0 and 1")
   expect_s4_class(mk(beta), "ImprintomeSet")
 })
+
+test_that("probe-level plots work on an ImprintomeSet whose meta has default row names", {
+  beta <- imprintome_example("beta")
+  meta <- imprintome_example("meta")
+  expect_identical(rownames(meta), as.character(seq_len(nrow(meta))))
+  panel <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))[["selected"]]
+  x <- ImprintomeSet(beta = beta, meta = meta, probeset = panel, genome = "hg38", assay = "450K")
+  grDevices::pdf(NULL); on.exit(grDevices::dev.off(), add = TRUE)
+  for (pt in c("violin", "beeswarm", "beeswarm_origin")) {
+    p <- suppressWarnings(suppressMessages(utils::capture.output(
+      res <- plot(x, plot_type = pt, probeset = "selected"))))
+    expect_s3_class(res, "ggplot")
+  }
+  utils::capture.output(p <- suppressWarnings(
+    BetaBeePlot_single_chr(beta = beta, meta = meta, chr = "chr11", probeset = "selected")))
+  expect_false(is.null(p))
+})

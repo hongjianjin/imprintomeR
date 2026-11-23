@@ -67,16 +67,16 @@ PlotCorHeatmap <- function(betaFile, metaFile = NULL, SAMPLEID="Sample_Name", pr
     beta=data.frame(beta[, validIds])
     rownames(beta) <- rownames(beta)
     colnames(beta) <- validIds
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
   }else  if (length(validIds) > 1) {
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
     beta <- beta[, validIds]
   } else {
     cat("\nERROR: beta column does not match meta$Sample_Name. \n")
     return(NULL)
   }
   colnames(beta) <- newIDs
-  cor_matrix <- cor(beta)
+  cor_matrix <- cor(beta, use = "pairwise.complete.obs")  # tolerate missing beta values
 
 
 
@@ -488,7 +488,7 @@ BetaVlnPlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
   meta$SAMPLEID <- meta[, SAMPLEID]
   newIDs <- meta$SAMPLEID[meta$Sample_Name %in% validIds]
   if (length(validIds) > 0) {
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
     beta <- beta[, validIds]
   } else {
     cat("\nERROR: beta column does not match meta$Sample_Name. \n")
@@ -581,9 +581,9 @@ BetaBeePlot <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFile = N
     beta=data.frame(beta[, validIds])
     rownames(beta) <- rownames(beta)
     colnames(beta) <- validIds
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
   }else  if (length(validIds) > 1) {
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
     beta <- beta[, validIds]
   } else {
     cat("\nERROR: beta column does not match meta$Sample_Name. \n")
@@ -679,9 +679,9 @@ BetaBeePlot_SNP <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL
     beta=data.frame(beta[, validIds])
     rownames(beta) <- rownames(beta)
     colnames(beta) <- validIds
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
   }else  if (length(validIds) > 1) {
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
     beta <- beta[, validIds]
   } else {
     cat("\nERROR: beta column does not match meta$Sample_Name. \n")
@@ -699,6 +699,7 @@ BetaBeePlot_SNP <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NULL
   beta <- data.frame(beta)
   breaks <- c(0, low_cutoff, high_cutoff, 1)
   labels <- c("BB", "AB", "AA")
+  beta <- as.data.frame(beta, check.names = FALSE)
   beta$CTL_GRP <- cut(ctrls_mean, breaks = breaks, labels = labels, include.lowest = TRUE)
   beta$Probe <- rownames(beta)
   suppressMessages({
@@ -789,16 +790,17 @@ BetaBeePlot_single_chr <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
     beta=data.frame(beta[, validIds])
     rownames(beta) <- rownames(beta)
     colnames(beta) <- validIds
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
   }else  if (length(validIds) > 1) {
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
     beta <- beta[, validIds]
   } else {
     cat("\nERROR: beta column does not match meta$Sample_Name. \n")
     return(NULL)
   }
   colnames(beta) <- newIDs
-  beta$Probe=rownames(beta)
+  beta <- as.data.frame(beta, check.names = FALSE)
+  beta$Probe <- rownames(beta)
   beta$CATEGORY= anno[common_probes,"CATEGORY"]
   suppressMessages({
     used <- reshape2::melt(beta, id.vars = c("Probe", "CATEGORY"),variable.name = "ID",value.name = "value")
@@ -911,16 +913,17 @@ BetaBeePlot_orgin <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = NU
     beta=data.frame(beta[, validIds])
     rownames(beta) <- rownames(beta)
     colnames(beta) <- validIds
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
   }else  if (length(validIds) > 1) {
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
     beta <- beta[, validIds]
   } else {
     cat("\nERROR: beta column does not match meta$Sample_Name. \n")
     return(NULL)
   }
   colnames(beta) <- newIDs
-  beta$Probe=rownames(beta)
+  beta <- as.data.frame(beta, check.names = FALSE)
+  beta$Probe <- rownames(beta)
   beta$CATEGORY= anno[common_probes,"CATEGORY"]
 
   suppressMessages({
@@ -1073,9 +1076,9 @@ BetaBeeswarm_chr <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFil
     beta=data.frame(beta[, validIds])
     rownames(beta) <- rownames(beta)
     colnames(beta) <- validIds
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
   }else if (length(validIds) > 1) {
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
     beta <- beta[, validIds]
   } else {
     cat("\nERROR: beta column does not match meta$Sample_Name. \n")
@@ -1083,6 +1086,7 @@ BetaBeeswarm_chr <- function(beta, meta = NULL, SAMPLEID = "Sample_Name", outFil
   }
   colnames(beta) <- newIDs
   #================================================================
+  beta <- as.data.frame(beta, check.names = FALSE)
   beta$Probe <- rownames(beta)
   beta$Chromosome <-  anno[common_probes,"CHR"]
 
@@ -1165,9 +1169,9 @@ BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
     beta=data.frame(beta[, validIds])
     rownames(beta) <- rownames(beta)
     colnames(beta) <- validIds
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
   }else if (length(validIds) > 1) {
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
     beta <- beta[, validIds]
   } else {
     cat("\nERROR: beta column does not match meta$Sample_Name. \n")
@@ -1175,6 +1179,7 @@ BetaBeeswarm_chr_color <- function(beta, meta, SAMPLEID = "Sample_Name", outFile
   }
   colnames(beta) <- newIDs
   #================================================================
+  beta <- as.data.frame(beta, check.names = FALSE)
   beta$Probe <- rownames(beta)
   beta$Chromosome <-  anno[common_probes,"CHR"]
   beta$CATEGORY <-  anno[common_probes,"CATEGORY"]
@@ -1662,7 +1667,6 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
     probe_info <- data.frame(beta_anno[, c("CHR", "MAPINFO", "GENE")])
     probe_info$CHR <- factor(probe_info$CHR, levels = unique(probe_info$CHR))
     sectors <- probe_info$CHR
-    print(head(probe_info))
     n <- length(unique(sectors))
     dat1 <- beta_list[[1]]
     #print(head(dat1))
@@ -1693,8 +1697,6 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
 
     pos <- circos.heatmap.get.x(seq_len(nrow(dat1)))
     circos.labels(pos$sector[idx], x = pos$x[idx], labels = geneSymbols, side = "outside", cex = 0.8) #
-    print(sectionLabels)
-    print(head(pos))
     # Adaptive font size for section labels based on number of groups
     section_cex <- min(1.2, 0.8 + 0.08 * length(beta_list))
     for (i in seq(length(beta_list))) {
@@ -2212,6 +2214,7 @@ PlotRainfall <- function(beta, sampleID, title="Imprinting Rainfall Plot", probe
   beta <- beta[common_probes, ]
   #================================================================
   #================================================================
+  beta <- as.data.frame(beta, check.names = FALSE)
   beta$Probe <- rownames(beta)
   beta$CHR <-  anno[common_probes,"CHR"]
   beta$ORIGIN <-  anno[common_probes,"ORIGIN"]
@@ -2901,16 +2904,17 @@ BetaBeePlot_orgin2 <- function(beta, meta, SAMPLEID = "Sample_Name", outFile = N
     beta=data.frame(beta[, validIds])
     rownames(beta) <- rownames(beta)
     colnames(beta) <- validIds
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
   }else  if (length(validIds) > 1) {
-    meta <- meta[validIds, ]
+    meta <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
     beta <- beta[, validIds]
   } else {
     cat("\nERROR: beta column does not match meta$Sample_Name. \n")
     return(NULL)
   }
   colnames(beta) <- newIDs
-  beta$Probe=rownames(beta)
+  beta <- as.data.frame(beta, check.names = FALSE)
+  beta$Probe <- rownames(beta)
   beta$CATEGORY= anno[common_probes,"CATEGORY"]
 
   suppressMessages({
@@ -2988,7 +2992,7 @@ Beeplot_chr_vs_other <- function(dat, meta, group.by = "chr", color.by = "CATEGO
   imgHeight <- 6
   imgWidth <- 4
   samples <- intersect(colnames(dat), meta$Sample_Name)
-  pdf(outFile, width = imgWidth, height = imgHeight)
+  if (!is.null(outFile)) pdf(outFile, width = imgWidth, height = imgHeight)
   for (sample in samples) {
     if (verbose) {
       cat("\n\t", sample)
@@ -3016,8 +3020,11 @@ Beeplot_chr_vs_other <- function(dat, meta, group.by = "chr", color.by = "CATEGO
     }
     print(pg)
   }
-  garbage <- dev.off()
-  cat("\n\t", basename(outFile), "[saved]")
+  if (!is.null(outFile)) {
+    garbage <- dev.off()
+    cat("\n\t", basename(outFile), "[saved]")
+  }
+  invisible(NULL)
 }
 
 
@@ -3050,7 +3057,7 @@ Beeplot_chr_vs_other_single <- function(input, chrs = "chr1,chr11", prefix = NUL
     cat("\n\t", chr)
     common_probes <- intersect(probeset$NAME, rownames(beta))
     probeset <- probeset[probeset$NAME %in% common_probes, ]
-    beta <- beta[common_probes, ]
+    beta <- as.data.frame(beta[common_probes, , drop = FALSE], check.names = FALSE)
     probes_chr <- probeset$NAME[probeset$CHR %in% c(chr, gsub("chr", "", chr))]
     probes_chr_others <- probeset$NAME[!probeset$CHR %in% c(chr, gsub("chr", "", chr))]
     beta_chr <- beta[probes_chr, ]

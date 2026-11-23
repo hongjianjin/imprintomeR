@@ -1,4 +1,6 @@
-# imprintomeR Command-Line Workflows
+---
+title: "imprintomeR Command-Line Workflows"
+---
 
 This guide describes the package-installed command-line scripts for running methylation QC and imprinting analysis with `imprintomeR`.
 

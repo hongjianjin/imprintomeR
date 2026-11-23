@@ -9,9 +9,14 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
+# Files written by the examples go to a temporary folder.
+knitr::opts_knit$set(root.dir = tempdir())
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  out.width = "100%"
 )
 ```
 
@@ -38,7 +43,7 @@ Core definitions used by imprintomeR:
 
 ## Package Startup
 
-```{r, eval = FALSE}
+```{r}
 library(imprintomeR)
 ```
 
@@ -186,15 +191,18 @@ x <- as.ImprintomeSet(
 )
 ```
 
-Alternatively, construct `ImprintomeSet` directly if you've already completed QC:
+Alternatively, construct `ImprintomeSet` directly from a beta matrix if QC was done elsewhere. The rest of this vignette runs on the bundled example, beta values of the `selected` panel probes for 28 samples of GEO GSE52576 (450K):
 
-```{r, eval = FALSE}
+```{r}
+beta <- imprintome_example("beta")   # 782 probes x 28 samples, GEO GSE52576 (450K)
+meta <- imprintome_example("meta")   # Sample_Name, Sample_Group, title, health_state, gender
+probesets <- readRDS(system.file("extdata", "probesets_hg38.rds", package = "imprintomeR"))
 x <- ImprintomeSet(
   beta = beta,
   meta = meta,
   probeset = probesets[["selected"]],
   genome = "hg38",
-  assay = "EPICv1"
+  assay = "450K"
 )
 ```
 
@@ -213,7 +221,7 @@ The object keeps derived outputs in separate slots:
 
 `runImprintome()` stores the analysis table inside `results(x)`.
 
-```{r, eval = FALSE}
+```{r}
 x <- runImprintome(
   x,
   probeset = "selected",
@@ -223,7 +231,7 @@ x <- runImprintome(
 
 You can run additional probesets and keep all outputs in the same object.
 
-```{r, eval = FALSE}
+```{r}
 x <- runImprintome(
   x,
   probeset = "NanoImprint",
@@ -234,7 +242,7 @@ x <- runImprintome(
 
 ## 4. Inspect Results
 
-```{r, eval = FALSE}
+```{r}
 result_names <- names(results(x))
 result_names
 
@@ -255,7 +263,7 @@ Expected columns include:
 
 ## 5. Summarize Object State
 
-```{r, eval = FALSE}
+```{r}
 s <- summarize(x)
 s$object
 s$results
@@ -264,15 +272,15 @@ s$plots
 
 ## 6. Access and Update Slots
 
-```{r, eval = FALSE}
+```{r}
 # Accessors
-head(beta(x))
+head(beta(x)[, 1:4])
 head(meta(x))
 assay(x)
 genome(x)
 
 # Replacement examples
-assay(x) <- "EPICv2"
+assay(x) <- "450K"
 genome(x) <- "hg38"
 ```
 
@@ -286,7 +294,7 @@ Supported workflow plot sets:
 - `plot_types = "all"`: all supported non-auto plot backends, including violin, circular heatmap, and correlation heatmap
 - `plot_types = c(...)`: any explicit subset of supported plot types
 
-```{r, eval = FALSE}
+```{r}
 sample_id1 <- colnames(beta(x))[2]
 
 x <- runImprintomeVisualizations(
@@ -305,7 +313,7 @@ names(plots(x))
 
 ### 7.1 Access Stored Plot Objects
 
-```{r, eval = FALSE}
+```{r}
 p_from_object <- plots(x)[["beeswarm_origin.selected"]]
 p_from_object
 
@@ -314,6 +322,8 @@ p_chr_from_object
 ```
 
 ### 7.2 Store Circular Heatmap Explicitly
+
+The circular layout has room for a few sample groups only; with the 11 groups of the example it is skipped with a warning, so this chunk is not run here (`vignette("imprintomeset-results-export")` draws it for three groups).
 
 ```{r, eval = FALSE}
 x <- runImprintomeVisualizations(
@@ -330,7 +340,7 @@ plots(x)[["circular.selected"]]
 
 ### 7.3 Save Plot Files During Generation
 
-```{r, eval = FALSE}
+```{r}
 x <- runImprintomeVisualizations(
   x,
   plot_types = "default",
@@ -345,7 +355,7 @@ x <- runImprintomeVisualizations(
 
 ## 8. Export Results
 
-```{r, eval = FALSE}
+```{r}
 manifest <- export(
   x,
   outdir = "imprintome_results",
@@ -377,6 +387,6 @@ readLines("qc_output/methqcset_summary.txt")
 
 ## Session Info
 
-```{r, eval = FALSE}
+```{r}
 sessionInfo()
 ```

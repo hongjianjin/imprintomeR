@@ -11,7 +11,10 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  out.width = "100%"
 )
 ```
 
@@ -38,18 +41,28 @@ meta <- LoadMeta("meta.tsv")
 beta <- LoadBeta("cleaned_beta.tsv")
 ```
 
+This vignette runs on the bundled example, beta values of the 782 probes of the `selected` panel for 28 samples of GEO GSE52576 (450K; hydatidiform moles, parthenogenetic cells, uniparental-disomy leukocytes, somatic tissues and gametes):
+
+```{r example}
+library(imprintomeR)
+beta <- imprintome_example("beta")
+meta <- imprintome_example("meta")
+dim(beta)
+table(meta$Sample_Group)
+```
+
 ## 2. Sample-level scores
 
 `AnalyzeImprintStatus()` returns one row per sample: the paternal and maternal median deviations, the Imprinting Deviation Score (IDS), its direction (Angle), the sector label (Mechanism) and the status at the IDS cutoff.
 
-```{r, eval=FALSE}
+```{r}
 res <- AnalyzeImprintStatus(betaFile = beta, metaFile = meta, probeset = "selected", ids_cutoff = 0.2)
 res[, c("Sample_Name", "Sample_Group", "n_paternal_probes", "n_maternal_probes", "IDS", "Angle", "Mechanism", "Status")]
 ```
 
 Other selections and references use the same call:
 
-```{r, eval=FALSE}
+```{r}
 res_all <- AnalyzeImprintStatus(beta, meta, probeset = "selected", dmr_type = "all")  # every probe
 res_11p <- AnalyzeImprintStatus(beta, meta, probeset = "chr11p15")                    # 11p15.5 locus panel
 # With control samples in the cohort (Sample_Group "control"):
@@ -60,7 +73,7 @@ res_11p <- AnalyzeImprintStatus(beta, meta, probeset = "chr11p15")              
 
 `n_boot` adds bootstrap intervals for IDS and Angle and `Mechanism_support`, the fraction of replicates in the reported sector. Use at least 1,000 replicates for reporting.
 
-```{r, eval=FALSE}
+```{r}
 res_boot <- AnalyzeImprintStatus(beta, meta, probeset = "selected", n_boot = 200, seed = 1)
 res_boot[, c("Sample_Name", "IDS", "IDS_lower", "IDS_upper", "Mechanism", "Mechanism_support")]
 ```
@@ -78,7 +91,7 @@ With a control reference, `n_perm` adds an exploratory permutation test of the d
 
 `AnalyzeICRStatus()` scores each imprinting control region on its own; `SummarizeICRStatus()` counts the altered ICRs per sample and flags multi-locus disturbance (MLID). The call thresholds (|deviation| ≥ 0.175 and |z| ≥ 2) assume control samples; without controls only the deviation criterion applies and the calls are exploratory.
 
-```{r, eval=FALSE}
+```{r}
 icr <- AnalyzeICRStatus(beta, meta, probeset = "selected")
 head(icr[, c("Sample_Name", "ICR_name", "ORIGIN", "DMR_type", "deviation", "direction", "altered")])
 
@@ -90,9 +103,9 @@ Per-ICR calls cover all annotated ICRs, secondary DMRs included; `dmr_type = "ga
 
 ## 5. Heatmaps from tables
 
-```{r, eval=FALSE}
+```{r, fig.width = 7, fig.height = 6}
 # Samples x ICRs, with a colour bar of each ICR's annotated parental origin
-PlotICRHeatmap(icr, outFile = "icr_heatmap.pdf")
+PlotICRHeatmap(icr)
 
 # Median beta per gene label of the panel, genes x samples
 hm <- BetaHeatmapByGene(
@@ -102,8 +115,7 @@ hm <- BetaHeatmapByGene(
   SAMPLEID = "Sample_Name",
   annoColumn = "Sample_Group",
   clusterRows = TRUE,
-  clusterColumns = TRUE,
-  outFile = "heatmap_by_gene.pdf"
+  clusterColumns = TRUE
 )
 ```
 
@@ -113,7 +125,7 @@ hm <- BetaHeatmapByGene(
 
 These plots are drawn by `plot()` on an `ImprintomeSet`, which can be built from the same tables:
 
-```{r, eval=FALSE}
+```{r, fig.width = 6, fig.height = 5}
 x <- ImprintomeSet(
   beta = beta,
   meta = meta,
@@ -123,15 +135,17 @@ x <- ImprintomeSet(
 )
 x <- runImprintome(x, probeset = "selected")
 
-plot(x, plot_type = "polar", probeset = "selected", outFile = "polar.pdf")
-plot(x, plot_type = "radar", probeset = "selected", sample_id = meta$Sample_Name[1], outFile = "radar.pdf")
-plot(x, plot_type = "beeswarm_origin", probeset = "selected", outFile = "beeswarm_origin.pdf")
+plot(x, plot_type = "polar", probeset = "selected")
+plot(x, plot_type = "radar", probeset = "selected", sample_id = meta$Sample_Name[1])
+plot(x, plot_type = "beeswarm_origin", probeset = "selected")
 ```
+
+Each call returns a ggplot object; add `outFile = "polar.pdf"` (or `.png`) to save it to a file.
 
 See `vignette("imprintomeset-quickstart")` and `vignette("imprintomeset-results-export")` for the full set of plots and exports.
 
 ## Session Info
 
-```{r, eval=FALSE}
+```{r}
 sessionInfo()
 ```

@@ -26,3 +26,5 @@
 ^imprintomeR_.*\.tar\.gz$
 ^data-raw$
 ^images$
+^tutorials$
+^vignettes/articles$

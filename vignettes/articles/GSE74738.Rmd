@@ -1,4 +1,6 @@
-# Imprinting Analysis with Control Reference: GSE74738
+---
+title: "Imprinting Analysis with Control Reference: GSE74738"
+---
 
 This notebook runs imprintomeR on **GSE74738**, an Illumina 450K cohort of placentas and related samples with a large group of normal controls. Because the cohort has its own controls, scores can be **centred on the controls** instead of the fixed 0.5 reference, and the per-ICR calls use both of their criteria (|deviation| ≥ 0.175 and |z| ≥ 2).
 

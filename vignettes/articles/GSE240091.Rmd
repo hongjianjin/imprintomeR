@@ -1,4 +1,6 @@
-# Real-World QC and Imprinting Analysis: GSE240091 Dataset
+---
+title: "Real-World QC and Imprinting Analysis: GSE240091 Dataset"
+---
 
 *Run methylation-array QC and imprintomeR analysis on a public EPIC growing teratoma cohort*
 
@@ -792,10 +794,10 @@ sessionInfo()
 
 ## Jupyter Notebook Conversion Guide
 
-This guide is plain Markdown; each R code block is one notebook cell. To create a notebook with an R kernel:
+A run copy of this guide as a notebook, with outputs, is [tutorials/GSE240091.ipynb](https://github.com/hongjianjin/imprintomeR/blob/main/tutorials/GSE240091.ipynb). This guide is plain Markdown (code blocks are shown, not run, on the website); each R code block is one notebook cell. To create a notebook with an R kernel:
 
 ```bash
-jupytext --to notebook --set-kernel ir vignettes/GSE240091.md
+jupytext --from md --to notebook --set-kernel ir vignettes/articles/GSE240091.Rmd
 ```
 
 **Tips for Jupyter users:**

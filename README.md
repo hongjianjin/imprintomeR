@@ -18,7 +18,7 @@ The workflow is built on two S4 classes:
 - **MethQcSet:** QC results and preprocessed data for one array platform.
 - **ImprintomeSet:** scores and annotations, ready for analysis and plotting.
 
-Every step can be run from R or with the command-line scripts in `inst/scripts/` (see the [command-line guide](vignettes/imprintomeR_cli_README.md)). For whole cohorts on a cluster or in containers, the [imprintome-nf](https://github.com/hongjianjin/imprintome-nf) Nextflow pipeline runs the same scripts (see [Nextflow pipeline](#nextflow-pipeline)).
+Every step can be run from R or with the command-line scripts in `inst/scripts/` (see the [command-line guide](vignettes/articles/command-line.Rmd)).
 
 ## Table of Contents
 
@@ -32,8 +32,6 @@ Every step can be run from R or with the command-line scripts in `inst/scripts/`
 - [Bundled probesets](#bundled-probesets)
 - [Plots](#plots)
 - [Documentation](#documentation)
-- [Nextflow pipeline](#nextflow-pipeline)
-- [MCP server and agent skill](#mcp-server-and-agent-skill)
 - [Test Suite](#test-suite)
 - [Maintainers](#maintainers) · [Contact](#contact) · [SessionInfo](#sessioninfo)
 
@@ -106,7 +104,7 @@ There are two entry points. Start from IDAT files to run QC with imprintomeR (pa
 | Metadata (`data.frame`) | **Required:** `Sample_Name` (unique; matched to the beta column names) and `Sample_Group` (or pass `auto_group = TRUE`). Samples present in only one of the two tables are dropped. Other columns are kept and exported. |
 | Panel, genome, assay | `probeset`: a panel from `probesets_hg38.rds` / `probesets_hg19.rds` (see [Bundled probesets](#bundled-probesets)); `genome`: `"hg38"` or `"hg19"`; `assay`: the array type (`"450K"`, `"EPICv1"` or `"EPICv2"`), recorded with the results. |
 
-Example files: `imprintome_example("beta", path = TRUE)` and `imprintome_example("meta", path = TRUE)` are tab-delimited text files in this layout (782 probes × 28 samples from GEO GSE52576), and can be passed directly to the command-line script (`run_imprintomeR.R --beta-file ... --meta-file ...`). For data from GEO, the [GSE52576](vignettes/GSE52576.md) tutorial starts from a series-matrix beta table, and the [GSE240091](vignettes/GSE240091.md) tutorial from IDAT files.
+Example files: `imprintome_example("beta", path = TRUE)` and `imprintome_example("meta", path = TRUE)` are tab-delimited text files in this layout (782 probes × 28 samples from GEO GSE52576), and can be passed directly to the command-line script (`run_imprintomeR.R --beta-file ... --meta-file ...`). For data from GEO, the [GSE52576](vignettes/articles/GSE52576.Rmd) tutorial starts from a series-matrix beta table, and the [GSE240091](vignettes/articles/GSE240091.Rmd) tutorial from IDAT files.
 
 ## Workflow
 
@@ -227,27 +225,12 @@ Colours by parental origin follow the `ORIGIN` annotation (legend "Annotated par
 - [docs/plots.md](docs/plots.md): all plot types with examples
 - [docs/probesets.md](docs/probesets.md): bundled panels, how `selected` was built, platform coverage
 - [FAQ.md](FAQ.md): choosing an IDS cutoff and interpreting results (control references, bootstrap intervals, `Mechanism_support`, per-ICR calls, the multi-locus flag)
-- [vignettes/imprintomeR_cli_README.md](vignettes/imprintomeR_cli_README.md): command-line QC and analysis
+- [Command-line guide](vignettes/articles/command-line.Rmd): command-line QC and analysis
 - R vignettes: `vignette("imprintomeset-quickstart")`, `vignette("imprintomeset-results-export")`, `vignette("imprintomeR-workflow-basic")` (core functions without S4 objects)
-- Worked GEO examples (GitHub-renderable notebooks, with Markdown versions):
-  - [GSE52567.ipynb](vignettes/GSE52567.ipynb) ([Markdown](vignettes/GSE52576.md)): GSE52576, androgenetic and parthenogenetic samples
-  - [GSE240091.ipynb](vignettes/GSE240091.ipynb) ([Markdown](vignettes/GSE240091.md)): QC and analysis of an EPIC cohort
-  - [GSE74738.ipynb](vignettes/GSE74738.ipynb) ([Markdown](vignettes/GSE74738.md)): 450K placentas scored against their own controls, with per-ICR calls, bootstrap intervals, the origin permutation test and a control-calibrated cutoff
-
-## Nextflow pipeline
-
-[imprintome-nf](https://github.com/hongjianjin/imprintome-nf) is a Nextflow pipeline, laid out following nf-core conventions, that runs imprintomeR from a samplesheet of IDAT files: QC of the whole cohort (`run_meth_QC.R`; mixed-platform cohorts are split into one `MethQcSet` per platform), then imprinting analysis for each platform and each requested probeset (`run_imprintomeR.R`). It needs Nextflow 24.10 or newer and runs with Docker, Singularity or Apptainer:
-
-```bash
-nextflow run hongjianjin/imprintome-nf -profile docker \
-    --input samplesheet.csv --outdir results --probesets selected --reference_group control
-```
-
-The samplesheet format, profiles (including the St. Jude HPC profile) and all options are described in the [imprintome-nf README](https://github.com/hongjianjin/imprintome-nf).
-
-## MCP server and agent skill
-
-An optional MCP server ([mcp_server/README.md](mcp_server/README.md)) exposes the QC and analysis command-line workflows to Claude Code, Codex, Cursor and other MCP clients, through `run_methylation_qc` and `run_imprintome_analysis`. An Agent Skills-compatible skill ([skills/imprintomer/SKILL.md](skills/imprintomer/SKILL.md), [README](skills/imprintomer/README.md)) guides AI agents through those tools; it provides guidance only.
+- Worked GEO examples (guides in `vignettes/articles/`, with run notebooks and their outputs in `tutorials/`):
+  - GSE52576 ([guide](vignettes/articles/GSE52576.Rmd), [notebook](tutorials/GSE52576.ipynb)): androgenetic and parthenogenetic samples
+  - GSE240091 ([guide](vignettes/articles/GSE240091.Rmd), [notebook](tutorials/GSE240091.ipynb)): QC and analysis of an EPIC cohort
+  - GSE74738 ([guide](vignettes/articles/GSE74738.Rmd), [notebook](tutorials/GSE74738.ipynb)): 450K placentas scored against their own controls, with per-ICR calls, bootstrap intervals, the origin permutation test and a control-calibrated cutoff
 
 ## Test Suite
 
@@ -267,4 +250,4 @@ Center for Applied Bioinformatics, St. Jude Children's Research Hospital, Memphi
 
 ## SessionInfo
 
-The R session used to build and test imprintomeR 1.5.0 (R 4.3.3), with the versions of the declared dependencies, is recorded in [vignettes/sessionInfo.md](vignettes/sessionInfo.md); 1.5.3 changes no dependencies.
+The R session used to build and test imprintomeR 1.5.0 (R 4.3.3), with the versions of the declared dependencies, is recorded in [tutorials/sessionInfo.md](tutorials/sessionInfo.md). Since then, ewastools and Vennerable have been removed as dependencies, and cowplot, pheatmap and Rtsne moved to `Suggests`.

@@ -857,6 +857,7 @@ Survey_Global_Imprinting <- function(beta, sampleID,probeset=c("selected", "Nano
   beta <- beta[common_probes, ]
   #================================================================
   #================================================================
+  beta <- as.data.frame(beta, check.names = FALSE)
   beta$Probe <- rownames(beta)
   beta$Chromosome <-  anno[common_probes,"CHR"]
   beta$ORIGIN <-  anno[common_probes,"ORIGIN"]

@@ -577,7 +577,7 @@ LoadMetaBeta <- function(metaFile, betaFile = NULL, probeset = NULL) {
   }
   validIds <- intersect(meta$Sample_Name, colnames(beta))    
   if(length(validIds)>0){
-    meta1 <- meta[validIds, ]
+    meta1 <- meta[match(validIds, meta$Sample_Name), , drop = FALSE]
     if(length(validIds)==1){
        beta1=data.frame(beta[, validIds])
        rownames(beta1) <- rownames(beta)
