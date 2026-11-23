@@ -8,7 +8,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
+```{r setup, include = FALSE, dev = if (requireNamespace("ragg", quietly = TRUE)) "ragg_png" else "png"}
 # Files written by the examples go to a temporary folder.
 knitr::opts_knit$set(root.dir = tempdir())
 knitr::opts_chunk$set(
