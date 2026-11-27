@@ -1,6 +1,6 @@
 # Session information
 
-The R session used to build and test imprintomeR 1.6.0 (2026-11-23), recorded with:
+The R session used to build and test imprintomeR 1.6.1 (2026-11-27), recorded with:
 
 ```r
 library(imprintomeR)
@@ -29,7 +29,7 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
-[1] imprintomeR_1.6.0
+[1] imprintomeR_1.6.1
 
 loaded via a namespace (and not attached):
  [1] generics_0.1.4        tidyr_1.3.1           shape_1.4.6.1        
@@ -67,6 +67,7 @@ loaded via a namespace (and not attached):
 | matrixStats | 1.5.0 |
 | ComplexHeatmap | 2.18.0 |
 | circlize | 0.4.18 |
+| gridBase | 0.4.7 |
 | reshape2 | 1.4.4 |
 | ggbeeswarm | 0.7.3 |
 | ggrepel | 0.9.6 |
@@ -88,7 +89,6 @@ loaded via a namespace (and not attached):
 | GenomeInfoDb | 1.38.8 |
 | GenomicRanges | 1.54.1 |
 | ggridges | 0.5.7 |
-| gridBase | 0.4.7 |
 | IRanges | 2.36.0 |
 | minfiData | 0.48.0 |
 | pheatmap | 1.0.13 |

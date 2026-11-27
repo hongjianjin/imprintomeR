@@ -33,7 +33,10 @@ test_that("runMethQC() on minfiData: predicted sex, donors and no swaps when Sam
   meta$Donor_ID <- meta$person
   expect_identical(unique(suppressMessages(check_platform(meta))$Platform), "450K")   # minfi says "450k"
   expect_false(any(meta$Sample_Name == basename(meta$Basename)))
+  search_before <- search()
   qcset <- suppressMessages(runMethQC(meta, platform = "450K", save_qc_report = FALSE))
+  # minfi attaches packages (SummarizedExperiment, GenomeInfoDb) that would mask assay() and genome()
+  expect_identical(search(), search_before)
   qm <- qc_tables(qcset)$QC_matrix
   qm <- qm[match(meta$Sample_Name, qm$Sample_Name), ]
   expect_identical(as.character(qm$predictedSex), meta$sex)

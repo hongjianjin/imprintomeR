@@ -366,6 +366,11 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
                       outdir = ".", prefix = NULL, ...) {
   if (!is.data.frame(meta)) stop("meta must be a data.frame.")
   normalization <- match.arg(normalization)
+  # minfi attaches the array manifest/annotation packages with require(), and with them minfi,
+  # SummarizedExperiment and GenomeInfoDb, whose assay() and genome() generics would then mask
+  # imprintomeR's. Leave the search path as it was; the namespaces stay loaded.
+  search_before <- search()
+  on.exit(.restore_search_path(search_before), add = TRUE)
 
   # ------------------------------------------------------------------
   # Step 0: Normalize legacy column names to package conventions.
@@ -803,4 +808,13 @@ runMethQC <- function(meta, platform = NA, pcutoff = 0.05,
       invokeRestart("muffleWarning")
     }
   })
+}
+
+# Detach packages attached since `before` (most recent first); their namespaces stay loaded.
+.restore_search_path <- function(before) {
+  added <- setdiff(search(), before)
+  for (p in added[startsWith(added, "package:")]) {
+    try(suppressWarnings(detach(p, character.only = TRUE)), silent = TRUE)
+  }
+  invisible(NULL)
 }

@@ -1633,7 +1633,6 @@ BetaCircularHeatmap <- function(beta, meta = NULL, probes.all = NULL,probeset=NU
   # values of SAMPLEID column, sectionColumn must be present in meta column names
   #
   # https://jokergoo.github.io/circlize_book/book/circos-heatmap.html
-  .require_suggested("gridBase", "BetaCircularHeatmap()")
   resolved <- .resolve_beta_meta_inputs(beta, meta, require_meta = TRUE)
   beta <- resolved$beta
   meta <- resolved$meta

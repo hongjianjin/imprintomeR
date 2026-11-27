@@ -1,7 +1,7 @@
 Package: imprintomeR
 Type: Package
 Title: Quantitative Analysis and Visualization of Genomic Imprinting from DNA Methylation Arrays
-Version: 1.6.0
+Version: 1.6.1
 Authors@R: c(
     person(
         given = "Hongjian",
@@ -68,6 +68,7 @@ Imports:
     matrixStats,
     ComplexHeatmap,
     circlize,
+    gridBase,
     reshape2,
     ggbeeswarm,
     ggrepel,
@@ -94,7 +95,6 @@ Suggests:
     GenomeInfoDb,
     GenomicRanges,
     ggridges,
-    gridBase,
     IRanges,
     minfiData,
     pheatmap,
