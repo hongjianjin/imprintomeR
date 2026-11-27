@@ -13,6 +13,9 @@ Suggestions from Reviewer 1 at acceptance of the Application Note:
   `LoadMeta("meta.tsv")` for a file that does not exist; the conversion
   from the QC result to an `ImprintomeSet` runs too. The chunks run when
   minfiData is installed.
+
+Bug fix found while making that vignette section run:
+
 - [`runMethQC()`](https://hongjianjin.github.io/imprintomeR/reference/runMethQC.md)
   leaves the search path as it found it. minfi attaches the array
   annotation packages (and with them SummarizedExperiment and

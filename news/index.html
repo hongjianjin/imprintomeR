@@ -57,7 +57,8 @@
 <p>Suggestions from Reviewer 1 at acceptance of the Application Note:</p>
 <ul><li>gridBase is now a dependency (<code>Imports</code>), so <code>plot_type = "circular_heatmap"</code> and <code><a href="../reference/BetaCircularHeatmap.html">BetaCircularHeatmap()</a></code> work after the default install instead of being skipped.</li>
 <li>The quickstart vignette’s QC section runs on the Bioconductor minfiData IDATs, as the README Quick start does, instead of showing <code>LoadMeta("meta.tsv")</code> for a file that does not exist; the conversion from the QC result to an <code>ImprintomeSet</code> runs too. The chunks run when minfiData is installed.</li>
-<li>
+</ul><p>Bug fix found while making that vignette section run:</p>
+<ul><li>
 <code><a href="../reference/runMethQC.html">runMethQC()</a></code> leaves the search path as it found it. minfi attaches the array annotation packages (and with them SummarizedExperiment and GenomeInfoDb), whose <code><a href="../reference/ImprintomeSet-accessors.html">assay()</a></code> and <code><a href="../reference/ImprintomeSet-accessors.html">genome()</a></code> generics then masked imprintomeR’s, so <code>assay(x)</code> and <code>genome(x)</code> on an <code>ImprintomeSet</code> failed after QC in the same session.</li>
 </ul></div>
     <div class="section level2">
