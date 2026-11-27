@@ -1,5 +1,28 @@
 # Changelog
 
+## imprintomeR 1.6.1
+
+Suggestions from Reviewer 1 at acceptance of the Application Note:
+
+- gridBase is now a dependency (`Imports`), so
+  `plot_type = "circular_heatmap"` and
+  [`BetaCircularHeatmap()`](https://hongjianjin.github.io/imprintomeR/reference/BetaCircularHeatmap.md)
+  work after the default install instead of being skipped.
+- The quickstart vignette’s QC section runs on the Bioconductor
+  minfiData IDATs, as the README Quick start does, instead of showing
+  `LoadMeta("meta.tsv")` for a file that does not exist; the conversion
+  from the QC result to an `ImprintomeSet` runs too. The chunks run when
+  minfiData is installed.
+- [`runMethQC()`](https://hongjianjin.github.io/imprintomeR/reference/runMethQC.md)
+  leaves the search path as it found it. minfi attaches the array
+  annotation packages (and with them SummarizedExperiment and
+  GenomeInfoDb), whose
+  [`assay()`](https://hongjianjin.github.io/imprintomeR/reference/ImprintomeSet-accessors.md)
+  and
+  [`genome()`](https://hongjianjin.github.io/imprintomeR/reference/ImprintomeSet-accessors.md)
+  generics then masked imprintomeR’s, so `assay(x)` and `genome(x)` on
+  an `ImprintomeSet` failed after QC in the same session.
+
 ## imprintomeR 1.6.0
 
 This release focuses on installation, reproducibility and documentation.

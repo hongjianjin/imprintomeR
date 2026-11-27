@@ -14,12 +14,12 @@ Source:
 
 Jin H, Wu G (2026). *imprintomeR: Quantitative Analysis and
 Visualization of Genomic Imprinting from DNA Methylation Arrays*. R
-package version 1.6.0, <https://hongjianjin.github.io/imprintomeR/>.
+package version 1.6.1, <https://hongjianjin.github.io/imprintomeR/>.
 
     @Manual{,
       title = {imprintomeR: Quantitative Analysis and Visualization of Genomic Imprinting from DNA Methylation Arrays},
       author = {Hongjian Jin and Gang Wu},
       year = {2026},
-      note = {R package version 1.6.0},
+      note = {R package version 1.6.1},
       url = {https://hongjianjin.github.io/imprintomeR/},
     }

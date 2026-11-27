@@ -37,42 +37,179 @@ library(imprintomeR)
 
 ## 1. QC Preprocessing (Optional if Data Already Cleaned)
 
-**If you have RAW data:**
+**If you have raw IDAT files:**
+[`runMethQC()`](https://hongjianjin.github.io/imprintomeR/reference/runMethQC.md)
+needs a sample sheet with `Sample_Name` and `Basename` (the IDAT path
+prefix, without `_Grn.idat`/`_Red.idat`); `Sample_Group` is recommended.
+This section runs on the six Illumina 450K IDATs of the Bioconductor
+package minfiData, as in the README Quick start (install it with
+`BiocManager::install("minfiData")`; the chunks run only when it is
+installed).
 
-Load metadata. `meta.tsv` must be a tab-delimited file with at least
-`Sample_Name` and `Sample_Group` columns.
+``` r
 
-**For QC workflow (raw IDAT files):** also include `Basename` column
-(IDAT file path prefixes,
-e.g. `/path/to/idats/SentrixID_SentrixPosition`).
+# minfiData's Illumina sample sheet; read.metharray.sheet() adds Basename
+meta <- minfi::read.metharray.sheet(system.file("extdata", package = "minfiData"))
+#> [read.metharray.sheet] Found the following CSV files:
+#> [1] "/home/runner/work/_temp/Library/minfiData/extdata/SampleSheet.csv"
+meta[, c("Sample_Name", "Sample_Group", "Basename")]
+#>   Sample_Name Sample_Group
+#> 1    GroupA_3       GroupA
+#> 2    GroupA_2       GroupA
+#> 3    GroupB_3       GroupB
+#> 4    GroupB_1       GroupB
+#> 5    GroupA_1       GroupA
+#> 6    GroupB_2       GroupB
+#>                                                                         Basename
+#> 1 /home/runner/work/_temp/Library/minfiData/extdata/5723646052/5723646052_R02C02
+#> 2 /home/runner/work/_temp/Library/minfiData/extdata/5723646052/5723646052_R04C01
+#> 3 /home/runner/work/_temp/Library/minfiData/extdata/5723646052/5723646052_R05C02
+#> 4 /home/runner/work/_temp/Library/minfiData/extdata/5723646053/5723646053_R04C02
+#> 5 /home/runner/work/_temp/Library/minfiData/extdata/5723646053/5723646053_R05C02
+#> 6 /home/runner/work/_temp/Library/minfiData/extdata/5723646053/5723646053_R06C02
+```
 
-**For direct analysis (QC already done):** `Basename` is not needed.
+For your own data, read a tab-delimited sheet with the same columns
+instead:
 
 ``` r
 
 meta <- LoadMeta("meta.tsv")
 ```
 
-If the platform is **unknown or mixed**, detect it first:
+If the platform is **unknown or mixed**, detect it first and run QC one
+platform at a time:
 
 ``` r
 
-# Reads one IDAT per sample, infers platform from probe count
-# Appends Platform, Array_Size, Manifest, Status columns to meta
+# Reads one IDAT per sample, infers the platform from the probe count and
+# appends Platform, Array_Size, Manifest and Status columns
 meta <- check_platform(meta)
-table(meta$Platform)  # inspect; split if multiple platforms present
-
-# Run QC for one platform at a time
-meta_epic <- meta[meta$Platform == "EPIC", ]
-qcset <- runMethQC(meta_epic)  # platform auto-resolved from meta$Platform
+#> Detecting platform for 6 samples...
+#> Platform summary:
+#>   450K: 6 sample(s)
+table(meta$Platform)
+#> 
+#> 450K 
+#>    6
 ```
 
-If the platform is **already known**, pass it directly:
+``` r
+
+# With several platforms, subset first, for example:
+meta_epic <- meta[meta$Platform == "EPIC", ]
+qcset_epic <- runMethQC(meta_epic)  # platform taken from meta$Platform
+```
+
+If the platform is **already known**, pass it directly.
+[`runMethQC()`](https://hongjianjin.github.io/imprintomeR/reference/runMethQC.md)
+loads the IDAT files, extracts beta values and detection p-values, and
+runs QC:
 
 ``` r
 
-# runMethQC() loads IDAT files, extracts beta + detection p-values, and runs QC
-qcset <- runMethQC(meta, platform = "EPIC")
+qcset <- runMethQC(meta, platform = "450K", save_qc_report = FALSE)
+#> Loading IDAT files for 6 samples (platform: 450K)...
+#> Preprocessing and extracting beta values (normalization: noob)...
+#> Loading required package: IlluminaHumanMethylation450kmanifest
+#> Loading required package: minfi
+#> Loading required package: BiocGenerics
+#> Loading required package: generics
+#> 
+#> Attaching package: 'generics'
+#> The following objects are masked from 'package:base':
+#> 
+#>     as.difftime, as.factor, as.ordered, intersect, is.element, setdiff,
+#>     setequal, union
+#> 
+#> Attaching package: 'BiocGenerics'
+#> The following objects are masked from 'package:stats':
+#> 
+#>     IQR, mad, sd, var, xtabs
+#> The following objects are masked from 'package:base':
+#> 
+#>     anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+#>     colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+#>     get, grep, grepl, is.unsorted, lapply, Map, mapply, match, mget,
+#>     order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+#>     rbind, Reduce, rownames, sapply, saveRDS, table, tapply, unique,
+#>     unsplit, which.max, which.min
+#> Loading required package: GenomicRanges
+#> Loading required package: stats4
+#> Loading required package: S4Vectors
+#> 
+#> Attaching package: 'S4Vectors'
+#> The following object is masked from 'package:utils':
+#> 
+#>     findMatches
+#> The following objects are masked from 'package:base':
+#> 
+#>     expand.grid, I, unname
+#> Loading required package: IRanges
+#> Loading required package: Seqinfo
+#> 
+#> Attaching package: 'Seqinfo'
+#> The following objects are masked from 'package:imprintomeR':
+#> 
+#>     genome, genome<-
+#> Loading required package: SummarizedExperiment
+#> Loading required package: MatrixGenerics
+#> Loading required package: matrixStats
+#> 
+#> Attaching package: 'MatrixGenerics'
+#> The following objects are masked from 'package:matrixStats':
+#> 
+#>     colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
+#>     colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
+#>     colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
+#>     colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
+#>     colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
+#>     colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
+#>     colWeightedMeans, colWeightedMedians, colWeightedSds,
+#>     colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
+#>     rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
+#>     rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
+#>     rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
+#>     rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
+#>     rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
+#>     rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
+#>     rowWeightedSds, rowWeightedVars
+#> Loading required package: Biobase
+#> Welcome to Bioconductor
+#> 
+#>     Vignettes contain introductory material; view with
+#>     'browseVignettes()'. To cite Bioconductor, see
+#>     'citation("Biobase")', and for packages 'citation("pkgname")'.
+#> 
+#> Attaching package: 'Biobase'
+#> The following object is masked from 'package:MatrixGenerics':
+#> 
+#>     rowMedians
+#> The following objects are masked from 'package:matrixStats':
+#> 
+#>     anyMissing, rowMedians
+#> 
+#> Attaching package: 'SummarizedExperiment'
+#> The following objects are masked from 'package:imprintomeR':
+#> 
+#>     assay, assay<-
+#> Loading required package: Biostrings
+#> Loading required package: XVector
+#> 
+#> Attaching package: 'Biostrings'
+#> The following object is masked from 'package:base':
+#> 
+#>     strsplit
+#> Loading required package: bumphunter
+#> Loading required package: foreach
+#> Loading required package: iterators
+#> Loading required package: parallel
+#> Loading required package: locfit
+#> locfit 1.5-9.12   2025-03-05
+#> Loading required package: IlluminaHumanMethylation450kanno.ilmn12.hg19
+#> Computing QC metrics...
+#> Running control-probe and SNP QC (ctrl_metrics, contamination, predUniqDonor_ID)...
+#> QC complete: 6 PASS, 0 FAIL
 ```
 
 Inspect QC results:
@@ -81,57 +218,100 @@ Inspect QC results:
 
 qc_summary <- qc_summarize(qcset)
 qc_summary$platform
+#> [1] "450K"
 qc_summary$n_samples
+#> [1] 6
 qc_summary$n_probes
-qc_summary$aggregation_status
+#> [1] 485512
+qc_tables(qcset)$QC_matrix[, c("Sample_Name", "predictedSex", "Final.QC")]
+#>          Sample_Name predictedSex Final.QC
+#> GroupA_3    GroupA_3            M     PASS
+#> GroupA_2    GroupA_2            F     PASS
+#> GroupB_3    GroupB_3            M     PASS
+#> GroupB_1    GroupB_1            F     PASS
+#> GroupA_1    GroupA_1            F     PASS
+#> GroupB_2    GroupB_2            F     PASS
 ```
 
 Visualize QC metrics:
 
 ``` r
 
-# PASS / FAIL sample count bar chart (default)
-p_bar <- plot(qcset, type = "qc_bar")
-
-# Methylated vs unmethylated intensity scatter, cutoff line at log2 = 11
-p_int <- plot(qcset, type = "intensity", icutoff = 11,
-              outFile = "qc_intensity.pdf")
-
-# Average detection p-value per sample, cutoff line at 0.05
-p_dp  <- plot(qcset, type = "detection_pval", pcutoff = 0.05)
-
-# % probes detected per sample, reference line at 95%
-p_cov <- plot(qcset, type = "probe_coverage")
-
-# Predicted sex distribution
-p_sex <- plot(qcset, type = "predicted_sex")
-
-# control probe metrics — summary (NULL if these metrics could not be computed)
-p_ctrl <- plot(qcset, type = "ctrl_metrics")
-
-# Per-metric detail plots (Bisulfite Conversion, Specificity, Non-polymorphic)
-# outFile is used as a path prefix; one PDF is saved per control metric
-plot(qcset, type = "ctrl_metrics_detail",
-     outFile = "qc_ctrl_matrix_detail")
+# PASS / FAIL sample count bar chart
+p_bar <- plot(qcset, type = "qc_bar")   # plot() on a MethQcSet returns the plot invisibly
+p_bar
 ```
 
-Export cleaned data:
+![Bar chart of PASS and FAIL sample
+counts](imprintomeset-quickstart_files/figure-html/unnamed-chunk-8-1.png)
 
 ``` r
 
-dir.create("qc_output", showWarnings = FALSE)
+
+# Methylated vs unmethylated intensity scatter, cutoff line at log2 = 11
+p_int <- plot(qcset, type = "intensity", icutoff = 11)
+p_int
+```
+
+![Scatter plot of methylated versus unmethylated intensity per sample
+with the log2
+cutoff](imprintomeset-quickstart_files/figure-html/unnamed-chunk-8-2.png)
+
+``` r
+
+
+# % probes detected per sample, reference line at 95%
+p_cov <- plot(qcset, type = "probe_coverage")
+p_cov
+```
+
+![Percentage of probes detected per sample with the 95% reference
+line](imprintomeset-quickstart_files/figure-html/unnamed-chunk-8-3.png)
+
+Other QC plots use the same call:
+
+``` r
+
+plot(qcset, type = "detection_pval", pcutoff = 0.05)  # average detection p-value per sample
+plot(qcset, type = "predicted_sex")                   # predicted sex distribution
+plot(qcset, type = "ctrl_metrics")                    # control-probe metrics summary
+# Per-metric detail plots; outFile is a path prefix, one PDF per control metric
+plot(qcset, type = "ctrl_metrics_detail", outFile = "qc_ctrl_matrix_detail")
+```
+
+Export the QC results:
+
+``` r
 
 exported_files <- export(
   qcset,
   outdir = "qc_output",
+  prefix = "minfiData",
   format = c("xlsx", "rds")
 )
+#> rds: wrote MethQcSet to data/minfiData_qcset.rds
+#> Columns renamed for the Excel table (names must differ by more than letter case): Status -> Status_2
+#> 
+#>  [loaded existing workbook]
+#> 
+#>  [loaded existing workbook]
+#> 
+#>  [loaded existing workbook]
+#> xlsx: wrote main qc tables to minfiData_qc_table_main.xlsx
+#> 
+#> 
+#>  [loaded existing workbook]
+#> 
+#>  [loaded existing workbook]
+#> 
+#>  [loaded existing workbook]
+#> xlsx: wrote extra qc tables to minfiData_qc_table_extra.xlsx
+#> Exported 4 file(s) to qc_output
 # Creates two Excel workbooks:
-#   qc_table_main.xlsx: metadata, QC_matrix, Ctrl_matrix (control probes), statistics
-#   qc_table_extra.xlsx: QC_metrics (thresholds), recall_rate (if available),
-#                         contamination and predUniqDonor_ID (SNP probes)
-# Plus: qcset.rds (full MethQcSet object)
-# Plus: qcset_summary.txt (summary report with Notes section documenting missing sheets)
+#   <prefix>_qc_table_main.xlsx: metadata, QC_matrix, Ctrl_matrix (control probes), statistics
+#   <prefix>_qc_table_extra.xlsx: QC_metrics (thresholds), recall_rate (if available),
+#                                 contamination and predUniqDonor_ID (SNP probes)
+# plus the MethQcSet as an RDS file and a summary report
 ```
 
 **If you already have QC-cleaned data:**
@@ -190,6 +370,7 @@ x <- as.ImprintomeSet(
   probeset = probesets[["selected"]],
   genome = "hg38"
 )
+#> Note: Basename column dropped during conversion to ImprintomeSet (QC-specific, not needed for analysis).
 ```
 
 Alternatively, construct `ImprintomeSet` directly from a beta matrix if
@@ -450,7 +631,7 @@ p_from_object
 ```
 
 ![Stored beeswarm plot of beta values by annotated parental
-origin](imprintomeset-quickstart_files/figure-html/unnamed-chunk-18-1.png)
+origin](imprintomeset-quickstart_files/figure-html/unnamed-chunk-21-1.png)
 
 ``` r
 
@@ -460,7 +641,7 @@ p_chr_from_object
 ```
 
 ![Stored chromosome beeswarm plot for one
-sample](imprintomeset-quickstart_files/figure-html/unnamed-chunk-18-2.png)
+sample](imprintomeset-quickstart_files/figure-html/unnamed-chunk-21-2.png)
 
 ### 7.2 Store Circular Heatmap Explicitly
 
@@ -619,34 +800,163 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] imprintomeR_1.6.0
+#> [1] imprintomeR_1.6.1
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] gtable_0.3.6          beeswarm_0.4.0        circlize_0.4.18      
-#>  [4] shape_1.4.6.1         rjson_0.2.23          xfun_0.62            
-#>  [7] bslib_0.12.0          ggplot2_4.0.4         GlobalOptions_0.1.4  
-#> [10] ggrepel_0.9.8         vctrs_0.7.3           tools_4.6.2          
-#> [13] generics_0.1.4        stats4_4.6.2          parallel_4.6.2       
-#> [16] tibble_3.3.1          cluster_2.1.8.3       pkgconfig_2.0.3      
-#> [19] data.table_1.18.6.1   RColorBrewer_1.1-3    S7_1.0.0             
-#> [22] desc_1.4.3            S4Vectors_0.50.3      lifecycle_1.0.5      
-#> [25] compiler_4.6.2        farver_2.1.2          stringr_1.6.0        
-#> [28] textshaping_1.1.0     codetools_0.2-20      ComplexHeatmap_2.28.0
-#> [31] clue_0.3-68           vipor_0.4.7           htmltools_0.5.9      
-#> [34] sass_0.5.0            yaml_2.3.12           pillar_1.11.1        
-#> [37] pkgdown_2.2.1         crayon_1.5.3          jquerylib_0.1.4      
-#> [40] tidyr_1.3.2           cachem_1.1.0          iterators_1.0.14     
-#> [43] foreach_1.5.2         tidyselect_1.2.1      zip_3.0.2            
-#> [46] digest_0.6.39         stringi_1.8.9         dplyr_1.2.1          
-#> [49] reshape2_1.4.5        purrr_1.2.2           labeling_0.4.3       
-#> [52] fastmap_1.2.0         grid_4.6.2            colorspace_2.1-4     
-#> [55] cli_3.6.6             magrittr_2.0.5        withr_3.0.3          
-#> [58] scales_1.4.0          ggbeeswarm_0.7.3      rmarkdown_2.32       
-#> [61] matrixStats_1.5.0     otel_0.3.0            ragg_1.5.2           
-#> [64] png_0.1-9             GetoptLong_1.1.1      openxlsx_4.2.9       
-#> [67] evaluate_1.0.5        knitr_1.52            IRanges_2.46.0       
-#> [70] doParallel_1.0.17     rlang_1.3.0           Rcpp_1.1.2           
-#> [73] glue_1.8.1            BiocGenerics_0.58.1   jsonlite_2.0.0       
-#> [76] R6_2.6.1              plyr_1.8.9            systemfonts_1.3.4    
-#> [79] fs_2.1.0
+#>   [1] splines_4.6.2                                     
+#>   [2] BiocIO_1.22.0                                     
+#>   [3] bitops_1.1-0                                      
+#>   [4] tibble_3.3.1                                      
+#>   [5] preprocessCore_1.74.0                             
+#>   [6] XML_3.99-0.25                                     
+#>   [7] lifecycle_1.0.5                                   
+#>   [8] doParallel_1.0.17                                 
+#>   [9] lattice_0.23-1                                    
+#>  [10] MASS_7.3-66                                       
+#>  [11] base64_2.0.2                                      
+#>  [12] scrime_1.3.7                                      
+#>  [13] magrittr_2.0.5                                    
+#>  [14] openxlsx_4.2.9                                    
+#>  [15] minfi_1.58.0                                      
+#>  [16] limma_3.68.5                                      
+#>  [17] sass_0.5.0                                        
+#>  [18] rmarkdown_2.32                                    
+#>  [19] jquerylib_0.1.4                                   
+#>  [20] yaml_2.3.12                                       
+#>  [21] otel_0.3.0                                        
+#>  [22] doRNG_1.8.6.3                                     
+#>  [23] zip_3.0.2                                         
+#>  [24] askpass_1.2.1                                     
+#>  [25] DBI_1.3.0                                         
+#>  [26] RColorBrewer_1.1-3                                
+#>  [27] abind_1.4-8                                       
+#>  [28] quadprog_1.5-8                                    
+#>  [29] GenomicRanges_1.64.0                              
+#>  [30] purrr_1.2.2                                       
+#>  [31] BiocGenerics_0.58.1                               
+#>  [32] RCurl_1.98-1.20                                   
+#>  [33] circlize_0.4.18                                   
+#>  [34] IRanges_2.46.0                                    
+#>  [35] S4Vectors_0.50.3                                  
+#>  [36] ggrepel_0.9.8                                     
+#>  [37] rentrez_1.2.4                                     
+#>  [38] genefilter_1.94.0                                 
+#>  [39] annotate_1.90.0                                   
+#>  [40] pkgdown_2.2.1                                     
+#>  [41] DelayedMatrixStats_1.34.0                         
+#>  [42] codetools_0.2-20                                  
+#>  [43] DelayedArray_0.38.2                               
+#>  [44] xml2_1.6.0                                        
+#>  [45] tidyselect_1.2.1                                  
+#>  [46] shape_1.4.6.1                                     
+#>  [47] farver_2.1.2                                      
+#>  [48] beanplot_1.3.1                                    
+#>  [49] matrixStats_1.5.0                                 
+#>  [50] stats4_4.6.2                                      
+#>  [51] illuminaio_0.54.0                                 
+#>  [52] Seqinfo_1.2.0                                     
+#>  [53] GenomicAlignments_1.48.0                          
+#>  [54] jsonlite_2.0.0                                    
+#>  [55] GetoptLong_1.1.1                                  
+#>  [56] multtest_2.68.0                                   
+#>  [57] survival_3.8-12                                   
+#>  [58] iterators_1.0.14                                  
+#>  [59] systemfonts_1.3.4                                 
+#>  [60] foreach_1.5.2                                     
+#>  [61] tools_4.6.2                                       
+#>  [62] ragg_1.5.2                                        
+#>  [63] Rcpp_1.1.2                                        
+#>  [64] glue_1.8.1                                        
+#>  [65] SparseArray_1.12.3                                
+#>  [66] xfun_0.62                                         
+#>  [67] MatrixGenerics_1.24.0                             
+#>  [68] dplyr_1.2.1                                       
+#>  [69] HDF5Array_1.40.0                                  
+#>  [70] withr_3.0.3                                       
+#>  [71] IlluminaHumanMethylation450kanno.ilmn12.hg19_0.6.1
+#>  [72] fastmap_1.2.0                                     
+#>  [73] rhdf5filters_1.24.1                               
+#>  [74] openssl_2.6.0                                     
+#>  [75] digest_0.6.39                                     
+#>  [76] R6_2.6.1                                          
+#>  [77] textshaping_1.1.0                                 
+#>  [78] colorspace_2.1-4                                  
+#>  [79] RSQLite_3.53.3                                    
+#>  [80] cigarillo_1.2.1                                   
+#>  [81] h5mread_1.4.1                                     
+#>  [82] minfiData_0.58.0                                  
+#>  [83] tidyr_1.3.2                                       
+#>  [84] generics_0.1.4                                    
+#>  [85] data.table_1.18.6.1                               
+#>  [86] rtracklayer_1.72.0                                
+#>  [87] httr_1.4.9                                        
+#>  [88] S4Arrays_1.12.1                                   
+#>  [89] pkgconfig_2.0.3                                   
+#>  [90] gtable_0.3.6                                      
+#>  [91] blob_1.3.0                                        
+#>  [92] ComplexHeatmap_2.28.0                             
+#>  [93] S7_1.0.0                                          
+#>  [94] siggenes_1.86.0                                   
+#>  [95] XVector_0.52.0                                    
+#>  [96] htmltools_0.5.9                                   
+#>  [97] clue_0.3-68                                       
+#>  [98] scales_1.4.0                                      
+#>  [99] Biobase_2.72.0                                    
+#> [100] png_0.1-9                                         
+#> [101] knitr_1.52                                        
+#> [102] tzdb_0.5.0                                        
+#> [103] reshape2_1.4.5                                    
+#> [104] rjson_0.2.23                                      
+#> [105] nlme_3.1-171                                      
+#> [106] curl_8.2.0                                        
+#> [107] bumphunter_1.54.0                                 
+#> [108] cachem_1.1.0                                      
+#> [109] rhdf5_2.56.1                                      
+#> [110] GlobalOptions_0.1.4                               
+#> [111] stringr_1.6.0                                     
+#> [112] parallel_4.6.2                                    
+#> [113] vipor_0.4.7                                       
+#> [114] AnnotationDbi_1.74.0                              
+#> [115] restfulr_0.0.17                                   
+#> [116] desc_1.4.3                                        
+#> [117] GEOquery_2.80.1                                   
+#> [118] pillar_1.11.1                                     
+#> [119] grid_4.6.2                                        
+#> [120] reshape_0.8.10                                    
+#> [121] vctrs_0.7.3                                       
+#> [122] xtable_1.8-8                                      
+#> [123] cluster_2.1.8.3                                   
+#> [124] beeswarm_0.4.0                                    
+#> [125] evaluate_1.0.5                                    
+#> [126] readr_2.2.0                                       
+#> [127] GenomicFeatures_1.64.0                            
+#> [128] cli_3.6.6                                         
+#> [129] locfit_1.5-9.12                                   
+#> [130] compiler_4.6.2                                    
+#> [131] Rsamtools_2.28.0                                  
+#> [132] rlang_1.3.0                                       
+#> [133] crayon_1.5.3                                      
+#> [134] rngtools_1.5.2                                    
+#> [135] labeling_0.4.3                                    
+#> [136] nor1mix_1.3-3                                     
+#> [137] mclust_6.1.4                                      
+#> [138] plyr_1.8.9                                        
+#> [139] fs_2.1.0                                          
+#> [140] ggbeeswarm_0.7.3                                  
+#> [141] stringi_1.8.9                                     
+#> [142] BiocParallel_1.46.0                               
+#> [143] Biostrings_2.80.2                                 
+#> [144] Matrix_1.7-6                                      
+#> [145] hms_1.1.4                                         
+#> [146] sparseMatrixStats_1.24.0                          
+#> [147] bit64_4.8.6                                       
+#> [148] ggplot2_4.0.4                                     
+#> [149] Rhdf5lib_2.0.0                                    
+#> [150] KEGGREST_1.52.2                                   
+#> [151] statmod_1.5.2                                     
+#> [152] SummarizedExperiment_1.42.0                       
+#> [153] memoise_2.0.1                                     
+#> [154] bslib_0.12.0                                      
+#> [155] IlluminaHumanMethylation450kmanifest_0.4.0        
+#> [156] bit_4.6.0
 ```

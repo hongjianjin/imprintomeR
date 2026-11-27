@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">imprintomeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,6 +52,14 @@
       <small>Source: <a href="https://github.com/hongjianjin/imprintomeR/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.6.1" id="imprintomer-161">imprintomeR 1.6.1<a class="anchor" aria-label="anchor" href="#imprintomer-161"></a></h2>
+<p>Suggestions from Reviewer 1 at acceptance of the Application Note:</p>
+<ul><li>gridBase is now a dependency (<code>Imports</code>), so <code>plot_type = "circular_heatmap"</code> and <code><a href="../reference/BetaCircularHeatmap.html">BetaCircularHeatmap()</a></code> work after the default install instead of being skipped.</li>
+<li>The quickstart vignette’s QC section runs on the Bioconductor minfiData IDATs, as the README Quick start does, instead of showing <code>LoadMeta("meta.tsv")</code> for a file that does not exist; the conversion from the QC result to an <code>ImprintomeSet</code> runs too. The chunks run when minfiData is installed.</li>
+<li>
+<code><a href="../reference/runMethQC.html">runMethQC()</a></code> leaves the search path as it found it. minfi attaches the array annotation packages (and with them SummarizedExperiment and GenomeInfoDb), whose <code><a href="../reference/ImprintomeSet-accessors.html">assay()</a></code> and <code><a href="../reference/ImprintomeSet-accessors.html">genome()</a></code> generics then masked imprintomeR’s, so <code>assay(x)</code> and <code>genome(x)</code> on an <code>ImprintomeSet</code> failed after QC in the same session.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.6.0" id="imprintomer-160">imprintomeR 1.6.0<a class="anchor" aria-label="anchor" href="#imprintomer-160"></a></h2>
 <p>This release focuses on installation, reproducibility and documentation. Sample-level scores (IDS, Angle, Mechanism, Status) and per-ICR calls with default settings are unchanged from 1.5.3.</p>

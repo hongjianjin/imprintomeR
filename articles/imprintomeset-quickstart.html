@@ -19,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">imprintomeR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.6.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -130,90 +130,245 @@ studies</li>
 <div class="section level2">
 <h2 id="qc-preprocessing-optional-if-data-already-cleaned">1. QC Preprocessing (Optional if Data Already Cleaned)<a class="anchor" aria-label="anchor" href="#qc-preprocessing-optional-if-data-already-cleaned"></a>
 </h2>
-<p><strong>If you have RAW data:</strong></p>
-<p>Load metadata. <code>meta.tsv</code> must be a tab-delimited file
-with at least <code>Sample_Name</code> and <code>Sample_Group</code>
-columns.</p>
-<p><strong>For QC workflow (raw IDAT files):</strong> also include
-<code>Basename</code> column (IDAT file path prefixes,
-e.g. <code>/path/to/idats/SentrixID_SentrixPosition</code>).</p>
-<p><strong>For direct analysis (QC already done):</strong>
-<code>Basename</code> is not needed.</p>
+<p><strong>If you have raw IDAT files:</strong> <code><a href="../reference/runMethQC.html">runMethQC()</a></code>
+needs a sample sheet with <code>Sample_Name</code> and
+<code>Basename</code> (the IDAT path prefix, without
+<code>_Grn.idat</code>/<code>_Red.idat</code>);
+<code>Sample_Group</code> is recommended. This section runs on the six
+Illumina 450K IDATs of the Bioconductor package minfiData, as in the
+README Quick start (install it with
+<code>BiocManager::install("minfiData")</code>; the chunks run only when
+it is installed).</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/LoadMeta.html">LoadMeta</a></span><span class="op">(</span><span class="st">"meta.tsv"</span><span class="op">)</span></span></code></pre></div>
-<p>If the platform is <strong>unknown or mixed</strong>, detect it
-first:</p>
+<code class="sourceCode R"><span><span class="co"># minfiData's Illumina sample sheet; read.metharray.sheet() adds Basename</span></span>
+<span><span class="va">meta</span> <span class="op">&lt;-</span> <span class="fu">minfi</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/minfi/man/read.metharray.sheet.html" class="external-link">read.metharray.sheet</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, package <span class="op">=</span> <span class="st">"minfiData"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [read.metharray.sheet] Found the following CSV files:</span></span>
+<span><span class="co">#&gt; [1] "/home/runner/work/_temp/Library/minfiData/extdata/SampleSheet.csv"</span></span>
+<span><span class="va">meta</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Sample_Name"</span>, <span class="st">"Sample_Group"</span>, <span class="st">"Basename"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;   Sample_Name Sample_Group</span></span>
+<span><span class="co">#&gt; 1    GroupA_3       GroupA</span></span>
+<span><span class="co">#&gt; 2    GroupA_2       GroupA</span></span>
+<span><span class="co">#&gt; 3    GroupB_3       GroupB</span></span>
+<span><span class="co">#&gt; 4    GroupB_1       GroupB</span></span>
+<span><span class="co">#&gt; 5    GroupA_1       GroupA</span></span>
+<span><span class="co">#&gt; 6    GroupB_2       GroupB</span></span>
+<span><span class="co">#&gt;                                                                         Basename</span></span>
+<span><span class="co">#&gt; 1 /home/runner/work/_temp/Library/minfiData/extdata/5723646052/5723646052_R02C02</span></span>
+<span><span class="co">#&gt; 2 /home/runner/work/_temp/Library/minfiData/extdata/5723646052/5723646052_R04C01</span></span>
+<span><span class="co">#&gt; 3 /home/runner/work/_temp/Library/minfiData/extdata/5723646052/5723646052_R05C02</span></span>
+<span><span class="co">#&gt; 4 /home/runner/work/_temp/Library/minfiData/extdata/5723646053/5723646053_R04C02</span></span>
+<span><span class="co">#&gt; 5 /home/runner/work/_temp/Library/minfiData/extdata/5723646053/5723646053_R05C02</span></span>
+<span><span class="co">#&gt; 6 /home/runner/work/_temp/Library/minfiData/extdata/5723646053/5723646053_R06C02</span></span></code></pre></div>
+<p>For your own data, read a tab-delimited sheet with the same columns
+instead:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Reads one IDAT per sample, infers platform from probe count</span></span>
-<span><span class="co"># Appends Platform, Array_Size, Manifest, Status columns to meta</span></span>
-<span><span class="va">meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/check_platform.html">check_platform</a></span><span class="op">(</span><span class="va">meta</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">meta</span><span class="op">$</span><span class="va">Platform</span><span class="op">)</span>  <span class="co"># inspect; split if multiple platforms present</span></span>
-<span></span>
-<span><span class="co"># Run QC for one platform at a time</span></span>
-<span><span class="va">meta_epic</span> <span class="op">&lt;-</span> <span class="va">meta</span><span class="op">[</span><span class="va">meta</span><span class="op">$</span><span class="va">Platform</span> <span class="op">==</span> <span class="st">"EPIC"</span>, <span class="op">]</span></span>
-<span><span class="va">qcset</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/runMethQC.html">runMethQC</a></span><span class="op">(</span><span class="va">meta_epic</span><span class="op">)</span>  <span class="co"># platform auto-resolved from meta$Platform</span></span></code></pre></div>
-<p>If the platform is <strong>already known</strong>, pass it
-directly:</p>
+<code class="sourceCode R"><span><span class="va">meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/LoadMeta.html">LoadMeta</a></span><span class="op">(</span><span class="st">"meta.tsv"</span><span class="op">)</span></span></code></pre></div>
+<p>If the platform is <strong>unknown or mixed</strong>, detect it first
+and run QC one platform at a time:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># runMethQC() loads IDAT files, extracts beta + detection p-values, and runs QC</span></span>
-<span><span class="va">qcset</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/runMethQC.html">runMethQC</a></span><span class="op">(</span><span class="va">meta</span>, platform <span class="op">=</span> <span class="st">"EPIC"</span><span class="op">)</span></span></code></pre></div>
-<p>Inspect QC results:</p>
+<code class="sourceCode R"><span><span class="co"># Reads one IDAT per sample, infers the platform from the probe count and</span></span>
+<span><span class="co"># appends Platform, Array_Size, Manifest and Status columns</span></span>
+<span><span class="va">meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/check_platform.html">check_platform</a></span><span class="op">(</span><span class="va">meta</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Detecting platform for 6 samples...</span></span>
+<span><span class="co">#&gt; Platform summary:</span></span>
+<span><span class="co">#&gt;   450K: 6 sample(s)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">meta</span><span class="op">$</span><span class="va">Platform</span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; 450K </span></span>
+<span><span class="co">#&gt;    6</span></span></code></pre></div>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># With several platforms, subset first, for example:</span></span>
+<span><span class="va">meta_epic</span> <span class="op">&lt;-</span> <span class="va">meta</span><span class="op">[</span><span class="va">meta</span><span class="op">$</span><span class="va">Platform</span> <span class="op">==</span> <span class="st">"EPIC"</span>, <span class="op">]</span></span>
+<span><span class="va">qcset_epic</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/runMethQC.html">runMethQC</a></span><span class="op">(</span><span class="va">meta_epic</span><span class="op">)</span>  <span class="co"># platform taken from meta$Platform</span></span></code></pre></div>
+<p>If the platform is <strong>already known</strong>, pass it directly.
+<code><a href="../reference/runMethQC.html">runMethQC()</a></code> loads the IDAT files, extracts beta values and
+detection p-values, and runs QC:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">qcset</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/runMethQC.html">runMethQC</a></span><span class="op">(</span><span class="va">meta</span>, platform <span class="op">=</span> <span class="st">"450K"</span>, save_qc_report <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Loading IDAT files for 6 samples (platform: 450K)...</span></span>
+<span><span class="co">#&gt; Preprocessing and extracting beta values (normalization: noob)...</span></span>
+<span><span class="co">#&gt; Loading required package: IlluminaHumanMethylation450kmanifest</span></span>
+<span><span class="co">#&gt; Loading required package: minfi</span></span>
+<span><span class="co">#&gt; Loading required package: BiocGenerics</span></span>
+<span><span class="co">#&gt; Loading required package: generics</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'generics'</span></span>
+<span><span class="co">#&gt; The following objects are masked from 'package:base':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     as.difftime, as.factor, as.ordered, intersect, is.element, setdiff,</span></span>
+<span><span class="co">#&gt;     setequal, union</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'BiocGenerics'</span></span>
+<span><span class="co">#&gt; The following objects are masked from 'package:stats':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     IQR, mad, sd, var, xtabs</span></span>
+<span><span class="co">#&gt; The following objects are masked from 'package:base':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     anyDuplicated, aperm, append, as.data.frame, basename, cbind,</span></span>
+<span><span class="co">#&gt;     colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,</span></span>
+<span><span class="co">#&gt;     get, grep, grepl, is.unsorted, lapply, Map, mapply, match, mget,</span></span>
+<span><span class="co">#&gt;     order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,</span></span>
+<span><span class="co">#&gt;     rbind, Reduce, rownames, sapply, saveRDS, table, tapply, unique,</span></span>
+<span><span class="co">#&gt;     unsplit, which.max, which.min</span></span>
+<span><span class="co">#&gt; Loading required package: GenomicRanges</span></span>
+<span><span class="co">#&gt; Loading required package: stats4</span></span>
+<span><span class="co">#&gt; Loading required package: S4Vectors</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'S4Vectors'</span></span>
+<span><span class="co">#&gt; The following object is masked from 'package:utils':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     findMatches</span></span>
+<span><span class="co">#&gt; The following objects are masked from 'package:base':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     expand.grid, I, unname</span></span>
+<span><span class="co">#&gt; Loading required package: IRanges</span></span>
+<span><span class="co">#&gt; Loading required package: Seqinfo</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'Seqinfo'</span></span>
+<span><span class="co">#&gt; The following objects are masked from 'package:imprintomeR':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     genome, genome&lt;-</span></span>
+<span><span class="co">#&gt; Loading required package: SummarizedExperiment</span></span>
+<span><span class="co">#&gt; Loading required package: MatrixGenerics</span></span>
+<span><span class="co">#&gt; Loading required package: matrixStats</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'MatrixGenerics'</span></span>
+<span><span class="co">#&gt; The following objects are masked from 'package:matrixStats':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,</span></span>
+<span><span class="co">#&gt;     colCounts, colCummaxs, colCummins, colCumprods, colCumsums,</span></span>
+<span><span class="co">#&gt;     colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,</span></span>
+<span><span class="co">#&gt;     colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,</span></span>
+<span><span class="co">#&gt;     colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,</span></span>
+<span><span class="co">#&gt;     colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,</span></span>
+<span><span class="co">#&gt;     colWeightedMeans, colWeightedMedians, colWeightedSds,</span></span>
+<span><span class="co">#&gt;     colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,</span></span>
+<span><span class="co">#&gt;     rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,</span></span>
+<span><span class="co">#&gt;     rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,</span></span>
+<span><span class="co">#&gt;     rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,</span></span>
+<span><span class="co">#&gt;     rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,</span></span>
+<span><span class="co">#&gt;     rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,</span></span>
+<span><span class="co">#&gt;     rowWeightedMads, rowWeightedMeans, rowWeightedMedians,</span></span>
+<span><span class="co">#&gt;     rowWeightedSds, rowWeightedVars</span></span>
+<span><span class="co">#&gt; Loading required package: Biobase</span></span>
+<span><span class="co">#&gt; Welcome to Bioconductor</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     Vignettes contain introductory material; view with</span></span>
+<span><span class="co">#&gt;     'browseVignettes()'. To cite Bioconductor, see</span></span>
+<span><span class="co">#&gt;     'citation("Biobase")', and for packages 'citation("pkgname")'.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'Biobase'</span></span>
+<span><span class="co">#&gt; The following object is masked from 'package:MatrixGenerics':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     rowMedians</span></span>
+<span><span class="co">#&gt; The following objects are masked from 'package:matrixStats':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     anyMissing, rowMedians</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'SummarizedExperiment'</span></span>
+<span><span class="co">#&gt; The following objects are masked from 'package:imprintomeR':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     assay, assay&lt;-</span></span>
+<span><span class="co">#&gt; Loading required package: Biostrings</span></span>
+<span><span class="co">#&gt; Loading required package: XVector</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'Biostrings'</span></span>
+<span><span class="co">#&gt; The following object is masked from 'package:base':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     strsplit</span></span>
+<span><span class="co">#&gt; Loading required package: bumphunter</span></span>
+<span><span class="co">#&gt; Loading required package: foreach</span></span>
+<span><span class="co">#&gt; Loading required package: iterators</span></span>
+<span><span class="co">#&gt; Loading required package: parallel</span></span>
+<span><span class="co">#&gt; Loading required package: locfit</span></span>
+<span><span class="co">#&gt; locfit 1.5-9.12   2025-03-05</span></span>
+<span><span class="co">#&gt; Loading required package: IlluminaHumanMethylation450kanno.ilmn12.hg19</span></span>
+<span><span class="co">#&gt; Computing QC metrics...</span></span>
+<span><span class="co">#&gt; Running control-probe and SNP QC (ctrl_metrics, contamination, predUniqDonor_ID)...</span></span>
+<span><span class="co">#&gt; QC complete: 6 PASS, 0 FAIL</span></span></code></pre></div>
+<p>Inspect QC results:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">qc_summary</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/qc_summarize.html">qc_summarize</a></span><span class="op">(</span><span class="va">qcset</span><span class="op">)</span></span>
 <span><span class="va">qc_summary</span><span class="op">$</span><span class="va">platform</span></span>
+<span><span class="co">#&gt; [1] "450K"</span></span>
 <span><span class="va">qc_summary</span><span class="op">$</span><span class="va">n_samples</span></span>
+<span><span class="co">#&gt; [1] 6</span></span>
 <span><span class="va">qc_summary</span><span class="op">$</span><span class="va">n_probes</span></span>
-<span><span class="va">qc_summary</span><span class="op">$</span><span class="va">aggregation_status</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 485512</span></span>
+<span><span class="fu"><a href="../reference/MethQcSet-accessors.html">qc_tables</a></span><span class="op">(</span><span class="va">qcset</span><span class="op">)</span><span class="op">$</span><span class="va">QC_matrix</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Sample_Name"</span>, <span class="st">"predictedSex"</span>, <span class="st">"Final.QC"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;          Sample_Name predictedSex Final.QC</span></span>
+<span><span class="co">#&gt; GroupA_3    GroupA_3            M     PASS</span></span>
+<span><span class="co">#&gt; GroupA_2    GroupA_2            F     PASS</span></span>
+<span><span class="co">#&gt; GroupB_3    GroupB_3            M     PASS</span></span>
+<span><span class="co">#&gt; GroupB_1    GroupB_1            F     PASS</span></span>
+<span><span class="co">#&gt; GroupA_1    GroupA_1            F     PASS</span></span>
+<span><span class="co">#&gt; GroupB_2    GroupB_2            F     PASS</span></span></code></pre></div>
 <p>Visualize QC metrics:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># PASS / FAIL sample count bar chart (default)</span></span>
-<span><span class="va">p_bar</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">qcset</span>, type <span class="op">=</span> <span class="st">"qc_bar"</span><span class="op">)</span></span>
-<span></span>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># PASS / FAIL sample count bar chart</span></span>
+<span><span class="va">p_bar</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">qcset</span>, type <span class="op">=</span> <span class="st">"qc_bar"</span><span class="op">)</span>   <span class="co"># plot() on a MethQcSet returns the plot invisibly</span></span>
+<span><span class="va">p_bar</span></span></code></pre></div>
+<p><img src="imprintomeset-quickstart_files/figure-html/unnamed-chunk-8-1.png" class="r-plt" alt="Bar chart of PASS and FAIL sample counts" width="100%"></p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
 <span><span class="co"># Methylated vs unmethylated intensity scatter, cutoff line at log2 = 11</span></span>
-<span><span class="va">p_int</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">qcset</span>, type <span class="op">=</span> <span class="st">"intensity"</span>, icutoff <span class="op">=</span> <span class="fl">11</span>,</span>
-<span>              outFile <span class="op">=</span> <span class="st">"qc_intensity.pdf"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Average detection p-value per sample, cutoff line at 0.05</span></span>
-<span><span class="va">p_dp</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">qcset</span>, type <span class="op">=</span> <span class="st">"detection_pval"</span>, pcutoff <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
-<span></span>
+<span><span class="va">p_int</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">qcset</span>, type <span class="op">=</span> <span class="st">"intensity"</span>, icutoff <span class="op">=</span> <span class="fl">11</span><span class="op">)</span></span>
+<span><span class="va">p_int</span></span></code></pre></div>
+<p><img src="imprintomeset-quickstart_files/figure-html/unnamed-chunk-8-2.png" class="r-plt" alt="Scatter plot of methylated versus unmethylated intensity per sample with the log2 cutoff" width="100%"></p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
 <span><span class="co"># % probes detected per sample, reference line at 95%</span></span>
 <span><span class="va">p_cov</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">qcset</span>, type <span class="op">=</span> <span class="st">"probe_coverage"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Predicted sex distribution</span></span>
-<span><span class="va">p_sex</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">qcset</span>, type <span class="op">=</span> <span class="st">"predicted_sex"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># control probe metrics — summary (NULL if these metrics could not be computed)</span></span>
-<span><span class="va">p_ctrl</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">qcset</span>, type <span class="op">=</span> <span class="st">"ctrl_metrics"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Per-metric detail plots (Bisulfite Conversion, Specificity, Non-polymorphic)</span></span>
-<span><span class="co"># outFile is used as a path prefix; one PDF is saved per control metric</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">qcset</span>, type <span class="op">=</span> <span class="st">"ctrl_metrics_detail"</span>,</span>
-<span>     outFile <span class="op">=</span> <span class="st">"qc_ctrl_matrix_detail"</span><span class="op">)</span></span></code></pre></div>
-<p>Export cleaned data:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="st">"qc_output"</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">exported_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/export.html">export</a></span><span class="op">(</span></span>
+<span><span class="va">p_cov</span></span></code></pre></div>
+<p><img src="imprintomeset-quickstart_files/figure-html/unnamed-chunk-8-3.png" class="r-plt" alt="Percentage of probes detected per sample with the 95% reference line" width="100%"></p>
+<p>Other QC plots use the same call:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">qcset</span>, type <span class="op">=</span> <span class="st">"detection_pval"</span>, pcutoff <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>  <span class="co"># average detection p-value per sample</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">qcset</span>, type <span class="op">=</span> <span class="st">"predicted_sex"</span><span class="op">)</span>                   <span class="co"># predicted sex distribution</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">qcset</span>, type <span class="op">=</span> <span class="st">"ctrl_metrics"</span><span class="op">)</span>                    <span class="co"># control-probe metrics summary</span></span>
+<span><span class="co"># Per-metric detail plots; outFile is a path prefix, one PDF per control metric</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">qcset</span>, type <span class="op">=</span> <span class="st">"ctrl_metrics_detail"</span>, outFile <span class="op">=</span> <span class="st">"qc_ctrl_matrix_detail"</span><span class="op">)</span></span></code></pre></div>
+<p>Export the QC results:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">exported_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/export.html">export</a></span><span class="op">(</span></span>
 <span>  <span class="va">qcset</span>,</span>
 <span>  outdir <span class="op">=</span> <span class="st">"qc_output"</span>,</span>
+<span>  prefix <span class="op">=</span> <span class="st">"minfiData"</span>,</span>
 <span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"xlsx"</span>, <span class="st">"rds"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
+<span><span class="co">#&gt; rds: wrote MethQcSet to data/minfiData_qcset.rds</span></span>
+<span><span class="co">#&gt; Columns renamed for the Excel table (names must differ by more than letter case): Status -&gt; Status_2</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;  [loaded existing workbook]</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;  [loaded existing workbook]</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;  [loaded existing workbook]</span></span>
+<span><span class="co">#&gt; xlsx: wrote main qc tables to minfiData_qc_table_main.xlsx</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;  [loaded existing workbook]</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;  [loaded existing workbook]</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;  [loaded existing workbook]</span></span>
+<span><span class="co">#&gt; xlsx: wrote extra qc tables to minfiData_qc_table_extra.xlsx</span></span>
+<span><span class="co">#&gt; Exported 4 file(s) to qc_output</span></span>
 <span><span class="co"># Creates two Excel workbooks:</span></span>
-<span><span class="co">#   qc_table_main.xlsx: metadata, QC_matrix, Ctrl_matrix (control probes), statistics</span></span>
-<span><span class="co">#   qc_table_extra.xlsx: QC_metrics (thresholds), recall_rate (if available),</span></span>
-<span><span class="co">#                         contamination and predUniqDonor_ID (SNP probes)</span></span>
-<span><span class="co"># Plus: qcset.rds (full MethQcSet object)</span></span>
-<span><span class="co"># Plus: qcset_summary.txt (summary report with Notes section documenting missing sheets)</span></span></code></pre></div>
+<span><span class="co">#   &lt;prefix&gt;_qc_table_main.xlsx: metadata, QC_matrix, Ctrl_matrix (control probes), statistics</span></span>
+<span><span class="co">#   &lt;prefix&gt;_qc_table_extra.xlsx: QC_metrics (thresholds), recall_rate (if available),</span></span>
+<span><span class="co">#                                 contamination and predUniqDonor_ID (SNP probes)</span></span>
+<span><span class="co"># plus the MethQcSet as an RDS file and a summary report</span></span></code></pre></div>
 <p><strong>If you already have QC-cleaned data:</strong></p>
 <p>Skip MethQcSet and load pre-cleaned beta values. Note:
 <code>Basename</code> column is not needed since QC is already done.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/LoadMeta.html">LoadMeta</a></span><span class="op">(</span><span class="st">"meta.tsv"</span><span class="op">)</span>  <span class="co"># Only needs Sample_Name and Sample_Group</span></span>
 <span><span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/LoadBeta.html">LoadBeta</a></span><span class="op">(</span><span class="st">"cleaned_beta.tsv"</span><span class="op">)</span>  <span class="co"># Already QC-approved</span></span>
 <span></span>
 <span><span class="co"># Proceed to Section 2: Create ImprintomeSet</span></span></code></pre></div>
 <p>Optional: Merge multiple QC-approved single-platform datasets:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Two separate MethQcSet objects (same platform)</span></span>
 <span><span class="va">qcset1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/MethQcSet.html">MethQcSet</a></span><span class="op">(</span><span class="va">meta1</span>, <span class="va">beta1</span>, platform <span class="op">=</span> <span class="st">"EPICv1"</span><span class="op">)</span></span>
 <span><span class="va">qcset2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/MethQcSet.html">MethQcSet</a></span><span class="op">(</span><span class="va">meta2</span>, <span class="va">beta2</span>, platform <span class="op">=</span> <span class="st">"EPICv1"</span><span class="op">)</span></span>
@@ -229,7 +384,7 @@ directly:</p>
 <h2 id="create-imprintomeset-from-qc-approved-data">2. Create ImprintomeSet from QC-Approved Data<a class="anchor" aria-label="anchor" href="#create-imprintomeset-from-qc-approved-data"></a>
 </h2>
 <p>Once your data passes QC, convert to analysis container:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load probeset annotations</span></span>
 <span><span class="va">probesets</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"probesets_hg38.rds"</span>, package <span class="op">=</span> <span class="st">"imprintomeR"</span><span class="op">)</span></span>
@@ -250,12 +405,13 @@ directly:</p>
 <span>  <span class="va">qcset_pass</span>,</span>
 <span>  probeset <span class="op">=</span> <span class="va">probesets</span><span class="op">[[</span><span class="st">"selected"</span><span class="op">]</span><span class="op">]</span>,</span>
 <span>  genome <span class="op">=</span> <span class="st">"hg38"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; Note: Basename column dropped during conversion to ImprintomeSet (QC-specific, not needed for analysis).</span></span></code></pre></div>
 <p>Alternatively, construct <code>ImprintomeSet</code> directly from a
 beta matrix if QC was done elsewhere. The rest of this vignette runs on
 the bundled example, beta values of the <code>selected</code> panel
 probes for 28 samples of GEO GSE52576 (450K):</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/imprintome_example.html">imprintome_example</a></span><span class="op">(</span><span class="st">"beta"</span><span class="op">)</span>   <span class="co"># 782 probes x 28 samples, GEO GSE52576 (450K)</span></span>
 <span><span class="va">meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/imprintome_example.html">imprintome_example</a></span><span class="op">(</span><span class="st">"meta"</span><span class="op">)</span>   <span class="co"># Sample_Name, Sample_Group, title, health_state, gender</span></span>
 <span><span class="va">probesets</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"probesets_hg38.rds"</span>, package <span class="op">=</span> <span class="st">"imprintomeR"</span><span class="op">)</span><span class="op">)</span></span>
@@ -287,7 +443,7 @@ beta columns</li>
 </h2>
 <p><code><a href="../reference/runImprintome.html">runImprintome()</a></code> stores the analysis table inside
 <code>results(x)</code>.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/runImprintome.html">runImprintome</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  probeset <span class="op">=</span> <span class="st">"selected"</span>,</span>
@@ -301,7 +457,7 @@ beta columns</li>
 <span><span class="co">#&gt;  [SubsetBeta] subset by probeset [query: 782; matched probes: 782 ]</span></span></code></pre></div>
 <p>You can run additional probesets and keep all outputs in the same
 object.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/runImprintome.html">runImprintome</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  probeset <span class="op">=</span> <span class="st">"NanoImprint"</span>,</span>
@@ -318,7 +474,7 @@ object.</p>
 <div class="section level2">
 <h2 id="inspect-results">4. Inspect Results<a class="anchor" aria-label="anchor" href="#inspect-results"></a>
 </h2>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/ImprintomeSet-accessors.html">results</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">result_names</span></span>
 <span><span class="co">#&gt; [1] "AnalyzeImprintStatus.selected"    "AnalyzeImprintStatus.NanoImprint"</span></span>
@@ -379,7 +535,7 @@ object.</p>
 <div class="section level2">
 <h2 id="summarize-object-state">5. Summarize Object State<a class="anchor" aria-label="anchor" href="#summarize-object-state"></a>
 </h2>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/summarize.html">summarize</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
 <span><span class="va">s</span><span class="op">$</span><span class="va">object</span></span>
 <span><span class="co">#&gt;   assay genome beta_nrow beta_ncol meta_nrow meta_ncol probeset_type</span></span>
@@ -400,7 +556,7 @@ object.</p>
 <div class="section level2">
 <h2 id="access-and-update-slots">6. Access and Update Slots<a class="anchor" aria-label="anchor" href="#access-and-update-slots"></a>
 </h2>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Accessors</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/MethQcSet-accessors.html">beta</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">[</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;            GSM1270013 GSM1270014 GSM1270015 GSM1270016</span></span>
@@ -456,7 +612,7 @@ heatmap</li>
 <code>plot_types = c(...)</code>: any explicit subset of supported
 plot types</li>
 </ul>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sample_id1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/row_colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="fu"><a href="../reference/MethQcSet-accessors.html">beta</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span></span>
 <span></span>
 <span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/runImprintomeVisualizations.html">runImprintomeVisualizations</a></span><span class="op">(</span></span>
@@ -498,15 +654,15 @@ plot types</li>
 <div class="section level3">
 <h3 id="access-stored-plot-objects">7.1 Access Stored Plot Objects<a class="anchor" aria-label="anchor" href="#access-stored-plot-objects"></a>
 </h3>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p_from_object</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ImprintomeSet-accessors.html">plots</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">[[</span><span class="st">"beeswarm_origin.selected"</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="va">p_from_object</span></span></code></pre></div>
-<p><img src="imprintomeset-quickstart_files/figure-html/unnamed-chunk-18-1.png" class="r-plt" alt="Stored beeswarm plot of beta values by annotated parental origin" width="100%"></p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<p><img src="imprintomeset-quickstart_files/figure-html/unnamed-chunk-21-1.png" class="r-plt" alt="Stored beeswarm plot of beta values by annotated parental origin" width="100%"></p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
 <span><span class="va">p_chr_from_object</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ImprintomeSet-accessors.html">plots</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"^beeswarm_chr\\."</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/ImprintomeSet-accessors.html">plots</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="va">p_chr_from_object</span></span></code></pre></div>
-<p><img src="imprintomeset-quickstart_files/figure-html/unnamed-chunk-18-2.png" class="r-plt" alt="Stored chromosome beeswarm plot for one sample" width="100%"></p>
+<p><img src="imprintomeset-quickstart_files/figure-html/unnamed-chunk-21-2.png" class="r-plt" alt="Stored chromosome beeswarm plot for one sample" width="100%"></p>
 </div>
 <div class="section level3">
 <h3 id="store-circular-heatmap-explicitly">7.2 Store Circular Heatmap Explicitly<a class="anchor" aria-label="anchor" href="#store-circular-heatmap-explicitly"></a>
@@ -515,7 +671,7 @@ plot types</li>
 11 groups of the example it is skipped with a warning, so this chunk is
 not run here (<code><a href="../articles/imprintomeset-results-export.html">vignette("imprintomeset-results-export")</a></code>
 draws it for three groups).</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/runImprintomeVisualizations.html">runImprintomeVisualizations</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  plot_types <span class="op">=</span> <span class="st">"circular_heatmap"</span>,</span>
@@ -530,7 +686,7 @@ draws it for three groups).</p>
 <div class="section level3">
 <h3 id="save-plot-files-during-generation">7.3 Save Plot Files During Generation<a class="anchor" aria-label="anchor" href="#save-plot-files-during-generation"></a>
 </h3>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/runImprintomeVisualizations.html">runImprintomeVisualizations</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  plot_types <span class="op">=</span> <span class="st">"default"</span>,</span>
@@ -573,7 +729,7 @@ draws it for three groups).</p>
 <div class="section level2">
 <h2 id="export-results">8. Export Results<a class="anchor" aria-label="anchor" href="#export-results"></a>
 </h2>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">manifest</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/export.html">export</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
 <span>  outdir <span class="op">=</span> <span class="st">"imprintome_results"</span>,</span>
@@ -617,7 +773,7 @@ as a plot file; unknown plot object types fall back to RDS.</p>
 includes <code>summary.txt</code> with a “Notes” section documenting any
 optional sheets not created due to missing underlying data. Check it to
 understand data availability:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># View what sheets were and were not created</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/readLines.html" class="external-link">readLines</a></span><span class="op">(</span><span class="st">"qc_output/methqcset_summary.txt"</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -638,7 +794,7 @@ explicitly updated.</li>
 <div class="section level2">
 <h2 id="session-info">Session Info<a class="anchor" aria-label="anchor" href="#session-info"></a>
 </h2>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.6.2 (2026-10-29)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-pc-linux-gnu</span></span>
@@ -661,36 +817,165 @@ explicitly updated.</li>
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt; [1] imprintomeR_1.6.0</span></span>
+<span><span class="co">#&gt; [1] imprintomeR_1.6.1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
-<span><span class="co">#&gt;  [1] gtable_0.3.6          beeswarm_0.4.0        circlize_0.4.18      </span></span>
-<span><span class="co">#&gt;  [4] shape_1.4.6.1         rjson_0.2.23          xfun_0.62            </span></span>
-<span><span class="co">#&gt;  [7] bslib_0.12.0          ggplot2_4.0.4         GlobalOptions_0.1.4  </span></span>
-<span><span class="co">#&gt; [10] ggrepel_0.9.8         vctrs_0.7.3           tools_4.6.2          </span></span>
-<span><span class="co">#&gt; [13] generics_0.1.4        stats4_4.6.2          parallel_4.6.2       </span></span>
-<span><span class="co">#&gt; [16] tibble_3.3.1          cluster_2.1.8.3       pkgconfig_2.0.3      </span></span>
-<span><span class="co">#&gt; [19] data.table_1.18.6.1   RColorBrewer_1.1-3    S7_1.0.0             </span></span>
-<span><span class="co">#&gt; [22] desc_1.4.3            S4Vectors_0.50.3      lifecycle_1.0.5      </span></span>
-<span><span class="co">#&gt; [25] compiler_4.6.2        farver_2.1.2          stringr_1.6.0        </span></span>
-<span><span class="co">#&gt; [28] textshaping_1.1.0     codetools_0.2-20      ComplexHeatmap_2.28.0</span></span>
-<span><span class="co">#&gt; [31] clue_0.3-68           vipor_0.4.7           htmltools_0.5.9      </span></span>
-<span><span class="co">#&gt; [34] sass_0.5.0            yaml_2.3.12           pillar_1.11.1        </span></span>
-<span><span class="co">#&gt; [37] pkgdown_2.2.1         crayon_1.5.3          jquerylib_0.1.4      </span></span>
-<span><span class="co">#&gt; [40] tidyr_1.3.2           cachem_1.1.0          iterators_1.0.14     </span></span>
-<span><span class="co">#&gt; [43] foreach_1.5.2         tidyselect_1.2.1      zip_3.0.2            </span></span>
-<span><span class="co">#&gt; [46] digest_0.6.39         stringi_1.8.9         dplyr_1.2.1          </span></span>
-<span><span class="co">#&gt; [49] reshape2_1.4.5        purrr_1.2.2           labeling_0.4.3       </span></span>
-<span><span class="co">#&gt; [52] fastmap_1.2.0         grid_4.6.2            colorspace_2.1-4     </span></span>
-<span><span class="co">#&gt; [55] cli_3.6.6             magrittr_2.0.5        withr_3.0.3          </span></span>
-<span><span class="co">#&gt; [58] scales_1.4.0          ggbeeswarm_0.7.3      rmarkdown_2.32       </span></span>
-<span><span class="co">#&gt; [61] matrixStats_1.5.0     otel_0.3.0            ragg_1.5.2           </span></span>
-<span><span class="co">#&gt; [64] png_0.1-9             GetoptLong_1.1.1      openxlsx_4.2.9       </span></span>
-<span><span class="co">#&gt; [67] evaluate_1.0.5        knitr_1.52            IRanges_2.46.0       </span></span>
-<span><span class="co">#&gt; [70] doParallel_1.0.17     rlang_1.3.0           Rcpp_1.1.2           </span></span>
-<span><span class="co">#&gt; [73] glue_1.8.1            BiocGenerics_0.58.1   jsonlite_2.0.0       </span></span>
-<span><span class="co">#&gt; [76] R6_2.6.1              plyr_1.8.9            systemfonts_1.3.4    </span></span>
-<span><span class="co">#&gt; [79] fs_2.1.0</span></span></code></pre></div>
+<span><span class="co">#&gt;   [1] splines_4.6.2                                     </span></span>
+<span><span class="co">#&gt;   [2] BiocIO_1.22.0                                     </span></span>
+<span><span class="co">#&gt;   [3] bitops_1.1-0                                      </span></span>
+<span><span class="co">#&gt;   [4] tibble_3.3.1                                      </span></span>
+<span><span class="co">#&gt;   [5] preprocessCore_1.74.0                             </span></span>
+<span><span class="co">#&gt;   [6] XML_3.99-0.25                                     </span></span>
+<span><span class="co">#&gt;   [7] lifecycle_1.0.5                                   </span></span>
+<span><span class="co">#&gt;   [8] doParallel_1.0.17                                 </span></span>
+<span><span class="co">#&gt;   [9] lattice_0.23-1                                    </span></span>
+<span><span class="co">#&gt;  [10] MASS_7.3-66                                       </span></span>
+<span><span class="co">#&gt;  [11] base64_2.0.2                                      </span></span>
+<span><span class="co">#&gt;  [12] scrime_1.3.7                                      </span></span>
+<span><span class="co">#&gt;  [13] magrittr_2.0.5                                    </span></span>
+<span><span class="co">#&gt;  [14] openxlsx_4.2.9                                    </span></span>
+<span><span class="co">#&gt;  [15] minfi_1.58.0                                      </span></span>
+<span><span class="co">#&gt;  [16] limma_3.68.5                                      </span></span>
+<span><span class="co">#&gt;  [17] sass_0.5.0                                        </span></span>
+<span><span class="co">#&gt;  [18] rmarkdown_2.32                                    </span></span>
+<span><span class="co">#&gt;  [19] jquerylib_0.1.4                                   </span></span>
+<span><span class="co">#&gt;  [20] yaml_2.3.12                                       </span></span>
+<span><span class="co">#&gt;  [21] otel_0.3.0                                        </span></span>
+<span><span class="co">#&gt;  [22] doRNG_1.8.6.3                                     </span></span>
+<span><span class="co">#&gt;  [23] zip_3.0.2                                         </span></span>
+<span><span class="co">#&gt;  [24] askpass_1.2.1                                     </span></span>
+<span><span class="co">#&gt;  [25] DBI_1.3.0                                         </span></span>
+<span><span class="co">#&gt;  [26] RColorBrewer_1.1-3                                </span></span>
+<span><span class="co">#&gt;  [27] abind_1.4-8                                       </span></span>
+<span><span class="co">#&gt;  [28] quadprog_1.5-8                                    </span></span>
+<span><span class="co">#&gt;  [29] GenomicRanges_1.64.0                              </span></span>
+<span><span class="co">#&gt;  [30] purrr_1.2.2                                       </span></span>
+<span><span class="co">#&gt;  [31] BiocGenerics_0.58.1                               </span></span>
+<span><span class="co">#&gt;  [32] RCurl_1.98-1.20                                   </span></span>
+<span><span class="co">#&gt;  [33] circlize_0.4.18                                   </span></span>
+<span><span class="co">#&gt;  [34] IRanges_2.46.0                                    </span></span>
+<span><span class="co">#&gt;  [35] S4Vectors_0.50.3                                  </span></span>
+<span><span class="co">#&gt;  [36] ggrepel_0.9.8                                     </span></span>
+<span><span class="co">#&gt;  [37] rentrez_1.2.4                                     </span></span>
+<span><span class="co">#&gt;  [38] genefilter_1.94.0                                 </span></span>
+<span><span class="co">#&gt;  [39] annotate_1.90.0                                   </span></span>
+<span><span class="co">#&gt;  [40] pkgdown_2.2.1                                     </span></span>
+<span><span class="co">#&gt;  [41] DelayedMatrixStats_1.34.0                         </span></span>
+<span><span class="co">#&gt;  [42] codetools_0.2-20                                  </span></span>
+<span><span class="co">#&gt;  [43] DelayedArray_0.38.2                               </span></span>
+<span><span class="co">#&gt;  [44] xml2_1.6.0                                        </span></span>
+<span><span class="co">#&gt;  [45] tidyselect_1.2.1                                  </span></span>
+<span><span class="co">#&gt;  [46] shape_1.4.6.1                                     </span></span>
+<span><span class="co">#&gt;  [47] farver_2.1.2                                      </span></span>
+<span><span class="co">#&gt;  [48] beanplot_1.3.1                                    </span></span>
+<span><span class="co">#&gt;  [49] matrixStats_1.5.0                                 </span></span>
+<span><span class="co">#&gt;  [50] stats4_4.6.2                                      </span></span>
+<span><span class="co">#&gt;  [51] illuminaio_0.54.0                                 </span></span>
+<span><span class="co">#&gt;  [52] Seqinfo_1.2.0                                     </span></span>
+<span><span class="co">#&gt;  [53] GenomicAlignments_1.48.0                          </span></span>
+<span><span class="co">#&gt;  [54] jsonlite_2.0.0                                    </span></span>
+<span><span class="co">#&gt;  [55] GetoptLong_1.1.1                                  </span></span>
+<span><span class="co">#&gt;  [56] multtest_2.68.0                                   </span></span>
+<span><span class="co">#&gt;  [57] survival_3.8-12                                   </span></span>
+<span><span class="co">#&gt;  [58] iterators_1.0.14                                  </span></span>
+<span><span class="co">#&gt;  [59] systemfonts_1.3.4                                 </span></span>
+<span><span class="co">#&gt;  [60] foreach_1.5.2                                     </span></span>
+<span><span class="co">#&gt;  [61] tools_4.6.2                                       </span></span>
+<span><span class="co">#&gt;  [62] ragg_1.5.2                                        </span></span>
+<span><span class="co">#&gt;  [63] Rcpp_1.1.2                                        </span></span>
+<span><span class="co">#&gt;  [64] glue_1.8.1                                        </span></span>
+<span><span class="co">#&gt;  [65] SparseArray_1.12.3                                </span></span>
+<span><span class="co">#&gt;  [66] xfun_0.62                                         </span></span>
+<span><span class="co">#&gt;  [67] MatrixGenerics_1.24.0                             </span></span>
+<span><span class="co">#&gt;  [68] dplyr_1.2.1                                       </span></span>
+<span><span class="co">#&gt;  [69] HDF5Array_1.40.0                                  </span></span>
+<span><span class="co">#&gt;  [70] withr_3.0.3                                       </span></span>
+<span><span class="co">#&gt;  [71] IlluminaHumanMethylation450kanno.ilmn12.hg19_0.6.1</span></span>
+<span><span class="co">#&gt;  [72] fastmap_1.2.0                                     </span></span>
+<span><span class="co">#&gt;  [73] rhdf5filters_1.24.1                               </span></span>
+<span><span class="co">#&gt;  [74] openssl_2.6.0                                     </span></span>
+<span><span class="co">#&gt;  [75] digest_0.6.39                                     </span></span>
+<span><span class="co">#&gt;  [76] R6_2.6.1                                          </span></span>
+<span><span class="co">#&gt;  [77] textshaping_1.1.0                                 </span></span>
+<span><span class="co">#&gt;  [78] colorspace_2.1-4                                  </span></span>
+<span><span class="co">#&gt;  [79] RSQLite_3.53.3                                    </span></span>
+<span><span class="co">#&gt;  [80] cigarillo_1.2.1                                   </span></span>
+<span><span class="co">#&gt;  [81] h5mread_1.4.1                                     </span></span>
+<span><span class="co">#&gt;  [82] minfiData_0.58.0                                  </span></span>
+<span><span class="co">#&gt;  [83] tidyr_1.3.2                                       </span></span>
+<span><span class="co">#&gt;  [84] generics_0.1.4                                    </span></span>
+<span><span class="co">#&gt;  [85] data.table_1.18.6.1                               </span></span>
+<span><span class="co">#&gt;  [86] rtracklayer_1.72.0                                </span></span>
+<span><span class="co">#&gt;  [87] httr_1.4.9                                        </span></span>
+<span><span class="co">#&gt;  [88] S4Arrays_1.12.1                                   </span></span>
+<span><span class="co">#&gt;  [89] pkgconfig_2.0.3                                   </span></span>
+<span><span class="co">#&gt;  [90] gtable_0.3.6                                      </span></span>
+<span><span class="co">#&gt;  [91] blob_1.3.0                                        </span></span>
+<span><span class="co">#&gt;  [92] ComplexHeatmap_2.28.0                             </span></span>
+<span><span class="co">#&gt;  [93] S7_1.0.0                                          </span></span>
+<span><span class="co">#&gt;  [94] siggenes_1.86.0                                   </span></span>
+<span><span class="co">#&gt;  [95] XVector_0.52.0                                    </span></span>
+<span><span class="co">#&gt;  [96] htmltools_0.5.9                                   </span></span>
+<span><span class="co">#&gt;  [97] clue_0.3-68                                       </span></span>
+<span><span class="co">#&gt;  [98] scales_1.4.0                                      </span></span>
+<span><span class="co">#&gt;  [99] Biobase_2.72.0                                    </span></span>
+<span><span class="co">#&gt; [100] png_0.1-9                                         </span></span>
+<span><span class="co">#&gt; [101] knitr_1.52                                        </span></span>
+<span><span class="co">#&gt; [102] tzdb_0.5.0                                        </span></span>
+<span><span class="co">#&gt; [103] reshape2_1.4.5                                    </span></span>
+<span><span class="co">#&gt; [104] rjson_0.2.23                                      </span></span>
+<span><span class="co">#&gt; [105] nlme_3.1-171                                      </span></span>
+<span><span class="co">#&gt; [106] curl_8.2.0                                        </span></span>
+<span><span class="co">#&gt; [107] bumphunter_1.54.0                                 </span></span>
+<span><span class="co">#&gt; [108] cachem_1.1.0                                      </span></span>
+<span><span class="co">#&gt; [109] rhdf5_2.56.1                                      </span></span>
+<span><span class="co">#&gt; [110] GlobalOptions_0.1.4                               </span></span>
+<span><span class="co">#&gt; [111] stringr_1.6.0                                     </span></span>
+<span><span class="co">#&gt; [112] parallel_4.6.2                                    </span></span>
+<span><span class="co">#&gt; [113] vipor_0.4.7                                       </span></span>
+<span><span class="co">#&gt; [114] AnnotationDbi_1.74.0                              </span></span>
+<span><span class="co">#&gt; [115] restfulr_0.0.17                                   </span></span>
+<span><span class="co">#&gt; [116] desc_1.4.3                                        </span></span>
+<span><span class="co">#&gt; [117] GEOquery_2.80.1                                   </span></span>
+<span><span class="co">#&gt; [118] pillar_1.11.1                                     </span></span>
+<span><span class="co">#&gt; [119] grid_4.6.2                                        </span></span>
+<span><span class="co">#&gt; [120] reshape_0.8.10                                    </span></span>
+<span><span class="co">#&gt; [121] vctrs_0.7.3                                       </span></span>
+<span><span class="co">#&gt; [122] xtable_1.8-8                                      </span></span>
+<span><span class="co">#&gt; [123] cluster_2.1.8.3                                   </span></span>
+<span><span class="co">#&gt; [124] beeswarm_0.4.0                                    </span></span>
+<span><span class="co">#&gt; [125] evaluate_1.0.5                                    </span></span>
+<span><span class="co">#&gt; [126] readr_2.2.0                                       </span></span>
+<span><span class="co">#&gt; [127] GenomicFeatures_1.64.0                            </span></span>
+<span><span class="co">#&gt; [128] cli_3.6.6                                         </span></span>
+<span><span class="co">#&gt; [129] locfit_1.5-9.12                                   </span></span>
+<span><span class="co">#&gt; [130] compiler_4.6.2                                    </span></span>
+<span><span class="co">#&gt; [131] Rsamtools_2.28.0                                  </span></span>
+<span><span class="co">#&gt; [132] rlang_1.3.0                                       </span></span>
+<span><span class="co">#&gt; [133] crayon_1.5.3                                      </span></span>
+<span><span class="co">#&gt; [134] rngtools_1.5.2                                    </span></span>
+<span><span class="co">#&gt; [135] labeling_0.4.3                                    </span></span>
+<span><span class="co">#&gt; [136] nor1mix_1.3-3                                     </span></span>
+<span><span class="co">#&gt; [137] mclust_6.1.4                                      </span></span>
+<span><span class="co">#&gt; [138] plyr_1.8.9                                        </span></span>
+<span><span class="co">#&gt; [139] fs_2.1.0                                          </span></span>
+<span><span class="co">#&gt; [140] ggbeeswarm_0.7.3                                  </span></span>
+<span><span class="co">#&gt; [141] stringi_1.8.9                                     </span></span>
+<span><span class="co">#&gt; [142] BiocParallel_1.46.0                               </span></span>
+<span><span class="co">#&gt; [143] Biostrings_2.80.2                                 </span></span>
+<span><span class="co">#&gt; [144] Matrix_1.7-6                                      </span></span>
+<span><span class="co">#&gt; [145] hms_1.1.4                                         </span></span>
+<span><span class="co">#&gt; [146] sparseMatrixStats_1.24.0                          </span></span>
+<span><span class="co">#&gt; [147] bit64_4.8.6                                       </span></span>
+<span><span class="co">#&gt; [148] ggplot2_4.0.4                                     </span></span>
+<span><span class="co">#&gt; [149] Rhdf5lib_2.0.0                                    </span></span>
+<span><span class="co">#&gt; [150] KEGGREST_1.52.2                                   </span></span>
+<span><span class="co">#&gt; [151] statmod_1.5.2                                     </span></span>
+<span><span class="co">#&gt; [152] SummarizedExperiment_1.42.0                       </span></span>
+<span><span class="co">#&gt; [153] memoise_2.0.1                                     </span></span>
+<span><span class="co">#&gt; [154] bslib_0.12.0                                      </span></span>
+<span><span class="co">#&gt; [155] IlluminaHumanMethylation450kmanifest_0.4.0        </span></span>
+<span><span class="co">#&gt; [156] bit_4.6.0</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
