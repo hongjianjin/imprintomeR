@@ -8,6 +8,9 @@ Suggestions from Reviewer 1 at acceptance of the Application Note:
   Quick start does, instead of showing `LoadMeta("meta.tsv")` for a file that does not exist; the
   conversion from the QC result to an `ImprintomeSet` runs too. The chunks run when minfiData is
   installed.
+
+Bug fix found while making that vignette section run:
+
 * `runMethQC()` leaves the search path as it found it. minfi attaches the array annotation packages
   (and with them SummarizedExperiment and GenomeInfoDb), whose `assay()` and `genome()` generics then
   masked imprintomeR's, so `assay(x)` and `genome(x)` on an `ImprintomeSet` failed after QC in the same
